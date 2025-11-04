@@ -1,0 +1,45 @@
+.aurora-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  }
+
+canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: transparent; /* ✅ elimina el fondo negro */
+  z-index: 0; /* ✅ asegura que esté detrás del contenido */
+}
+
+
+.aurora-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  opacity: 0.6;
+  background: radial-gradient(circle at 50% 60%, #ffffff, transparent),
+              radial-gradient(circle at 50% 80%, #f0f0f0, transparent),
+              radial-gradient(circle at 50% 90%, #d6f5ff, transparent);
+  animation: pulse 10s infinite ease-in-out;
+}
+
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}

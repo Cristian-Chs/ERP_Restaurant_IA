@@ -1,0 +1,62 @@
+# ======================================================
+# Archivos y directorios generados por Python / Flask
+# ======================================================
+
+# Entornos Virtuales (¡Muy Importante para Python!)
+venv/
+*.venv/
+env/
+.env
+
+# Archivos de caché de Python
+__pycache__/
+*.pyc
+*.pyd
+*.pyo
+
+# Bases de datos SQLite (si no son persistentes y de desarrollo)
+instance/*.db
+
+# ======================================================
+# Archivos y directorios generados por Node / React / Electron
+# ======================================================
+
+# Dependencias (node_modules)
+/reactproject/node_modules
+
+# Directorios de compilación/salida (Vite/React/Electron)
+/reactproject/dist
+/reactproject/build
+/reactproject/out
+
+# Archivos de Bloqueo de Paquetes
+/reactproject/package-lock.json
+/reactproject/yarn.lock
+
+# Archivos temporales y de logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ======================================================
+# Archivos de Editor / Sistema Operativo
+# ======================================================
+
+# Archivos de Entorno sensibles (¡MUY IMPORTANTE!)
+.env*
+*.local
+
+# Configuración del IDE/Sistema Operativo
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+!.vscode/extensions.json  # Mantener extensions.json si lo necesitas para VSCode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

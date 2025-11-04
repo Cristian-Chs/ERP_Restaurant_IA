@@ -1,0 +1,32 @@
+/* src/components/BackButton.css */
+.decorative-back-button {
+  /* Estilos principales */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0.5rem 1rem;
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  margin: 1rem 0; /* Espacio para separarlo */
+}
+
+.decorative-back-button > svg {
+  margin-right: 8px;
+  width: 16px;
+  height: 16px;
+  fill: currentColor; /* Usa el color del texto (blanco) */
+  transition: transform 0.2s ease-in;
+}
+
+.decorative-back-button:hover {
+  transform: scale(1.05);
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+}
+
+.decorative-back-button:hover > svg {
+  transform: translateX(-5px);
+}

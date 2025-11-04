@@ -1,0 +1,52 @@
+/* src/index.css */
+
+/* 1. Reset Global y Box-Sizing */
+*, *::before, *::after {
+  box-sizing: border-box; /* Previene que padding y border aumenten el tamaño final */
+}
+
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 2. Base de la Página (Corrección de altura a 100vh) */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh; /* ¡CORREGIDO! Asegura que el fondo cubra toda la pantalla */
+  background: linear-gradient(to right,#f6ff00, #0008ff, #FF3232);
+}
+
+/* 3. Estilos de Tipografía y Encabezados Comunes */
+h1 {
+  text-align: center;
+  font-size: 2.5rem;
+  margin-bottom: 2rem;
+  color: #fff;
+  text-shadow: 3px 2px 6px rgb(0, 0, 0);
+}
+
+/* 4. Estilos de Botón Base */
+button {
+  border-radius: 8px;
+  border: none;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  background-color: #3498db;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+button:hover {
+  background-color: #00ff88;
+  color: black;
+}
