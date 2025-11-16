@@ -34,17 +34,12 @@
 
 .panel-form button {
   padding: 0.75rem;
-  background: linear-gradient(135deg, #00f0ff, #00ff88);
   border: none;
   border-radius: 6px;
   color: #000;
   font-weight: bold;
   cursor: pointer;
   transition: background 0.3s ease;
-}
-
-.panel-form button:hover {
-  background: linear-gradient(135deg, #00ff88, #00f0ff);
 }
 
 .platillo-card {

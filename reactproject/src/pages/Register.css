@@ -45,7 +45,7 @@
 button {
   margin-top: 1rem;
   padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #00f0ff, #00ff88);
+  /*background: linear-gradient(135deg, #00f0ff, #00ff88);*/
   border: none;
   border-radius: 8px;
   color: #000;

@@ -21,8 +21,8 @@ html, body {
   padding: 0;
   width: 100vw;
   height: 100vh; /* ¡CORREGIDO! Asegura que el fondo cubra toda la pantalla */
-  background: linear-gradient(to right,#f6ff00, #0008ff, #FF3232);
-}
+  /*background: linear-gradient(to right,#6d766f, #00005d, #ffffff);*/
+background-color: #051F20;}
 
 /* 3. Estilos de Tipografía y Encabezados Comunes */
 h1 {
@@ -40,13 +40,14 @@ button {
   padding: 0.6em 1.2em;
   font-size: 1em;
   font-weight: 500;
-  background-color: #3498db;
+  background-color: #daf1de;
   color: white;
   cursor: pointer;
   transition: background-color 0.3s ease;
 }
 
 button:hover {
-  background-color: #00ff88;
+  /*background-color: #00ff88;*/
+  background-color:#8eb69b;
   color: black;
 }

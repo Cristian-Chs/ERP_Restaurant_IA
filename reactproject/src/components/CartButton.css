@@ -1,0 +1,59 @@
+/* src/components/CartButton.css */
+
+.icono{
+    width: 10px;
+    height: 50px;
+}
+
+.cart-float-button {
+    /* Posicionamiento fijo en la esquina inferior derecha */
+    position: fixed;
+    top: 20px; /* Separar del botón de WhatsApp */
+    right: 20px;
+    z-index: 1000; /* Asegurar que esté encima de otros elementos */
+
+    /* Estilo del botón */
+    background-color: #051f20; /* Color primario verde (puedes ajustarlo) */
+    color: white;
+    width: 60px;
+    height: 60px;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    font-size: 28px;
+    line-height: 60px;
+    text-align: center;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.cart-float-button:hover {
+    background-color: #4cae4c; /* Tono más oscuro al pasar el ratón */
+    transform: scale(1.05);
+}
+
+.cart-float-button:active {
+    transform: scale(0.95);
+}
+
+/* Estilo del contador (Badge) */
+.cart-item-count {
+    /* Posicionamiento del contador relativo al botón */
+    position: absolute;
+    top: -2px;
+    right: -2px;
+
+    /* Estilo del contador */
+    background-color: #d9534f; /* Rojo llamativo */
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    line-height: 1; /* Asegura que el número esté centrado */
+}

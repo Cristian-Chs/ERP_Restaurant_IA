@@ -1,0 +1,274 @@
+/* ========================================================= */
+/* === 1. ESTILOS BASE Y UTILITIES (Limpiando redundancias) === */
+/* ========================================================= */
+
+/* Aplicado a todo para mejor manejo de tamaños. Remueve el redundante z-index: 1 */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+/* Selector universal para dar prioridad visual a elementos específicos (si es necesario) */
+.menu-container, .panel-container {
+    z-index: 1; /* Mantener la intención de Menu.css y Register.css/AdminPanel.css */
+}
+
+/* Estilo para los iconos SVG (usado en BackButton) */
+.decorative-back-button > svg {
+    margin-right: 8px;
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+    transition: transform 0.2s ease-in;
+}
+
+
+/* ========================================================= */
+/* === 2. ESTILOS DE COMPONENTES DE BOTONES (Consolidando) === */
+/* ========================================================= */
+
+/* --- Estilo de Botón Base (para Login/Register si no tienen clase específica) --- */
+/* Se utiliza la versión más "completa" del AdminPanel/Register.css y se añade transiciones */
+button {
+    padding: 0.75rem 1.5rem; /* Ajuste unificado */
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    margin-top: 1rem; /* De Register.css */
+}
+/* Estilo de hover global para botones sin clase (del Register.css) */
+button:hover {
+    transform: scale(1.05);
+}
+
+/* --- Botón "Volver" (BackButton.css) --- */
+.decorative-back-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #051f20;
+    padding: 0.5rem 1rem;
+    color: white;
+    font-size: 1rem;
+    margin: 1rem 0;
+}
+.decorative-back-button:hover {
+    transform: scale(1.05);
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+}
+.decorative-back-button:hover > svg {
+    transform: translateX(-5px);
+}
+
+/* --- Botón Flotante de Carrito (CartButton.css) --- */
+.cart-float-button {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    background-color: #051f20;
+    color: white;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    font-size: 28px;
+    line-height: 60px;
+    text-align: center;
+    /* Transiciones ya en el estilo base, pero se mantienen por especificidad: */
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+.cart-float-button:hover {
+    background-color: #4cae4c;
+    transform: scale(1.05);
+}
+.cart-float-button:active {
+    transform: scale(0.95);
+}
+.cart-item-count {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    background-color: #d9534f;
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    line-height: 1;
+}
+
+/* --- Botón de Checkout (Carrito.css) --- */
+.checkout-btn {
+    background-color: #25d366;
+    color: white;
+    padding: 12px 25px;
+    border-radius: 25px;
+    font-size: 1.1em;
+    font-weight: bold;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    /* Ya tienen las transiciones base */
+}
+.checkout-btn:hover {
+    background-color: #128c7e;
+    transform: scale(1.03); /* Añadido para seguir el patrón de otros botones */
+}
+
+/* --- Botón de Eliminar (Carrito.css) --- */
+.eliminar-btn {
+    background-color: #ff4d4d;
+    color: white;
+    border: none; /* Corregido: 'border: 12px;' es inválido, se usa 'none' o '0' */
+    width: 30px;
+    height: 30px;
+    border-radius: 100%;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+.eliminar-btn:hover {
+    background-color: #cc0000;
+}
+
+/* --- Botón de Admin Panel (AdminPanel.css) --- */
+.panel-form button {
+    /* Mantiene padding: 0.75rem de AdminPanel.css */
+    color: #000;
+    transition: background 0.3s ease;
+    /* Necesitas definir el background-color aquí, ya que el 'button' base no tiene */
+    background-color: #fff; /* Ejemplo: color blanco para el admin panel */
+}
+
+
+/* --- Botón de Reset Password (ResetPassword.css) --- */
+.reset-container button {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: #3498db;
+    color: white;
+    font-size: 1rem;
+    transition: background-color 0.3s ease;
+}
+.reset-container button:hover {
+    background-color: #2980b9;
+}
+
+
+/* ========================================================= */
+/* === 3. ESTILOS DE MENU Y PRODUCTOS (Corrigiendo conflictos) === */
+/* ========================================================= */
+
+/* --- Contenedor de Menú (Combinando Menu.css y PlatilloCard.css) --- */
+.menu-container {
+    /* De Menu.css */
+    position: relative;
+    padding: 2rem;
+    /* De PlatilloCard.css (prevalece) */
+    background: linear-gradient(to right, #f8f8f8, #eaeaea);
+    color: #333;
+    text-align: center;
+}
+
+/* --- Grid de Menú --- */
+/* Nombres diferentes para evitar conflicto: la versión de PlatiiloCard parece ser una lista vertical */
+.menu-grid-horizontal {
+    /* Estilo de Menu.css: Cuadrícula con flex-wrap */
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 2rem;
+    margin-top: 2rem;
+}
+.menu-grid-vertical {
+    /* Estilo de PlatilloCard.css: Lista vertical (columna) */
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* --- Card de Platillo (PlatilloCard.css / AdminPanel.css) --- */
+.platillo-card {
+    /* Estilos base de PlatilloCard.css */
+    background-color: #fff;
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+}
+.platillo-card.admin {
+    /* Estilo especial para AdminPanel.css (fondo oscuro) */
+    background-color: rgba(255, 255, 255, 0.05);
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    color: #fff;
+    box-shadow: none; /* Si no quieres sombra en el fondo oscuro */
+}
+.platillo-card img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+.card__price { /* De Menu.css */
+    color: black;
+    font-size: 1.8rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.precios { /* De PlatilloCard.css */
+    display: flex;
+    justify-content: space-between;
+    font-weight: bold;
+    margin-top: 0.5rem;
+    color: #2c3e50;
+}
+
+
+/* ========================================================= */
+/* === 4. ESTILOS DE PÁGINAS (Login, Register, Carrito, etc.) === */
+/* ========================================================= */
+
+/* --- Contenedor de Página (Login/Register) --- */
+.page-container { /* De Login.css y Register.css */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start; /* Login.css usa flex-start, Register.css usa center. Se usa flex-start para Login y se mantiene center para Register si se necesita */
+    min-height: 100vh;
+    padding: 2rem;
+    color: #fff;
+    text-align: center;
+    overflow: hidden;
+}
+.page-container.center-content {
+    justify-content: center;
+}
+
+/* --- Contenedor del Carrito (Carrito.css) --- */
+.carrito-container {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 20px;
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(5px);
+}
+
+/* --- Ícono (CartButton.css) --- */
+.icono{
+    width: 10px;
+    height: 50px;
+}

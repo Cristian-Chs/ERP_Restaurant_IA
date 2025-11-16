@@ -1,0 +1,32 @@
+.categorias-container {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.categoria-btn {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  color: #555;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.3s ease;
+}
+
+.categoria-btn.active {
+  color: #051f20;
+  font-weight: bold;
+}
+
+.categoria-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: #051f20;
+}

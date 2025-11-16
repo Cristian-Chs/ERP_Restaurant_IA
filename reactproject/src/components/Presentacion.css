@@ -30,13 +30,13 @@
 .btn-comenzar-presentacion {
   padding: 1rem 2rem;
   font-size: 1.2rem;
-  background-color: #3498db !important;
+  background-color: #daf1de;
   color: rgb(0, 0, 0);
   border: none;
   border-radius: 12px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  
 }
 .btn-comenzar-presentacion:hover {
-  background-color: #2980b9;
+  background-color: #8eb69b;
 }
