@@ -8,14 +8,14 @@ import { AnimatePresence } from 'framer-motion';
 import Presentacion from './components/Presentacion';
 import CartButton from './components/CartButton';
 import Menu from './components/menu'; // 
-import Carrito from './components/Carrito'; // Importar Carrito.jsx
+import Carrito from './components/CarritoTelegram'; // Importar Carrito.jsx
 import AuroraBackground from './components/AuroraBackground';
 import Login from './pages/Login';
 import AdminPanel from './pages/AdminPanel';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
-import WhatsAppButton from './components/WhatsAppButton';
+import WhatsAppButton from './components/TelegramButton';
 
 
 // 🛑 LÓGICA DE CARRITO - CORREGIDA Y ÚNICA DEFINICIÓN
@@ -115,21 +115,20 @@ function App() {
 }
 
 function CartButtonWrapper({ totalItems }) {
-    const location = useLocation();
+const location = useLocation();
 
-    // 🛑 DEFINIR LAS RUTAS DONDE NO DEBE APARECER
-    const hiddenPaths = ['/carrito', '/login', '/admin', '/register', '/forgot-password', '/reset-password'];
-    
-    // Verificar si la ruta actual comienza con alguna de las rutas a ocultar
-    const shouldHide = hiddenPaths.some(path => location.pathname.startsWith(path));
+  // 🛑 Rutas donde NO debe aparecer
+const hiddenPaths = ['/', '/carrito', '/Login', '/admin', '/register', '/forgot-password', '/reset-password'];
 
-    // Si la ruta está en la lista de ocultar, retorna null (no renderiza nada)
-    if (shouldHide) {
-        return null;
-    }
+  // Comparación exacta
+const shouldHide = hiddenPaths.includes(location.pathname);
 
-    // Si no está en la lista, renderiza el CartButton
-    return <CartButton totalItems={totalItems} />;
+if (shouldHide) {
+    return null;
 }
+
+return <CartButton totalItems={totalItems} />;
+}
+
 
 export default App;

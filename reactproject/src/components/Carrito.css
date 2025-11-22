@@ -4,20 +4,22 @@
     max-width: 900px;
     margin: 40px auto;
     padding: 20px;
-    background-color: rgba(255, 255, 255, 0.95); /* Fondo blanco semitransparente */
+    background-color: rgba(255, 255, 255, 0.95);
     border-radius: 12px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
     backdrop-filter: blur(5px);
 }
 
+/* Título del carrito */
 .carrito-container h2 {
-    color: #da381b; /* Usando tu color de acento */
+    color: #da381b;
     text-align: center;
     margin-bottom: 30px;
     border-bottom: 2px solid #eee;
     padding-bottom: 10px;
 }
 
+/* Mensaje de carrito vacío */
 .carrito-vacio {
     text-align: center;
     padding: 40px 20px;
@@ -26,7 +28,7 @@
     font-size: 1.1em;
 }
 
-/* Contenedor de cada ítem del carrito */
+/* Ítem del carrito */
 .carrito-item {
     display: flex;
     align-items: center;
@@ -39,6 +41,7 @@
     border-bottom: none;
 }
 
+/* Imagen del producto */
 .carrito-item-img {
     width: 80px;
     height: 80px;
@@ -47,12 +50,13 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+/* Detalles del producto */
 .carrito-item-details {
     flex-grow: 1;
 }
 
 .carrito-item-details h4 {
-    margin: 0 0 5px 0;
+    margin: 0 0 5px;
     color: #333;
     font-size: 1.2em;
 }
@@ -63,44 +67,46 @@
     color: #666;
 }
 
+/* Subtotal */
 .carrito-item-subtotal {
     font-weight: bold;
-    color: #1e8449; /* Color verde para el subtotal */
+    color: #1e8449;
 }
 
-/* Botón de eliminar (X) */
+/* Botón eliminar */
 .eliminar-btn {
-    background-color: #ff4d4d; /* Rojo para eliminar */
+    background-color: #ff4d4d;
     color: white;
-    border: 12px;
+    border: none; /* Corregido: antes decía '12px' */
     width: 30px;
     height: 30px;
-    border-radius: 100%;
+    border-radius: 24%;
     cursor: pointer;
     font-weight: bold;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s ease;
 }
 
 .eliminar-btn:hover {
     background-color: #cc0000;
 }
 
-/* Resumen del pedido y botón de checkout */
+/* Resumen del pedido */
 .carrito-summary {
     margin-top: 30px;
     padding-top: 20px;
-    border-top: 2px solid #da381b; /* Línea de color de acento */
+    border-top: 2px solid #da381b;
     text-align: right;
 }
 
 .carrito-summary h3 {
-    margin: 0 0 15px 0;
+    margin: 0 0 15px;
     font-size: 1.5em;
     color: #333;
 }
 
+/* Botón de checkout */
 .checkout-btn {
-    background-color: #25d366; /* Verde de WhatsApp */
+    background-color: #0088cc;
     color: white;
     padding: 12px 25px;
     border: none;
@@ -113,5 +119,5 @@
 }
 
 .checkout-btn:hover {
-    background-color: #128c7e; /* Tono de WhatsApp más oscuro */
+    background-color: #1b829e;
 }

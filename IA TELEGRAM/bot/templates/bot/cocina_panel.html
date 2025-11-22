@@ -1,0 +1,13 @@
+<h1>Panel de Cocina</h1>
+<ul>
+  {% for pedido in pedidos %}
+    <li>
+      {{ pedido.item }} - Cliente {{ pedido.telegram_id }}
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="order_id" value="{{ pedido.id }}">
+        <button type="submit">Marcar como listo</button>
+      </form>
+    </li>
+  {% endfor %}
+</ul>
