@@ -9,3 +9,4 @@ def notificar_pedido_listo(telegram_id, item):
         "chat_id": telegram_id,
         "text": mensaje
     })
+

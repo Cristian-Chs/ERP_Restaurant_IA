@@ -1,6 +1,10 @@
 import logging
 import requests
 import re
+import pickle
+import numpy as np
+import pandas as pd
+from pathlib import Path
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 
@@ -9,7 +13,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, Con
 # ----------------------------------------------------
 PREFERENCES_URL = "http://127.0.0.1:8000/preferences/"
 ORDERS_URL = "http://127.0.0.1:8000/orders/"
-BOT_TOKEN_CLIENTE = "8537597604:AAFyajyokOXKShw5Zx9UNh5likds4FUmUHU"  # 👈 reemplaza con tu token real
+BOT_TOKEN_CLIENTE = "TU_TOKEN_AQUI"  # 👈 reemplaza con tu token real
 
 logging.basicConfig(level=logging.INFO)
 
@@ -28,7 +32,6 @@ def get_orders(telegram_id):
     return []
 
 def parse_pedido(texto):
-    # Buscar líneas con formato: "1. *Sushi* (1 x $120.00)"
     patron = r"\d+\.\s\*(.+?)\*\s\((\d+)\s+x\s\$(\d+\.\d{2})\)"
     items = []
     for match in re.findall(patron, texto):
@@ -43,7 +46,6 @@ def parse_pedido(texto):
             "subtotal": subtotal
         })
 
-    # Buscar el total final
     total_match = re.search(r"TOTAL FINAL:\s*\$(\d+\.\d{2})", texto)
     total = float(total_match.group(1)) if total_match else sum(i["subtotal"] for i in items)
 
@@ -54,6 +56,38 @@ def parse_pedido(texto):
             "resumen": ", ".join([f"{i['cantidad']}x {i['nombre']}" for i in items])
         }
     return None
+
+# ----------------------------------------------------
+# 🔮 Función de recomendación con SVD
+# ----------------------------------------------------
+def recomendar_items(telegram_id, top_n=3):
+    modelo_path = Path("modelo_recomendacion_scipy_svd.pkl")
+    if not modelo_path.exists():
+        return []
+
+    with open(modelo_path, "rb") as f:
+        modelo = pickle.load(f)
+
+    U = modelo["U"]
+    Sigma_diag = modelo["Sigma_diag"]
+    Vt = modelo["Vt"]
+    user_ids = modelo["user_ids"]
+    item_names = modelo["item_names"]
+
+    R_pred = np.dot(np.dot(U, Sigma_diag), Vt)
+
+    if telegram_id not in user_ids:
+        return []
+
+    user_index = list(user_ids).index(telegram_id)
+    user_predictions = R_pred[user_index]
+
+    pred_df = pd.DataFrame({
+        "item": item_names,
+        "pred_score": user_predictions
+    }).sort_values("pred_score", ascending=False)
+
+    return pred_df.head(top_n)["item"].tolist()
 
 # ----------------------------------------------------
 # 🤖 Handlers del bot
@@ -73,19 +107,32 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     pedido = parse_pedido(text)
 
     if pedido:
-        # Guardar cada item en la base de datos
         for item in pedido["items"]:
             save_order(telegram_id, item["nombre"])
-        await update.message.reply_text(
+
+        recomendaciones = recomendar_items(telegram_id, top_n=3)
+
+        mensaje = (
             f"📝 {nombre}, tu pedido fue registrado: {pedido['resumen']}.\n"
-            f"💰 Total: ${pedido['total']:.2f}\nEstado: pendiente."
+            f"💰 Total: ${pedido['total']:.2f}\nEstado: pendiente.\n"
         )
+        if recomendaciones:
+            mensaje += "✨ Te recomiendo también probar:\n"
+            for rec in recomendaciones:
+                mensaje += f"🍽️ {rec}\n"
+
+        await update.message.reply_text(mensaje)
+
     elif text.lower().startswith("quiero pedir "):
         item = text.replace("quiero pedir ", "")
         if save_order(telegram_id, item):
-            await update.message.reply_text(
-                f"📝 {nombre}, tu pedido fue registrado: {item}. Estado: pendiente."
-            )
+            recomendaciones = recomendar_items(telegram_id, top_n=3)
+            mensaje = f"📝 {nombre}, tu pedido fue registrado: {item}. Estado: pendiente.\n"
+            if recomendaciones:
+                mensaje += "✨ Te recomiendo también probar:\n"
+                for rec in recomendaciones:
+                    mensaje += f"🍽️ {rec}\n"
+            await update.message.reply_text(mensaje)
         else:
             await update.message.reply_text(
                 f"⚠️ {nombre}, no pude registrar tu pedido, intenta de nuevo."

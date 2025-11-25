@@ -43,3 +43,4 @@ def cocina_panel(request):
         return redirect("cocina_panel")
 
     return render(request, "bot/cocina_panel.html", {"pedidos": pedidos})
+
