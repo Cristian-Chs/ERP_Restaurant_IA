@@ -1,23 +1,46 @@
-# core/views.py
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .models import Product
+from rest_framework.permissions import AllowAny
+from django.http import JsonResponse
+
+from .models import Product, Ingredient
 from .serializers import ProductSerializer
-from rest_framework.permissions import AllowAny # o IsAuthenticated, dependiendo del caso
+
+
+def listar_ingredientes(request):
+    ingredientes = Ingredient.objects.all()
+    data = [{"id": ing.id, "nombre": ing.nombre} for ing in ingredientes]
+    return JsonResponse({"ingredientes": data})
+
+
+def filtrar_productos(request):
+    ingredientes = request.GET.get("ingredientes")
+    if ingredientes:
+        lista = [i.strip() for i in ingredientes.split(",") if i.strip()]
+        productos = Product.objects.filter(ingredientes__nombre__in=lista).distinct()
+    else:
+        productos = Product.objects.all()
+
+    data = [
+        {
+            "id": p.id,
+            "nombre": p.nombre,
+            "descripcion": p.descripcion,
+            "precio": float(p.precio),
+            "ingredientes": [i.nombre for i in p.ingredientes.all()],
+        }
+        for p in productos
+    ]
+    return JsonResponse({"productos": data})
+
 
 class MenuListView(APIView):
-    # Permite acceso a cualquiera para ver el menú.
-    # Si quieres restringir, usa IsAuthenticated
-    permission_classes = [AllowAny] 
+    permission_classes = [AllowAny]
 
     def get(self, request, format=None):
-        # 1. Obtener todos los productos activos de la base de datos
         products = Product.objects.filter(is_active=True)
-        
-        # 2. Serializar los datos
         serializer = ProductSerializer(products, many=True)
-        
-        # 3. Inicializar el diccionario de agrupación (similar a tu JSON anterior)
+
         grouped_menu = {
             'promociones': [],
             'entradas': [],
@@ -25,17 +48,12 @@ class MenuListView(APIView):
             'postres': [],
             'bebidas': [],
         }
-        
-        # 4. Agrupar los productos serializados por su campo 'category'
+
         for product_data in serializer.data:
             category_key = product_data.get('category')
-            
-            # El campo 'category' en el modelo es una clave en minúsculas (ej: 'entradas')
             if category_key in grouped_menu:
                 grouped_menu[category_key].append(product_data)
             else:
-                # Si por alguna razón la categoría es inválida, se va a Promociones
                 grouped_menu['promociones'].append(product_data)
-        
-        # 5. Devolver el diccionario agrupado como respuesta JSON
+
         return Response(grouped_menu)

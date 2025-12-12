@@ -1,5 +1,4 @@
 #Admin Django 
 
 User = Admin 
-Password = 12345
-
+Password = 1234
