@@ -1,23 +1,38 @@
-// PlatilloCard.jsx - CORREGIDO PARA EL CARRITO
+// PlatilloCard.jsx - MODIFICADO para incluir opciones de sabor
 
-import React from 'react';
+import React, { useState } from 'react'; // 🚨 Importamos useState
+import PlatilloOpciones from './PlatilloOpciones'; // 🚨 Importamos el nuevo componente
 import './PlatilloCard.css';
 
-// 🛑 MODIFICADO: Aceptar todas las props (incluido 'id', que es crucial)
-// y la función 'agregarAlCarrito'
 export default function PlatilloCard(props) { 
-    // Desestructuramos solo lo que vamos a mostrar
     const { id, name, description, imagen, price, agregarAlCarrito } = props;
 
-    // Función que se ejecuta al hacer clic en el botón
+    // 1. Lógica para detectar si es el plato de las empanadas (puedes usar el id o el nombre)
+    // 🚨 ASUMIMOS que el nombre 'Empanadas' lo identifica
+    const isEmpanada = name && name.toLowerCase().includes('empanada');
+
+    // 2. Estado para el sabor, solo si es una empanada. Por defecto 'Pollo'.
+    const [saborSeleccionado, setSaborSeleccionado] = useState('Pollo');
+
+    // 3. Función para manejar la adición al carrito
     const handleAdd = () => {
         if (agregarAlCarrito) {
-            // 🚀 CRÍTICO: Llamamos a la función global, pasando el objeto COMPLETO del plato (props)
-            // Esto incluye el id, name, price, etc., que necesitamos para el carrito.
-            agregarAlCarrito(props);
             
-            // Opcional: Puedes añadir una confirmación visual aquí (ej: un toast)
-            console.log(`Añadido al carrito: ${name}`);
+            // Creamos una copia del objeto del plato
+            let itemToAdd = { ...props };
+
+            // Si es una empanada, modificamos el nombre y agregamos el sabor
+            if (isEmpanada) {
+                // Modificamos el nombre para el carrito: "Empanadas (Cazón)"
+                itemToAdd.name = `${name} (${saborSeleccionado})`;
+                // Agregamos una propiedad extra al objeto
+                itemToAdd.sabor = saborSeleccionado;
+            }
+
+            // Llamamos a la función global con el objeto final
+            agregarAlCarrito(itemToAdd);
+            
+            console.log(`Añadido al carrito: ${itemToAdd.name}`);
         }
     };
 
@@ -26,15 +41,22 @@ export default function PlatilloCard(props) {
       <img src={imagen} alt={name} />
       <h3>{name}</h3>
       <p>{description}</p>
+
+      {/* 4. Renderizamos el selector SOLO si es el plato de empanadas */}
+      {isEmpanada && (
+          <PlatilloOpciones 
+              selectedOption={saborSeleccionado}
+              onOptionChange={setSaborSeleccionado} // setSaborSeleccionado directamente maneja el cambio
+          />
+      )}
+      
       <div className="precios">
         <span>Precio: ${price}</span> 
       </div>
         
-        {/* 🚀 BOTÓN DE ACCIÓN PARA AÑADIR AL CARRITO */}
         <button 
             className="add-to-cart-btn" 
             onClick={handleAdd}
-            // Aseguramos que solo se pueda hacer clic si la función existe
             disabled={!agregarAlCarrito} 
         >
             Añadir al Pedido

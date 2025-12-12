@@ -17,7 +17,7 @@ function Presentacion() {
     >
       <img className="logo" src={logo} alt="Logo" />
       <h1>Bienvenido a 4 Sabores Restaurant 🍽️</h1>
-      <button onClick={() => navigate('/Login')} className="btn-comenzar-presentacion">
+      <button onClick={() => navigate('/login')} className="btn-comenzar-presentacion">
         Comenzar
       </button>
     </motion.div>

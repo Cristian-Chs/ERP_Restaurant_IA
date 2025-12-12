@@ -2,7 +2,7 @@
 
 /* 1. Reset Global y Box-Sizing */
 *, *::before, *::after {
-  box-sizing: border-box; /* Previene que padding y border aumenten el tamaño final */
+  box-sizing: border-box;
 }
 
 :root {
@@ -15,16 +15,24 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* 2. Base de la Página (Corrección de altura a 100vh) */
+/* 2. Base de la Página */
+/* src/index.css */
+
+/* Reset y base */
+/* index.css o global.css */
+
 html, body {
+  height: 100%;
   margin: 0;
   padding: 0;
-  width: 100vw;
-  height: 100vh; /* ¡CORREGIDO! Asegura que el fondo cubra toda la pantalla */
-  /*background: linear-gradient(to right,#6d766f, #00005d, #ffffff);*/
-background-color: #051F20;}
+  font-family: 'Segoe UI', sans-serif;
+  background-image: url('../assets/images/FondoMenu.png'); /* ✅ fondo tropical */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
 
-/* 3. Estilos de Tipografía y Encabezados Comunes */
+/* 3. Tipografía y encabezados */
 h1 {
   text-align: center;
   font-size: 2.5rem;
@@ -33,7 +41,7 @@ h1 {
   text-shadow: 3px 2px 6px rgb(0, 0, 0);
 }
 
-/* 4. Estilos de Botón Base */
+/* 4. Botón base */
 button {
   border-radius: 8px;
   border: none;
@@ -47,7 +55,6 @@ button {
 }
 
 button:hover {
-  /*background-color: #00ff88;*/
-  background-color:#8eb69b;
+  background-color: #8eb69b;
   color: black;
 }

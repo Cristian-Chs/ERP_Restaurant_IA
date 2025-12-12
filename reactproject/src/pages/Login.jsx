@@ -10,6 +10,7 @@ const [password, setPassword] = useState('');
 const [error, setError] = useState('');
 const [loading, setLoading] = useState(false);
 const navigate = useNavigate();
+const [showPassword, setShowPassword] = useState(false); // 👈 estado para visibilidad
 
 useEffect(() => {
 if (error) {
@@ -74,6 +75,7 @@ const handleLogin = async () => {
           onChange={(e) => setPassword(e.target.value)}
           disabled={loading}
         />
+
         <button onClick={handleLogin} disabled={loading}>
           {loading ? 'Cargando...' : 'Entrar'}
         </button>

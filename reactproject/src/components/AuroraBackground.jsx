@@ -109,7 +109,13 @@ void main() {
 `;
 
 export default function Aurora(props) {
-  const { colorStops = ['#5227FF', '#7cff67', '#5227FF'], amplitude = 1.0, blend = 0.0 } = props;
+  const {
+    colorStops = ['#5227FF', '#7cff67', '#5227FF'],
+    amplitude = 1.0,
+    blend = 0.0,
+    canvasBackground = 'transparent'
+  } = props;
+
   const propsRef = useRef(props);
   propsRef.current = props;
 
@@ -128,7 +134,7 @@ export default function Aurora(props) {
     gl.clearColor(0, 0, 0, 0);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-    gl.canvas.style.backgroundColor = 'transparent';
+    gl.canvas.style.backgroundColor = canvasBackground;
 
     let program;
 

@@ -1,4 +1,4 @@
-// src/components/CarritoTelegram.jsx (¡Asegúrate de renombrar el archivo!)
+// src/components/CarritoTelegram.jsx
 
 import React from 'react';
 import { motion } from 'framer-motion';
@@ -8,7 +8,6 @@ import BackButton from './BackButton';
 import './Carrito.css'; 
 
 // 🛑 CONFIGURACIÓN: Reemplaza con tus datos reales
-// **IMPORTANTE:** Usa tu nombre de usuario de Telegram, no un número de teléfono.
 const TELEGRAM_USERNAME = 'Sabores4_bot'; 
 const CURRENCY_SYMBOL = '$';
 
@@ -22,14 +21,15 @@ function Carrito({ carrito, eliminarDelCarrito }) {
     const handleCheckout = () => {
         if (carrito.length === 0) return;
 
-        // Telegram soporta negritas (*) y saltos de línea (\n)
-        let message = `¡Hola! Me gustaría hacer un pedido:\n\n*🛒 Resumen del Pedido:*\n`;
+        // 1. INICIO CLAVE: Frase de inicio que el bot de Python puede reconocer fácilmente
+        // Usamos una frase simple para que el bot la detecte sin ambigüedad.
+        let message = `Quiero pedir. Aquí está mi resumen:\n\n*🛒 Resumen del Pedido:*\n`;
 
         carrito.forEach((item, index) => {
             const price = parseFloat(item.price);
             const subtotal = (price * item.cantidad).toFixed(2);
             
-            // Formato del ítem
+            // Formato del ítem (se mantienen los * para la visualización en Telegram)
             message += `${index + 1}. *${item.name}* (${item.cantidad} x ${CURRENCY_SYMBOL}${price.toFixed(2)})\n`;
             message += `   Subtotal: ${CURRENCY_SYMBOL}${subtotal}\n`;
         });
@@ -39,9 +39,10 @@ function Carrito({ carrito, eliminarDelCarrito }) {
         message += `--------------------------------\n`;
         message += `\nPor favor, confirma mi pedido.`;
 
+        // 2. Codificación
         const encodedMessage = encodeURIComponent(message);
-        
-        // 3. CAMBIO CLAVE: Se usa t.me para Telegram
+        
+        // 3. Generación del enlace
         const telegramUrl = `https://t.me/${TELEGRAM_USERNAME}?text=${encodedMessage}`;
         
         window.open(telegramUrl, '_blank');

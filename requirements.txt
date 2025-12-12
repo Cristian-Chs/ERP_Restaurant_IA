@@ -1,0 +1,7 @@
+django
+djangorestframework
+djoser
+psycopg2-binary
+djangorestframework-simplejwt
+django-cors-headers
+python-telegram-bot
