@@ -20,7 +20,8 @@ CATEGORY_CHOICES = [
 # ✅ Ingredientes
 class Ingredient(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
-
+    disponible_como_extra = models.BooleanField(default=False)
+    
     def __str__(self):
         return self.nombre
 

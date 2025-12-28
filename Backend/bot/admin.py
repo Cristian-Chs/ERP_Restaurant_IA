@@ -28,10 +28,73 @@ def notificar_chef(order):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ("item", "telegram_id", "status", "fecha")
-    list_filter = ("status", "fecha")
-    search_fields = ("item", "telegram_id")
-    actions = ["marcar_listo"]
+    list_display = (
+        "id", 
+        "item", 
+        "telegram_id", 
+        "status", 
+        "payment_status_display",
+        "payment_verified_at",
+        "fecha"
+    )
+    list_filter = (
+        "status", 
+        "payment_status",
+        "fecha",
+        "payment_verified_at"
+    )
+    search_fields = (
+        "item", 
+        "telegram_id",
+        "payment_receipt_file_id",
+        "id"
+    )
+    actions = ["marcar_listo", "aprobar_pago_admin", "rechazar_pago_admin"]
+    
+    readonly_fields = (
+        "payment_receipt_file_id",
+        "payment_verified_at",
+        "payment_verified_by",
+        "payment_data_display",
+        "fecha"
+    )
+    
+    fieldsets = (
+        ('Información del Pedido', {
+            'fields': ('telegram_id', 'item', 'status', 'fecha')
+        }),
+        ('Información de Pago', {
+            'fields': (
+                'payment_status',
+                'payment_receipt_file_id',
+                'payment_verified_at',
+                'payment_verified_by',
+                'payment_data_display'
+            )
+        }),
+    )
+
+    def payment_status_display(self, obj):
+        """Mostrar estado de pago con colores"""
+        colors = {
+            'pending_payment': '🟡',
+            'payment_submitted': '🔵',
+            'payment_approved': '🟢',
+            'payment_rejected': '🔴',
+        }
+        icon = colors.get(obj.payment_status, '⚪')
+        return f"{icon} {obj.get_payment_status_display()}"
+    payment_status_display.short_description = "Estado de Pago"
+    
+    def payment_data_display(self, obj):
+        """Mostrar datos extraídos del comprobante"""
+        if obj.payment_data:
+            import json
+            data = json.dumps(obj.payment_data, indent=2, ensure_ascii=False)
+            return f"<pre>{data}</pre>"
+        return "Sin datos"
+    payment_data_display.short_description = "Datos del Comprobante"
+    payment_data_display.allow_tags = True
 
     def marcar_listo(self, request, queryset):
         for order in queryset:
@@ -40,8 +103,35 @@ class OrderAdmin(admin.ModelAdmin):
             notificar_cliente(order)
             notificar_chef(order)
         self.message_user(request, "Pedidos marcados como listos.")
-
     marcar_listo.short_description = "Marcar pedidos seleccionados como listos"
+    
+    def aprobar_pago_admin(self, request, queryset):
+        """Aprobar pagos desde el admin"""
+        from django.utils import timezone
+        count = 0
+        for order in queryset.filter(payment_status='payment_submitted'):
+            order.payment_status = 'payment_approved'
+            order.payment_verified_at = timezone.now()
+            order.payment_verified_by = request.user.id if hasattr(request.user, 'id') else None
+            order.status = 'confirmado'
+            order.save()
+            count += 1
+        self.message_user(request, f"{count} pago(s) aprobado(s).")
+    aprobar_pago_admin.short_description = "✅ Aprobar pagos seleccionados"
+    
+    def rechazar_pago_admin(self, request, queryset):
+        """Rechazar pagos desde el admin"""
+        from django.utils import timezone
+        count = 0
+        for order in queryset.filter(payment_status='payment_submitted'):
+            order.payment_status = 'payment_rejected'
+            order.payment_verified_at = timezone.now()
+            order.payment_verified_by = request.user.id if hasattr(request.user, 'id') else None
+            order.status = 'cancelado'
+            order.save()
+            count += 1
+        self.message_user(request, f"{count} pago(s) rechazado(s).")
+    rechazar_pago_admin.short_description = "❌ Rechazar pagos seleccionados"
 
 
 @admin.register(Rating)

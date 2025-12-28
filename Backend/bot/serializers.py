@@ -18,3 +18,4 @@ class GustoClienteSerializer(serializers.ModelSerializer):
     class Meta:
         model = GustoCliente
         fields = "__all__"
+

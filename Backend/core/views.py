@@ -6,7 +6,6 @@ from django.http import JsonResponse
 from .models import Product, Ingredient
 from .serializers import ProductSerializer
 
-
 def listar_ingredientes(request):
     ingredientes = Ingredient.objects.all()
     data = [{"id": ing.id, "nombre": ing.nombre} for ing in ingredientes]
@@ -57,3 +56,46 @@ class MenuListView(APIView):
                 grouped_menu['promociones'].append(product_data)
 
         return Response(grouped_menu)
+
+def productos_view(request):
+    # ✅ Si se solicita detalle de un producto específico
+    detalle = request.GET.get("detalle")
+    
+    if detalle:
+        try:
+            # Buscar producto por nombre (case-insensitive)
+            producto = Product.objects.filter(
+                name__iexact=detalle.strip(),
+                is_active=True
+            ).first()
+            
+            if producto:
+                # Obtener ingredientes del producto
+                ingredientes = list(
+                    producto.ingredientes.values_list("nombre", flat=True)
+                )
+                
+                return JsonResponse({
+                    "nombre": producto.name,
+                    "descripcion": producto.description,
+                    "precio": float(producto.price),
+                    "categoria": producto.category,
+                    "ingredientes": ingredientes
+                })
+            else:
+                return JsonResponse({
+                    "error": f"Producto '{detalle}' no encontrado",
+                    "ingredientes": []
+                }, status=404)
+        except Exception as e:
+            print(f"ERROR en productos_view con detalle: {e}")
+            return JsonResponse({
+                "error": str(e),
+                "ingredientes": []
+            }, status=500)
+    
+    # ✅ Si no hay detalle, devolver lista de nombres (comportamiento original)
+    productos = list(
+        Product.objects.filter(is_active=True).values_list("name", flat=True)
+    )
+    return JsonResponse({"productos": productos})
