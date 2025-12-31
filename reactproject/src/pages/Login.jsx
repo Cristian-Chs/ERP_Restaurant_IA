@@ -39,8 +39,14 @@ const handleLogin = async () => {
         // 2. Decodificar el token para obtener el payload (rol)
         const payload = JSON.parse(atob(accessToken.split('.')[1])); 
         
-        // 3. Redireccionar (Requiere configuración de CustomJWTSerializer en Django)
-        navigate(payload.rol === 'admin' ? '/admin' : '/menu');
+         // 3. Redireccionar (Requiere configuración de CustomJWTSerializer en Django)
+        if (payload.rol === 'admin') {
+            navigate('/admin');
+        } else if (payload.rol === 'cocina') {
+            navigate('/kitchen-panel');
+        } else {
+            navigate('/menu');
+        }
         
     } catch (err) {
         // Manejo de la respuesta 401 de Django (Credenciales incorrectas)

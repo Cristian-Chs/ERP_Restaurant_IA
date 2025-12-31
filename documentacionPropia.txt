@@ -2,3 +2,13 @@
 
 User = Admin 
 Password = 1234
+
+
+Panel de cocina_panel
+http://localhost:8000/bot/cocina_panel/
+
+http://localhost:5173/kitchen-panel
+
+usuario cocina 
+Pelota4321 - Password
+cocina - usuario

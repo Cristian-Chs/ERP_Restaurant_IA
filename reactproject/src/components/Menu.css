@@ -6,29 +6,68 @@
   align-items: center;
 }
 .menu-grid {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* ✅ 3 columnas exactas */
   gap: 2rem;
-  margin-top: 2rem;
-  z-index: 1;
+  max-width: 1200px; /* Ancho máximo para que no se estiren demasiado */
+  margin: 2rem auto;
+  padding: 0 1rem;
 }
+
+/* Responsividad: 2 columnas en tablets, 1 en móviles */
+@media (max-width: 900px) {
+  .menu-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .menu-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .menu-container {
-  min-height: 100vh; /* ✅ Ocupa toda la altura visible */
+  min-height: 100vh;
   background-color: transparent;
   padding: 2rem;
   position: relative;
   z-index: 1;
 }
 
-html, body {
+.menu-header-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.profile-btn-link {
+  color: #fff;
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.profile-btn-link:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+html,
+body {
   height: 100%;
   margin: 0;
   padding: 0;
-  font-family: 'Segoe UI', sans-serif;
-  background-image: url('../assets/images/FondoMenu.png'); /* ✅ Ruta relativa desde public/ */
+  font-family: "Segoe UI", sans-serif;
+  background-image: url("../assets/images/FondoMenu.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+  background-attachment: fixed; /* ✅ Fondo fijo al hacer scroll */
 }
-

@@ -1,0 +1,96 @@
+/* KitchenPanel.css */
+.kitchen-container {
+  padding: 2rem;
+  padding-top: 100px; /* Espacio para navbar si hubiera */
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  color: #333;
+  font-family: "Poppins", sans-serif;
+}
+
+.kitchen-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.kitchen-title {
+  font-size: 2.5rem;
+  color: #da381b; /* Color primario del restaurante */
+  font-weight: 700;
+}
+
+.orders-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.order-card {
+  background: white;
+  border-radius: 15px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s;
+  border-left: 5px solid #da381b;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.order-card:hover {
+  transform: translateY(-5px);
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 0.5rem;
+}
+
+.order-id {
+  font-weight: bold;
+  color: #666;
+}
+
+.order-time {
+  font-size: 0.9rem;
+  color: #999;
+}
+
+.order-item {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: #222;
+}
+
+.ready-btn {
+  width: 100%;
+  padding: 1rem;
+  background-color: #28a745; /* Verde éxito */
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.ready-btn:hover {
+  background-color: #218838;
+}
+
+.no-orders {
+  text-align: center;
+  font-size: 1.5rem;
+  color: #777;
+  margin-top: 3rem;
+}

@@ -12,6 +12,9 @@ SECRET_KEY = 'django-insecure-^15*o2sb@$c9ee%ihz*2kdj!7f)v+d6fe=6c7)1-x9a!%2mh#c
 DEBUG = True
 ALLOWED_HOSTS = []
 
+# --- Email (Solo para desarrollo, imprime en consola) ---
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
 # --- Aplicaciones instaladas ---
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -100,6 +103,7 @@ REST_FRAMEWORK = {
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "TOKEN_OBTAIN_SERIALIZER": "core.serializers.MyTokenObtainPairSerializer",
 }
 
 # --- Djoser ---

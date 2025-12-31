@@ -2,7 +2,8 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     OrderViewSet,
-    cocina_panel,
+    api_cocina_orders,
+    api_cocina_mark_ready,
     historial,
     guardar_rating,
     gustos,
@@ -22,7 +23,9 @@ urlpatterns = [
     path("", include(router.urls)),
 
     # Panel cocina
-    path("cocina_panel/", cocina_panel, name="cocina_panel"),
+    # API Cocina
+    path("api/cocina/orders/", api_cocina_orders, name="api_cocina_orders"),
+    path("api/cocina/orders/<int:order_id>/ready/", api_cocina_mark_ready, name="api_cocina_mark_ready"),
     
     # Dashboard de pagos
     path("payment-dashboard/", payment_dashboard, name="payment_dashboard"),

@@ -17,9 +17,14 @@ export default function AdminPanel() {
   return (
     
     <div className="panel-container">
-      <button onClick={() => navigate('/')} className="decorative-button-prueba">
-        <span>Back</span>
-      </button>
+      <div className="admin-header-actions" style={{ display: 'flex', justifyContent: 'space-between', width: '100%', marginBottom: '1rem' }}>
+        <button onClick={() => navigate('/')} className="decorative-button-prueba">
+          <span>Back</span>
+        </button>
+        <button onClick={() => navigate('/profile')} className="decorative-button-prueba">
+          <span>👤 Perfil</span>
+        </button>
+      </div>
       <h2>Panel Admin</h2>
       <div className="panel-form">
         <input

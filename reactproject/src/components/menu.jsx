@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import API from '../api/axios';
 import parsedImages from '../assets/utils/loadImages';
@@ -117,7 +117,10 @@ useEffect(() => {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <BackButton to="/Login" />
+      <div className="menu-header-actions">
+        <BackButton to="/Login" />
+        <Link to="/profile" className="profile-btn-link">👤 Mi Perfil</Link>
+      </div>
       <MenuCategorias active={categoriaActiva} onSelect={setCategoriaActiva} />
       {renderSeccionActiva()}
     </motion.div>

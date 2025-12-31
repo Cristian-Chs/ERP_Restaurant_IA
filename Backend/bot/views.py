@@ -101,20 +101,48 @@ def recomendacion_ml_view(request, telegram_id):
 # Panel de cocina
 # ------------------------------
 
-def cocina_panel(request):
-    pedidos = Order.objects.filter(status="pendiente")
+# ------------------------------
+# API Cocina (REACT)
+# ------------------------------
 
-    if request.method == "POST":
-        order_id = request.POST.get("order_id")
+def api_cocina_orders(request):
+    """
+    Devuelve la lista de pedidos pendientes en JSON.
+    """
+    pedidos = Order.objects.filter(status="pendiente").order_by("fecha")
+    data = [
+        {
+            "id": p.id,
+            "telegram_id": p.telegram_id,
+            "item": p.item,
+            "fecha": p.fecha.isoformat(),
+            "status": p.status
+        }
+        for p in pedidos
+    ]
+    return JsonResponse(data, safe=False)
+
+@csrf_exempt
+def api_cocina_mark_ready(request, order_id):
+    """
+    Marca un pedido como listo.
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Método no permitido"}, status=405)
+
+    try:
         order = Order.objects.get(id=order_id)
         order.status = "listo"
         order.save()
-
+        
+        # Notificar al cliente
         notificar_pedido_listo(order.telegram_id, order.item)
-
-        return redirect("cocina_panel")
-
-    return render(request, "bot/cocina_panel.html", {"pedidos": pedidos})
+        
+        return JsonResponse({"status": "ok"})
+    except Order.DoesNotExist:
+        return JsonResponse({"error": "Pedido no encontrado"}, status=404)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
 
 from ml.embeddings import recomendar_similares
 from core.models import Product

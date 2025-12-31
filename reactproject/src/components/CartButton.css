@@ -8,7 +8,7 @@
 .cart-float-button {
     /* Posicionamiento fijo en la esquina inferior derecha */
     position: fixed;
-    top: 20px; /* Separar del botón de WhatsApp */
+    bottom: 90px; /* Encima del botón de Telegram */
     right: 20px;
     z-index: 1000; /* Asegurar que esté encima de otros elementos */
 

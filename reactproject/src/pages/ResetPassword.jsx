@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axiosPublic from '../api/axiosPublic'; // ✅ instancia sin token
-import './ResetPassword.css'; // opcional para estilos
+import axiosPublic from '../api/axiosPublic'; 
+import './Register.css'; // ✅ Usar el mismo CSS de Registro
 
 export default function ResetPassword() {
-  const { token } = useParams();
+  const { uid, token } = useParams(); 
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false); // 👈 Agregar toggle
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const navigate = useNavigate();
@@ -26,36 +27,56 @@ export default function ResetPassword() {
     }
 
     try {
-      const res = await axiosPublic.post('/auth/reset-password', {
+      await axiosPublic.post('/auth/users/reset_password_confirm/', {
+        uid,
         token,
-        newPassword,
+        new_password: newPassword,
+        re_new_password: confirmPassword,
       });
-      setSuccess(res.data.msg);
-      setTimeout(() => navigate('/'), 3000);
+      setSuccess('Contraseña restablecida correctamente.');
+      setTimeout(() => navigate('/login'), 3000);
     } catch (err) {
-      setError(err.response?.data?.msg || 'Error al cambiar la contraseña');
+      const errorData = err.response?.data;
+      const errorMsg = errorData ? JSON.stringify(errorData) : 'Error al cambiar la contraseña';
+      setError(errorMsg);
     }
   };
 
   return (
-    <div className="reset-container">
+    <div className="page-container">
       <h2>Restablecer contraseña</h2>
-      <input
-        type="password"
-        placeholder="Nueva contraseña"
-        value={newPassword}
-        onChange={(e) => setNewPassword(e.target.value)}
-      />
-      <input
-        type="password"
-        placeholder="Confirmar contraseña"
-        value={confirmPassword}
-        onChange={(e) => setConfirmPassword(e.target.value)}
-      />
-      <button onClick={handleReset}>Actualizar contraseña</button>
+      <div className="form-group">
+        <div className="password-container">
+          <input
+            type={showPassword ? "text" : "password"}
+            placeholder="Nueva contraseña"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="toggle-btn"
+          >
+            {showPassword ? "🙈" : "👁️"}
+          </button>
+        </div>
 
-      {error && <p className="error-msg">{error}</p>}
-      {success && <p className="success-msg">{success}</p>}
+        <input
+          type="password"
+          placeholder="Confirmar contraseña"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+        />
+        
+        <button onClick={handleReset}>Actualizar contraseña</button>
+        <button onClick={() => navigate('/login')} className="decorative-button-prueba">
+          <span>Back</span>
+        </button>
+
+        {error && <p className="error-msg" style={{ color: '#c0392b' }}>{error}</p>}
+        {success && <p className="success-msg" style={{ color: '#27ae60' }}>{success}</p>}
+      </div>
     </div>
   );
 }

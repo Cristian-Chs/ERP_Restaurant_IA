@@ -42,6 +42,10 @@ from bot.models import PedidoPersonalizado, PreferenciaIngrediente, Order
 # Importaciones de ML
 from ml.predict import recomendar_ml, recomendar_popularidad
 
+# Importaciones de Intents (Mesero Inteligente)
+from bot_Cliente.intents import INTENTS, RESPONSES
+import random
+
 
 # ----------------------------------------------------
 # ⚙️ Configuración
@@ -80,49 +84,114 @@ def save_order(telegram_id, item):
 # ----------------------------------------------------
 # 🧹 Limpieza de texto
 # ----------------------------------------------------
+# ----------------------------------------------------
+# 🧹 Limpieza de texto y Extracción de Cantidad
+# ----------------------------------------------------
+def extraer_cantidad_y_producto(texto: str) -> tuple[int | None, str]:
+    texto = texto.strip()
+    
+    # 1. Regex para detectar números al inicio (ej: "2 hamburguesas", "3x pizza")
+    match_numero = re.search(r'^(\d+)\s*(?:x\s*)?', texto, re.IGNORECASE)
+    if match_numero:
+        cantidad = int(match_numero.group(1))
+        producto = texto[match_numero.end():].strip()
+        return cantidad, producto
+    
+    # 2. Regex para palabras de cantidad (básico)
+    mapa_numeros = {
+        "una": 1, "un": 1, "uno": 1,
+        "dos": 2, "dós": 2,
+        "tres": 3,
+        "cuatro": 4,
+        "cinco": 5,
+        "seis": 6
+    }
+    
+    palabras = texto.split(" ", 1)
+    primera_palabra = palabras[0].lower()
+    
+    if primera_palabra in mapa_numeros:
+        cantidad = mapa_numeros[primera_palabra]
+        producto = palabras[1].strip() if len(palabras) > 1 else ""
+        return cantidad, producto
+        
+    return None, texto
+
+
+def parsear_resumen_web(texto: str) -> dict | None:
+    """
+    Intenta parsear un resumen de pedido pegado desde la web.
+    Ejemplo:
+    *🛒 Resumen del Pedido:*
+    1. *Arepitas dulces* (1 x $3.50)
+    ...
+    *💰 TOTAL FINAL: $100.49*
+    """
+    if "Resumen del Pedido" not in texto and "TOTAL FINAL" not in texto:
+        return None
+
+    # 1. Extraer items:  1. *Nombre* (Cant x $Precio)
+    # Regex: \d+\.\s*\*(.+?)\*\s*\((\d+)\s*x
+    items_found = re.findall(r'\d+\.\s*\*(.+?)\*\s*\((\d+)\s*x', texto)
+    
+    if not items_found:
+        return None
+
+    # Construir string de pedido final
+    # Ej: "1 x Arepitas dulces, 1 x Hamburguesa"
+    partes_pedido = []
+    for nombre, cant in items_found:
+        partes_pedido.append(f"{cant} x {nombre}")
+    
+    pedido_final_str = ", ".join(partes_pedido)
+
+    # 2. Extraer Total
+    match_total = re.search(r'TOTAL FINAL:\s*\$([\d\.]+)', texto)
+    precio_total = float(match_total.group(1)) if match_total else 0.0
+
+    return {
+        "producto_base": "Pedido Web", # Marcador genérico
+        "cantidad": 1,
+        "removidos": [],
+        "agregados": [],
+        "pedido_final": pedido_final_str,
+        "texto_original": texto,
+        "precio": precio_total
+    }
+
+
 def clean_order_text(text: str) -> str:
-    cleaned_text = text.strip()
-
-    # ✅ Eliminar frases comunes de pedido (más variaciones)
+    # Eliminar frases comunes (Case Insensitive)
+    # Orden importa: frases largas primero
     frases = [
-        "Quiero pedir.",
-        "Quiero pedir",
-        "quiero pedir.",
-        "quiero pedir",
-        "Quiero una",
-        "quiero una",
-        "Quiero un",
-        "quiero un",
-        "Dame una",
-        "dame una",
-        "Dame un",
-        "dame un",
-        "Quisiera una",
-        "quisiera una",
-        "Quisiera un",
-        "quisiera un",
-        "Me gustaría una",
-        "me gustaría una",
-        "Me gustaría un",
-        "me gustaría un",
-        "Por favor, confirma mi pedido.",
-        "por favor, confirma mi pedido."
+        "quiero pedir", "me gustaría ordenar", "por favor confirma", "hay disponible",
+        "quiero una", "quiero un", "dame una", "dame un",
+        "quisiera una", "quisiera un", "me gustaría una", "me gustaría un",
+        "me gustaria", "quisiera", "ordenar", "pedir",
+        "quiero", "dame", "por favor", "necesito",
+        "ordenas", "tienes", "tendras", "me das", "me da", "disponible",
+        "mejor", "solo", "solamente", "cambia a", "cambiar a", "son", "serian"
     ]
-
+    
+    cleaned_text = text
     for frase in frases:
-        cleaned_text = cleaned_text.replace(frase, "")
-
-    # Eliminar símbolos innecesarios
-    cleaned_text = cleaned_text.replace("*", "")
-    cleaned_text = cleaned_text.replace("--------------------------------", "")
-
-    return cleaned_text.strip()
+        # \b para asegurar que son palabras completas (opcional, pero recomendando)
+        # Aquí usamos simple sustitución, pero limpiamos espacios múltiples después
+        cleaned_text = re.sub(frase, "", cleaned_text, flags=re.IGNORECASE)
+        
+    # Eliminar símbolos y espacios extra
+    cleaned_text = cleaned_text.replace("*", "").replace("-", "").strip()
+    cleaned_text = re.sub(r'\s+', ' ', cleaned_text) # Colapsar espacios
+    
+    return cleaned_text
 
 # ----------------------------------------------------
 # ✅ OCR PARA LEER COMPROBANTES DE PAGO
 # ----------------------------------------------------
+# ----------------------------------------------------
+# ✅ OCR PARA LEER COMPROBANTES DE PAGO
+# ----------------------------------------------------
 import re
-from rapidfuzz import process
 
 OCR_API_URL = "https://api.ocr.space/parse/image"
 OCR_API_KEY = "K83178149188957"  # Regístrate en ocr.space y coloca tu API key aquí
@@ -202,32 +271,6 @@ async def extraer_datos_comprobante(file_path: str) -> dict:
 # 📝 Formatear pedido
 # ----------------------------------------------------
 
-def formatear_pedido(texto: str) -> str:
-    texto = texto.strip().lower()
-
-    frases = [
-        "quiero pedir",
-        "quiero pedir.",
-        "por favor, confirma mi pedido",
-        "por favor, confirma mi pedido."
-    ]
-    for f in frases:
-        texto = texto.replace(f, "")
-
-    texto = texto.strip()
-
-    partes = texto.split(" ", 1)
-
-    if partes[0].isdigit():
-        cantidad = int(partes[0])
-        producto = partes[1] if len(partes) > 1 else ""
-    else:
-        cantidad = 1
-        producto = texto
-
-    producto = producto.strip().capitalize()
-
-    return f"{cantidad} x {producto}"
 
 # ----------------------------------------------------
 # ✅ MENÚ COMPLETO (desde base de datos)
@@ -314,33 +357,46 @@ async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ----------------------------------------------------
 
 async def interpretar_pedido(texto_usuario: str):
-    texto_usuario = texto_usuario.lower().strip()
-
-    # ✅ 1. Detectar producto base
-    producto_base = extraer_producto_base(texto_usuario)
+    # 1. Limpieza inicial
+    texto_limpio = clean_order_text(texto_usuario)
+    
+    # 2. Extraer cantidad y texto restante
+    cantidad, texto_sin_cantidad = extraer_cantidad_y_producto(texto_limpio)
+    
+    # Si no se especificó cantidad, asumimos 1 por defecto para interpretar la orden base
+    cantidad_final = cantidad if cantidad is not None else 1
+    
+    # 3. Detectar producto base usando el texto sin cantidad
+    producto_base = extraer_producto_base(texto_sin_cantidad)
+    
     if not producto_base:
-        return None, [], [], None
+        # Retornamos la cantidad detectada (puede ser None o un número) para que handle_message lo use
+        return None, cantidad, [], [], None
 
-    # ✅ 2. Obtener ingredientes del plato + extras globales
+    # 4. Obtener ingredientes del plato + extras globales
     ingredientes_menu = await obtener_ingredientes_producto(producto_base)
 
-    # ✅ 3. Detectar removidos y agregados
-    removidos = extraer_ingredientes_removidos(texto_usuario, ingredientes_menu)
-    agregados = extraer_ingredientes_agregados(texto_usuario, ingredientes_menu)
+    # 5. Detectar removidos y agregados (Usamos texto_sin_cantidad para evitar ruido)
+    removidos = extraer_ingredientes_removidos(texto_sin_cantidad, ingredientes_menu)
+    agregados = extraer_ingredientes_agregados(texto_sin_cantidad, ingredientes_menu)
 
-    # ✅ 4. Construir pedido final
-    pedido_final = construir_pedido_final(producto_base, removidos, agregados)
+    # 6. Construir pedido final
+    # Formato: "2 x Hamburguesa sin cebolla"
+    pedido_str = construir_pedido_final(producto_base, removidos, agregados)
+    
+    if cantidad_final > 1:
+        pedido_final = f"{cantidad_final} x {pedido_str}"
+    else:
+        pedido_final = pedido_str
 
     print("\n===== DEBUG interpretar_pedido =====")
-    print("Texto usuario:", texto_usuario)
+    print("Texto original:", texto_usuario)
+    print("Cantidad detectada:", cantidad)
     print("Producto base:", producto_base)
-    print("Ingredientes menú:", ingredientes_menu)
-    print("Removidos detectados:", removidos)
-    print("Agregados detectados:", agregados)
     print("Pedido final:", pedido_final)
     print("====================================\n")
 
-    return producto_base, removidos, agregados, pedido_final
+    return producto_base, cantidad_final, removidos, agregados, pedido_final
 
 
 # ----------------------------------------------------
@@ -374,14 +430,21 @@ async def menu_personalizado(update: Update, context: ContextTypes.DEFAULT_TYPE)
 # ✅ SOPORTE
 # ----------------------------------------------------
 async def soporte(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
+    texto = (
         "📞 *Soporte al Cliente*\n\n"
         "Si necesitas ayuda, contáctanos:\n"
         "• Teléfono: +58 269 34 567 890\n"
         "• Email: soporte@restaurante.com\n"
-        "• Horario: Lun-Dom 9:00 - 22:00\n\n",
-        parse_mode="Markdown"
+        "• Horario: Lun-Dom 9:00 - 22:00\n\n"
     )
+
+    if update.callback_query:
+        # Si viene de un botón
+        await update.callback_query.message.reply_text(texto, parse_mode="Markdown")
+        await update.callback_query.answer()
+    else:
+        # Si viene de comando /soporte
+        await update.message.reply_text(texto, parse_mode="Markdown")
 
 # ----------------------------------------------------
 # ✅ START + TECLADO INFERIOR    (Arreglar botones)
@@ -389,18 +452,24 @@ async def soporte(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     nombre = update.effective_user.first_name
 
+    # ✅ Mensaje de Bienvenida "Mesero"
+    texto_bienvenida = (
+        f"¡Hola {nombre}! 👋\n"
+        f"Soy tu mesero virtual en *4 Sabores*.\n\n"
+        f"Selecciona una opción para comenzar:"
+    )
+
+    # ✅ Botones principales
+    keyboard = [
+        [InlineKeyboardButton("🍔 Hacer un pedido", callback_data="ayuda_pedido")],
+        [InlineKeyboardButton("📦 Consultar mi pedido", callback_data="estado_pedido")],
+        [InlineKeyboardButton("📞 Hablar con soporte", callback_data="soporte")]
+    ]
+
     await update.message.reply_text(
-        f"👋 Hola {nombre}, bienvenido al restaurante digital.\n\n"
-        "📋 Comandos disponibles:\n"
-        "/menu - Ver menú completo\n"
-        "/recomendacion_similar - Platos similares\n"
-        "/soporte - Contactar soporte\n\n"
-        "💬 También puedes escribir directamente:\n"
-        "'Quiero una hamburguesa sin cebolla'\n"
-        "'Dame una pizza con bacon'"
-        "\n"
-        "\n"
-        "Si tienes alguna duda, puedes ver mas en el boton menu en la parte inferior "
+        texto_bienvenida,
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode="Markdown"
     )
 
 # ----------------------------------------------------
@@ -461,7 +530,7 @@ def fuzzy_match_ingrediente(texto: str, ingredientes_menu: list[str], threshold=
     result = process.extractOne(
         texto,
         ingredientes_menu,
-        scorer=fuzz.partial_ratio
+        scorer=fuzz.token_set_ratio
     )
     
     # process.extractOne puede devolver None si no hay coincidencias
@@ -739,25 +808,135 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     telegram_id = update.effective_user.id
     texto_usuario = (update.message.text or "").strip().lower()
 
-    # ✅ 1. Interpretar el pedido
-    producto_base, removidos, agregados, pedido_final = await interpretar_pedido(texto_usuario)
-
-    print("\n===== DEBUG handle_message =====")
-    print("Producto base:", producto_base)
-    print("Removidos:", removidos)
-    print("Agregados:", agregados)
-    print("Pedido final:", pedido_final)
-    print("Texto original:", texto_usuario)
-    print("================================\n")
-
-    if not producto_base:
+    # ✅ 1.0 DETECTAR RESUMEN WEB (Prioridad Máxima)
+    # ----------------------------------------------------
+    # Verificamos si es un resumen pegado antes de cualquier charla
+    pedido_web = parsear_resumen_web(update.message.text or "") # Usamos texto original con case
+    if pedido_web:
+        producto_base = pedido_web["producto_base"]
+        pedido_final = pedido_web["pedido_final"]
+        precio_total = pedido_web["precio"]
+        
+        pedido_key = "pedido_carrito"
+        context.user_data[pedido_key] = pedido_web
+        
+        keyboard = [
+            [
+                InlineKeyboardButton(f"💸 Pagar ${precio_total:.2f}", callback_data=f"proceder_pago:{pedido_key}"),
+                InlineKeyboardButton("❌ Cancelar", callback_data="cancelar")
+            ]
+        ]
+        
         await update.message.reply_text(
-            "Usa los formatos:\n"
-            "1. 'quiero pedir [Plato]'\n"
-            "2. 'hamburguesa sin tomate'\n"
-            "3. 'pizza con queso extra'"
+            f"🛒 *Pedido Web Detectado*\n\n"
+            f"He leído tu resumen:\n👉 *{pedido_final}*\n\n"
+            f"💰 *Total a pagar: ${precio_total:.2f}*",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard)
         )
         return
+
+    # 🧠 LEER INTENCIONES PRIMERO (Antes de interpretar pedido)
+    # --------------------------------------------------------
+    best_intent = None
+    best_score = 0
+    
+    for intent_name, phrases in INTENTS.items():
+        match = process.extractOne(texto_usuario, phrases, scorer=fuzz.partial_ratio)
+        if match:
+            score = match[1]
+            if score > 85 and score > best_score:
+                best_score = score
+                best_intent = intent_name
+    
+    # Si hay una intención clara (ej: Saludo, Hambre, Ayuda) y NO parece un pedido explícito
+    # (Un pedido suele ser más largo o tener palabras clave, pero por ahora priorizamos la charla corta)
+    if best_intent:
+        response = random.choice(RESPONSES.get(best_intent, RESPONSES["DEFAULT"]))
+        await update.message.reply_text(response, parse_mode="Markdown")
+        
+        # 🚀 PROACTIVIDAD
+        if best_intent in ["HAMBRE", "INDECISION"]:
+             await update.message.reply_text("💡 _Un momento, déjame buscarte lo mejor del menú..._", parse_mode="Markdown")
+             await recomendacion_hibrida(update, context)
+        
+        return
+
+    # ✅ 2. Interpretar el pedido (Solo si no fue una charla)
+    # ----------------------------------------------------
+    # (Bloque Web Summary movido arriba)
+
+    # ✅ 2. Interpretar el pedido (Solo si no fue una charla)
+    # ----------------------------------------------------
+    producto_base, cantidad_detectada, removidos, agregados, pedido_final = await interpretar_pedido(texto_usuario)
+
+    # 🔄 LÓGICA DE CORRECCIÓN / CONTINUACIÓN
+    # Si no se detectó un producto nuevo, pero ya había uno en el carrito...
+    if not producto_base and "pedido_carrito" in context.user_data:
+        pedido_anterior = context.user_data["pedido_carrito"]
+        producto_base = pedido_anterior["producto_base"]
+        
+        # Determine whether to update quantity or keep previous
+        if cantidad_detectada is not None:
+             cantidad = cantidad_detectada # Update quantity
+             await update.message.reply_text(f"🔢 Entendido, cambio la cantidad a {cantidad}.")
+        else:
+             cantidad = pedido_anterior.get("cantidad", 1) # Keep previous
+        
+        # Re-interpretamos buscando solo ingredientes para ESTE producto
+        ingredientes_menu = await obtener_ingredientes_producto(producto_base)
+        nuevos_removidos = extraer_ingredientes_removidos(texto_usuario, ingredientes_menu)
+        nuevos_agregados = extraer_ingredientes_agregados(texto_usuario, ingredientes_menu)
+        
+        # Si detectó cambios de ingredientes O cambio de cantidad
+        if nuevos_removidos or nuevos_agregados or cantidad_detectada is not None:
+             if nuevos_removidos or nuevos_agregados:
+                 removidos = list(set(pedido_anterior["removidos"] + nuevos_removidos))
+                 agregados = list(set(pedido_anterior["agregados"] + nuevos_agregados))
+                 pedido_str = construir_pedido_final(producto_base, removidos, agregados)
+                 await update.message.reply_text(f"👌 Entendido, corrijo tu orden: *{pedido_str}*")
+             else:
+                 # Si solo cambió la cantidad, mantenemos ingredientes previos
+                 removidos = pedido_anterior["removidos"]
+                 agregados = pedido_anterior["agregados"]
+                 pedido_str = construir_pedido_final(producto_base, removidos, agregados)
+
+             # Reconstruimos el string final con la cantidad
+             if cantidad > 1:
+                pedido_final = f"{cantidad} x {pedido_str}"
+             else:
+                pedido_final = pedido_str
+        
+        else:
+             # Fallback original
+             await update.message.reply_text(
+                "🤔 Mmm, no estoy seguro de haberte entendido.\n\n"
+                "Usa los formatos:\n"
+                "1. 'quiero pedir [Plato]'\n"
+                "2. '2 pizzas con jamón'\n"
+                "3. 'hamburguesa sin tomate'\n\n"
+                "O escribe *'Ayuda'* para más opciones.",
+                parse_mode="Markdown"
+            )
+             return
+
+    elif not producto_base:
+        # Fallback original si no hay contexto
+        await update.message.reply_text(
+            "🤔 Mmm, no estoy seguro de haberte entendido.\n\n"
+            "Usa los formatos:\n"
+            "1. 'quiero pedir [Plato]'\n"
+            "2. '2 pizzas con jamón'\n"
+            "3. 'hamburguesa sin tomate'\n\n"
+            "O escribe *'Ayuda'* para más opciones.",
+            parse_mode="Markdown"
+        )
+        return
+
+    # Si estamos aquí es porque tenemos un producto base (nuevo o recuperado del contexto)
+    # Asegurar que ‘cantidad’ esté definida si vino de una orden nueva
+    if 'cantidad' not in locals():
+        cantidad = cantidad_detectada if cantidad_detectada is not None else 1
 
     # ✅ 1.5 Validar si el producto existe en el menú antes de pedir confirmación
     if not producto_es_valido(producto_base):
@@ -769,38 +948,43 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # ✅ 2. Aplicar memoria personalizada
     recordatorio = await recordar_pedido_personalizado(telegram_id, producto_base)
-    if recordatorio:
+    if recordatorio and cantidad_detectada is None: # Solo mostrar recordatorio si es orden nueva sin cantidad explícita (opcional)
         await update.message.reply_text(recordatorio)
 
-    # ✅ 3. Obtener precio del producto
+    # ✅ 3. Obtener precio del producto y CALCULAR TOTAL
     producto_db = await sync_to_async(lambda: Product.objects.filter(name__iexact=producto_base).first())()
-    precio = float(producto_db.price) if producto_db else 0.0
+    precio_unitario = float(producto_db.price) if producto_db else 0.0
+    precio_total = precio_unitario * cantidad
 
     # ✅ 4. Guardar datos interpretados para confirmación
     pedido_key = "pedido_carrito"
 
     context.user_data[pedido_key] = {
         "producto_base": producto_base,
+        "cantidad": cantidad,
         "removidos": removidos,
         "agregados": agregados,
         "pedido_final": pedido_final,
         "texto_original": texto_usuario,
-        "precio": precio
+        "precio": precio_total  # Guardamos el total
     }
 
     # ✅ 4. Mostrar botones de confirmación inicial
     keyboard = [
         [
-            InlineKeyboardButton("💸 Proceder al Pago", callback_data=f"proceder_pago:{pedido_key}"),
+            InlineKeyboardButton(f"💸 Pagar ${precio_total:.2f}", callback_data=f"proceder_pago:{pedido_key}"),
             InlineKeyboardButton("❌ Cancelar", callback_data="cancelar")
         ]
     ]
 
     await update.message.reply_text(
-        f"{nombre}, ¿quieres proceder con tu pedido?\n\n👉 *{pedido_final}*",
+        f"{nombre}, ¿quieres proceder con tu pedido?\n\n"
+        f"👉 *{pedido_final}*\n"
+        f"💰 *Total: ${precio_total:.2f}*",
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
+    return
     
 
 
@@ -991,6 +1175,34 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         return
 
     # ----------------------------------------------------
+    # ✅ 1.6 Botones del Menú Principal (/start)
+    # ----------------------------------------------------
+    if query.data == "ayuda_pedido":
+        await query.edit_message_text(
+            "🍔 *Cómo hacer un pedido*\n\n"
+            "Es muy fácil, solo escríbeme lo que quieres. Ejemplos:\n"
+            "• _'Quiero una hamburguesa con queso'_\n"
+            "• _'Dame una pizza y una coca cola'_\n"
+            "• _'Quiero 2 perros calientes'_\n\n"
+            "También puedes ver el /menu para inspirarte.",
+            parse_mode="Markdown"
+        )
+        return
+
+    if query.data == "estado_pedido":
+        # Simulación o enlace a historial
+        telegram_id = query.from_user.id
+        await query.edit_message_text(
+            f"📦 para ver tus pedidos recientes escribe /historial\n"
+            f"Si acabas de pedir, tu orden está siendo procesada en cocina. 👨‍🍳"
+        )
+        return
+
+    if query.data == "soporte":
+        await soporte(update, context)
+        return
+
+    # ----------------------------------------------------
     # ✅ 2. Confirmar pedido (Guardar en DB)
     # ----------------------------------------------------
     if query.data.startswith("confirmar:"):
@@ -1119,7 +1331,7 @@ def extraer_producto_base(texto_usuario: str) -> str | None:
         result = process.extractOne(
             texto,
             productos,
-            scorer=fuzz.partial_ratio
+            scorer=fuzz.token_set_ratio
         )
         
         # Manejar caso donde no hay coincidencias

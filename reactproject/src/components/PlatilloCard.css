@@ -9,13 +9,8 @@
   margin-bottom: 2rem;
 }
 
-.menu-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  max-width: 600px;
-  margin: 0 auto;
-}
+
+/* .menu-grid eliminado de aquí, se maneja en Menu.css */
 
 .platillo-card {
   background-color: #fff;

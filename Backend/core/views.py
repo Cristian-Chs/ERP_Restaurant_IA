@@ -2,6 +2,10 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from django.http import JsonResponse
+from django.contrib.auth.models import User
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.contrib.auth.tokens import default_token_generator
 
 from .models import Product, Ingredient
 from .serializers import ProductSerializer
@@ -99,3 +103,29 @@ def productos_view(request):
         Product.objects.filter(is_active=True).values_list("name", flat=True)
     )
     return JsonResponse({"productos": productos})
+
+def check_user_and_get_reset_link(request):
+    """
+    Endpoint de desarrollo para obtener UID y Token directamente si el usuario existe.
+    AVISO: Esto es un bypass de seguridad solicitado para agilizar pruebas.
+    """
+    email = request.GET.get("email")
+    if not email:
+        return JsonResponse({"error": "Email requerido"}, status=400)
+    
+    try:
+        user = User.objects.filter(email=email).first()
+        if not user:
+            return JsonResponse({"exists": False, "error": "Cuenta no existe"})
+        
+        # Generar UID y Token (Lógica estándar de Django/Djoser)
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+        
+        return JsonResponse({
+            "exists": True,
+            "uid": uid,
+            "token": token
+        })
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)

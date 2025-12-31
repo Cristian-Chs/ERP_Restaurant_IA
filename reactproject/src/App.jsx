@@ -16,6 +16,8 @@ import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import WhatsAppButton from './components/TelegramButton';
+import KitchenPanel from './pages/KitchenPanel';
+import Profile from './pages/Profile';
 
 // 🛑 LÓGICA DE CARRITO
 function useCartLogic() {
@@ -72,7 +74,13 @@ function AnimatedRoutes({ carrito, agregarAlCarrito, eliminarDelCarrito }) {
         <Route path="/admin" element={<AdminPanel />} />
         <Route path="/register" element={<Register/>} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password/:token" element={<ResetPassword />} />
+        <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
+        
+        {/* RUTA DE COCINA (CHEF) */}
+        <Route path="/kitchen-panel" element={<KitchenPanel />} />
+        
+        {/* RUTA DE PERFIL */}
+        <Route path="/profile" element={<Profile />} />
       </Routes>
     </AnimatePresence>
   );
@@ -81,7 +89,7 @@ function AnimatedRoutes({ carrito, agregarAlCarrito, eliminarDelCarrito }) {
 function CartButtonWrapper({ totalItems }) {
   const location = useLocation();
 
-  const hiddenPaths = ['/', '/carrito', '/login', '/Login', '/admin', '/register', '/forgot-password', '/reset-password'];
+  const hiddenPaths = ['/', '/carrito', '/login', '/Login', '/admin', '/register', '/forgot-password', '/reset-password', '/kitchen-panel'];
   const shouldHide = hiddenPaths.includes(location.pathname);
 
   if (shouldHide) {
@@ -112,7 +120,7 @@ function AppContent({ carrito, agregarAlCarrito, eliminarDelCarrito, totalItems 
   const location = useLocation();
 
   // Rutas donde quieres mostrar el fondo aurora
-  const showAurora = ['/', '/login', '/Login', '/register'].includes(location.pathname);
+  const showAurora = ['/', '/login', '/Login', '/register', '/forgot-password', '/reset-password', '/profile'].some(path => location.pathname.startsWith(path));
 
   return (
     <>
@@ -133,7 +141,7 @@ function AppContent({ carrito, agregarAlCarrito, eliminarDelCarrito, totalItems 
       />
 
       <CartButtonWrapper totalItems={totalItems} />
-      <WhatsAppButton />
+      {location.pathname !== '/kitchen-panel' && <WhatsAppButton />}
     </>
   );
 }
