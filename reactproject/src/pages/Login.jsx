@@ -1,24 +1,45 @@
 import { useState, useEffect } from 'react';
-import API from '../api/axios'; // Se asume que esta instancia tiene la baseURL correcta (ej. http://localhost:8000/api/)
+import API from '../api/axios';
 import { useNavigate } from 'react-router-dom';
 import './Login.css';
 import logo from '../assets/images/logo.jpeg';
+import TelegramLogin from '../components/TelegramLogin';
 
 export default function Login() {
-const [email, setEmail] = useState('');
-const [password, setPassword] = useState('');
-const [error, setError] = useState('');
-const [loading, setLoading] = useState(false);
-const navigate = useNavigate();
-const [showPassword, setShowPassword] = useState(false); // 👈 estado para visibilidad
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-useEffect(() => {
-if (error) {
-const timer = setTimeout(() => setError(''), 3000);
-return () => clearTimeout(timer);
-  }
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(''), 3000);
+      return () => clearTimeout(timer);
+    }
   }, [error]);
 
+  const handleTelegramLogin = async (user) => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await API.post('/auth/telegram/', user);
+      const accessToken = res.data.access;
+      localStorage.setItem('token', accessToken);
+      
+      const payload = JSON.parse(atob(accessToken.split('.')[1]));
+      localStorage.setItem('rol', payload.rol);
+      
+      if (payload.rol === 'admin') navigate('/admin');
+      else if (payload.rol === 'cocina') navigate('/kitchen-panel');
+      else navigate('/menu');
+    } catch (err) {
+      setError('Fallo al iniciar sesión con Telegram.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
 const handleLogin = async () => {
   setError('');
@@ -36,10 +57,11 @@ const handleLogin = async () => {
         const accessToken = res.data.access; 
         localStorage.setItem('token', accessToken);
         
-        // 2. Decodificar el token para obtener el payload (rol)
-        const payload = JSON.parse(atob(accessToken.split('.')[1])); 
-        
-         // 3. Redireccionar (Requiere configuración de CustomJWTSerializer en Django)
+         // 2. Decodificar el token para obtener el payload (rol)
+        const payload = JSON.parse(atob(accessToken.split('.')[1])); 
+        localStorage.setItem('rol', payload.rol); // 👈 Guardar rol para el Navbar
+        
+         // 3. Redireccionar (Requiere configuración de CustomJWTSerializer en Django)
         if (payload.rol === 'admin') {
             navigate('/admin');
         } else if (payload.rol === 'cocina') {
@@ -82,10 +104,20 @@ const handleLogin = async () => {
           disabled={loading}
         />
 
-        <button onClick={handleLogin} disabled={loading}>
-          {loading ? 'Cargando...' : 'Entrar'}
-        </button>
-        <div className="login-links">
+         <button onClick={handleLogin} disabled={loading}>
+          {loading ? 'Cargando...' : 'Entrar'}
+        </button>
+
+        {/* Telegram Login deshabilitado temporalmente */}
+        {/* 
+        <div className="login-divider">O también puedes</div>
+
+        <div className="telegram-btn-wrapper">
+          <TelegramLogin onAuth={handleTelegramLogin} />
+        </div> 
+        */}
+
+        <div className="login-links">
           <button onClick={() => navigate('/register')}>
             ¿No tienes cuenta? Regístrate
           </button>

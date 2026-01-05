@@ -4,6 +4,7 @@ from .views import (
     OrderViewSet,
     api_cocina_orders,
     api_cocina_mark_ready,
+    api_cocina_reject,
     historial,
     guardar_rating,
     gustos,
@@ -12,8 +13,9 @@ from .views import (
     recomendacion_similar_view,
     recomendacion_hibrida_view,
     guardar_pedido_personalizado,
+    get_or_create_session, update_session, reset_session
 )
-from core.views import productos_view
+from core.views import productos_view, productos_view # Ensure it is available
 from .payment_views import payment_dashboard, export_payments_csv, export_payments_excel
 
 router = DefaultRouter()
@@ -26,6 +28,7 @@ urlpatterns = [
     # API Cocina
     path("api/cocina/orders/", api_cocina_orders, name="api_cocina_orders"),
     path("api/cocina/orders/<int:order_id>/ready/", api_cocina_mark_ready, name="api_cocina_mark_ready"),
+    path("api/cocina/orders/<int:order_id>/reject/", api_cocina_reject, name="api_cocina_reject"),
     
     # Dashboard de pagos
     path("payment-dashboard/", payment_dashboard, name="payment_dashboard"),
@@ -40,6 +43,10 @@ urlpatterns = [
     path("recomendacion_ml/<int:telegram_id>/", recomendacion_ml_view, name="recomendacion_ml"),
     path("recomendacion_similar/<int:telegram_id>/", recomendacion_similar_view),
     path("recomendacion_hibrida/<int:telegram_id>/", recomendacion_hibrida_view),
-    path("productos/", productos_view),
     path("guardar_pedido_personalizado/", guardar_pedido_personalizado),
+    path("productos/", productos_view, name="productos"),
+    # Session API
+    path("session/<int:telegram_id>/", get_or_create_session),
+    path("session/update/<int:telegram_id>/", update_session),
+    path("session/reset/<int:telegram_id>/", reset_session),
 ]

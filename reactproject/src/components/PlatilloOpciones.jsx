@@ -1,23 +1,19 @@
 // src/components/PlatilloOpciones.jsx
 
-import { color } from 'framer-motion';
-import React from 'react';
-
 /**
- * Componente selector de opciones (ej. sabor de empanada).
- * @param {string} selectedOption - La opción actualmente seleccionada ('Pollo' o 'Cazón').
- * @param {function} onOptionChange - Función a llamar cuando una opción es seleccionada.
+ * Componente selector de opciones (ej. sabores dinámicos).
+ * @param {string} id - ID único del producto.
+ * @param {string} selectedOption - El sabor seleccionado.
+ * @param {function} onOptionChange - Función para cambiar el sabor.
+ * @param {array} opciones - Lista de strings con los nombres de los sabores.
  */
-export default function PlatilloOpciones({ selectedOption, onOptionChange }) {
+export default function PlatilloOpciones({ id, selectedOption, onOptionChange, opciones = [] }) {
     
-    // Lista de opciones disponibles
-    const opciones = ['Pollo', 'Cazón'];
-
-    // Estilos muy básicos para replicar el look de radio buttons de la imagen
+    // Estilos para los radio buttons
     const optionStyle = {
-        marginRight: '15px',
+        margin: '10px 0',
         fontSize: '14px',
-        color: '#333',
+        color: '#333', // Cambiado a negro para mejor visibilidad
     };
 
     const labelStyle = {
@@ -33,13 +29,14 @@ export default function PlatilloOpciones({ selectedOption, onOptionChange }) {
             </p>
             
             {opciones.map((opcion) => (
-                <label key={opcion} style={labelStyle}>
+                <label key={`${id}-${opcion}`} style={labelStyle}>
                     <input
-                        type="radio"
-                        name="saborEmpanada" // Nombre del grupo para asegurar que solo uno sea checked
-                        value={opcion}
+                        type="checkbox"
                         checked={selectedOption === opcion}
-                        onChange={(e) => onOptionChange(e.target.value)}
+                        onChange={() => {
+                            const nextValue = selectedOption === opcion ? '' : opcion;
+                            onOptionChange(nextValue);
+                        }}
                         style={{ marginRight: '5px' }}
                     />
                     {opcion}

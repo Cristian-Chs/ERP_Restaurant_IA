@@ -37,11 +37,9 @@ function Menu({ agregarAlCarrito }) {
 
 
 
+// El fondo se maneja ahora via CSS en .menu-grid
 useEffect(() => {
-  document.body.classList.add('menu-background');
-  return () => {
-    document.body.classList.remove('menu-background');
-  };
+  // Solo si necesitas alguna lógica de montaje específica
 }, []);
 
 
@@ -83,43 +81,49 @@ useEffect(() => {
     const activeKey = categoriaActiva.toLowerCase();
     const items = menuData[activeKey] || [];
 
-    const seccion = (() => {
-      switch (activeKey) {
-        case 'promociones': return <MenuSection title="Promociones" items={items} agregarAlCarrito={agregarAlCarrito} />;
-        case 'entradas': return <MenuSection title="Entradas" items={items} agregarAlCarrito={agregarAlCarrito} />;
-        case 'principales': return <MenuSection title="Principales" items={items} agregarAlCarrito={agregarAlCarrito} />;
-        case 'postres': return <MenuSection title="Postres" items={items} agregarAlCarrito={agregarAlCarrito} />;
-        case 'bebidas': return <MenuSection title="Bebidas" items={items} agregarAlCarrito={agregarAlCarrito} />;
-        default: return <p>Categoría no encontrada.</p>;
-      }
-    })();
-
     return (
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={activeKey}
-          initial={{ opacity: 0, x: 30 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -30 }}
-          transition={{ duration: 0.3 }}
-        >
-          {seccion}
-        </motion.div>
-      </AnimatePresence>
+      <div className="menu-grid-wrapper">
+        <div className="menu-grid">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeKey}
+              className="menu-section-content"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <h1 className="menu-section-title">
+                {activeKey.charAt(0).toUpperCase() + activeKey.slice(1)}
+              </h1>
+              <div className="menu-items-container">
+                {items && items.length > 0 ? (
+                  items.map((p, i) => (
+                    <PlatilloCard 
+                      key={p.id || i} 
+                      {...p} 
+                      agregarAlCarrito={agregarAlCarrito} 
+                    />
+                  ))
+                ) : (
+                  <p className="no-items">No hay items disponibles en esta categoría.</p>
+                )}
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </div>
     );
   };
 
   return (
-    <motion.div
+    <motion.div 
       className="menu-container"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.5 }}
     >
-      <div className="menu-header-actions">
-        <BackButton to="/Login" />
-        <Link to="/profile" className="profile-btn-link">👤 Mi Perfil</Link>
+      <div className="menu-header-actions" style={{ marginBottom: '20px' }}>
+        {/* El Navbar global ya maneja la navegación. Dejamos el espacio o ajustes si es necesario */}
       </div>
       <MenuCategorias active={categoriaActiva} onSelect={setCategoriaActiva} />
       {renderSeccionActiva()}

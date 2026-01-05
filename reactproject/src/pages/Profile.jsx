@@ -78,7 +78,7 @@ export default function Profile() {
   if (loading) return <div className="page-container"><h2>Cargando...</h2></div>;
 
   return (
-    <div className="page-container">
+    <div className="page-container profile-page">
       <h2>Mi Perfil</h2>
       <div className="form-group">
         <label style={{alignSelf: 'flex-start', fontSize: '0.8rem', opacity: 0.8}}>Nombre de Usuario</label>

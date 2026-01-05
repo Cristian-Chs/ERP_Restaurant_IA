@@ -1,3 +1,5 @@
+from django.contrib import admin
+from django.urls import path, include
 from core.views import check_user_and_get_reset_link
 
 urlpatterns = [
@@ -7,10 +9,15 @@ urlpatterns = [
     path('api/auth/', include('djoser.urls.jwt')),
 
     # Apps
-    path("bot/", include("bot.urls")),
-    path("core/", include("core.urls")),
-    path("api/", include("core.urls")), # ✅ Fix para React (Menu.jsx busca /api/products/)
+    path("api/bot/", include("bot.urls")),
+    path("api/", include("core.urls")),
 
     # Admin
     path("admin/", admin.site.urls),
 ]
+
+from django.conf import settings
+from django.conf.urls.static import static
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

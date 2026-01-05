@@ -9,8 +9,9 @@ from rest_framework import viewsets
 from rest_framework.permissions import AllowAny
 
 from .models import Order, Rating, GustoCliente
+from core.models import Product
 from .serializers import OrderSerializer
-from .utils import notificar_pedido_listo
+from .utils import notificar_pedido_listo, notificar_nuevo_pedido_externo
 from ml.predict import recomendar_ml
 
 
@@ -22,6 +23,16 @@ class OrderViewSet(viewsets.ModelViewSet):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
     permission_classes = [AllowAny]
+
+    def perform_create(self, serializer):
+        order = serializer.save()
+        # Si NO es 'Comer Aquí' (Local) y NO está pendiente (ya pagado o validado), notificar.
+        # En el flujo del bot, se crea como 'pendiente' y luego se notifica al subir foto.
+        if order.service_type != 'HERE' and order.status not in ['pendiente', 'esperando_pago']:
+            try:
+                notificar_nuevo_pedido_externo(order)
+            except Exception as e:
+                print(f"Error notificando pedido externo: {e}")
 
 
 # ------------------------------
@@ -92,7 +103,12 @@ def popularidad(request):
 
 
 def recomendacion_ml_view(request, telegram_id):
-    recs = recomendar_ml(telegram_id, top_n=5)
+    try:
+        from ml.predict import recomendar_ml
+        recs = recomendar_ml(telegram_id, top_n=5)
+    except Exception as e:
+        print(f"Error loading ML model: {e}")
+        recs = [] # Fallback
     return JsonResponse({"recomendaciones": recs})
 
 
@@ -109,14 +125,20 @@ def api_cocina_orders(request):
     """
     Devuelve la lista de pedidos pendientes en JSON.
     """
+    # Los pedidos aparecen en cocina cuando están pendientes de preparación
     pedidos = Order.objects.filter(status="pendiente").order_by("fecha")
     data = [
         {
             "id": p.id,
             "telegram_id": p.telegram_id,
             "item": p.item,
+            "precio": float(p.precio),
             "fecha": p.fecha.isoformat(),
-            "status": p.status
+            "status": p.status,
+            "service_type": p.get_service_type_display(),
+            "delivery_mode": p.get_delivery_mode_display() if p.delivery_mode else "N/A",
+            "location": p.location or "N/A",
+            "payment_proof": p.payment_proof.url if p.payment_proof else None
         }
         for p in pedidos
     ]
@@ -135,8 +157,24 @@ def api_cocina_mark_ready(request, order_id):
         order.status = "listo"
         order.save()
         
-        # Notificar al cliente
-        notificar_pedido_listo(order.telegram_id, order.item)
+        return JsonResponse({"status": "ok"})
+    except Order.DoesNotExist:
+        return JsonResponse({"error": "Pedido no encontrado"}, status=404)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+@csrf_exempt
+def api_cocina_reject(request, order_id):
+    """
+    Marca un pedido como rechazado.
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Método no permitido"}, status=405)
+
+    try:
+        order = Order.objects.get(id=order_id)
+        order.status = "rechazado"
+        order.save()
         
         return JsonResponse({"status": "ok"})
     except Order.DoesNotExist:
@@ -144,10 +182,13 @@ def api_cocina_mark_ready(request, order_id):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
-from ml.embeddings import recomendar_similares
-from core.models import Product
+
 
 def recomendacion_similar_view(request, telegram_id):
+    try:
+        from ml.embeddings import recomendar_similares
+    except ImportError:
+        return JsonResponse({"similares": [], "error": "ML module missing"})
     # ✅ Obtener último plato del usuario
     ultimo = Rating.objects.filter(telegram_id=telegram_id).order_by("-id").first()
 
@@ -160,16 +201,18 @@ def recomendacion_similar_view(request, telegram_id):
     platos = list(Product.objects.values_list("name", flat=True))
 
     # ✅ Calcular similares
-    similares = recomendar_similares(plato_objetivo, platos, top_n=5)
+    try:
+        similares = recomendar_similares(plato_objetivo, platos, top_n=5)
+    except Exception as e:
+        print(f"Error in similar recommendation: {e}")
+        similares = []
 
     return JsonResponse({
         "plato_base": plato_objetivo,
         "similares": similares
     })
 
-from ml.embeddings import recomendar_similares
-from ml.predict import recomendar_ml
-from core.models import Product
+
 
 def recomendacion_hibrida_view(request, telegram_id):
     # ✅ 1. Top Personal (Lo que más pide el usuario)
@@ -261,3 +304,60 @@ def guardar_pedido_personalizado(request):
     )
 
     return JsonResponse({"status": "ok"})
+
+
+# ----------------------------------------------------
+# ✅ SESSION API (STATE MACHINE)
+# ----------------------------------------------------
+from .models import TelegramSession
+
+@csrf_exempt
+def get_or_create_session(request, telegram_id):
+    session, created = TelegramSession.objects.get_or_create(telegram_id=telegram_id)
+    return JsonResponse({
+        "telegram_id": session.telegram_id,
+        "state": session.state,
+        "current_product_id": session.current_product_id,
+        "temp_data": session.temp_data
+    })
+
+@csrf_exempt
+def update_session(request, telegram_id):
+    if request.method != 'POST':
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    
+    try:
+        data = json.loads(request.body)
+        session = TelegramSession.objects.get(telegram_id=telegram_id)
+        
+        if "state" in data:
+            session.state = data["state"]
+        if "current_product_id" in data:
+            session.current_product_id = data["current_product_id"]
+        if "temp_data" in data:
+            current_temp = session.temp_data or {}
+            current_temp.update(data["temp_data"])
+            session.temp_data = current_temp
+            
+        session.save()
+        return JsonResponse({"status": "ok", "state": session.state})
+    except TelegramSession.DoesNotExist:
+        return JsonResponse({"error": "Session not found"}, status=404)
+    except Exception as e:
+        print(f"Error updating session: {e}")
+        return JsonResponse({"error": str(e)}, status=500)
+
+@csrf_exempt
+def reset_session(request, telegram_id):
+    if request.method != 'POST':
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    
+    try:
+        session = TelegramSession.objects.get(telegram_id=telegram_id)
+        session.state = "IDLE"
+        session.current_product_id = None
+        session.temp_data = {}
+        session.save()
+        return JsonResponse({"status": "ok", "state": "IDLE"})
+    except TelegramSession.DoesNotExist:
+        return JsonResponse({"status": "ok", "state": "IDLE"})

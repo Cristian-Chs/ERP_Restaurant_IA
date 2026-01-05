@@ -12,3 +12,8 @@ http://localhost:5173/kitchen-panel
 usuario cocina 
 Pelota4321 - Password
 cocina - usuario
+
+panel admin
+
+usuario - admin 
+password - password

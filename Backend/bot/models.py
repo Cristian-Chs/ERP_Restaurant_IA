@@ -19,6 +19,11 @@ class Order(models.Model):
     status = models.CharField(max_length=50, default="pendiente")
     fecha = models.DateTimeField(auto_now_add=True)
     
+    # ✅ Nuevos campos de logística
+    service_type = models.CharField(max_length=20, choices=[('HERE', 'Eat Here'), ('TOGO', 'To Go')], default='HERE')
+    delivery_mode = models.CharField(max_length=20, choices=[('PICKUP', 'Pick Up'), ('DELIVERY', 'Delivery')], blank=True, null=True)
+    location = models.TextField(blank=True, null=True) # Dirección manual o coordenadas
+    
     # ✅ Campos de verificación de pago
     payment_status = models.CharField(
         max_length=20, 
@@ -26,9 +31,10 @@ class Order(models.Model):
         default='pending_payment'
     )
     payment_receipt_file_id = models.CharField(max_length=255, blank=True, null=True)
+    payment_proof = models.ImageField(upload_to='payments/', blank=True, null=True) # Captura subida desde web
     payment_verified_at = models.DateTimeField(blank=True, null=True)
     payment_verified_by = models.BigIntegerField(blank=True, null=True)
-    payment_data = models.JSONField(blank=True, null=True)  # Datos extraídos del comprobante
+    payment_data = models.JSONField(blank=True, null=True)
 
     def __str__(self):
         return f"{self.item} - Cliente {self.telegram_id}"
@@ -82,3 +88,14 @@ class PreferenciaIngrediente(models.Model):
 
 
 
+
+# ✅ Sesión de Telegram para Máquina de Estados
+class TelegramSession(models.Model):
+    telegram_id = models.BigIntegerField(unique=True)
+    state = models.CharField(max_length=50, default="IDLE")
+    current_product_id = models.IntegerField(null=True, blank=True)
+    temp_data = models.JSONField(default=dict, blank=True)
+    last_interaction = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Session {self.telegram_id} - {self.state}"

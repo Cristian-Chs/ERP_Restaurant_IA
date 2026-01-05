@@ -6,54 +6,59 @@
 }
 
 .cart-float-button {
-    /* Posicionamiento fijo en la esquina inferior derecha */
     position: fixed;
-    bottom: 90px; /* Encima del botón de Telegram */
-    right: 20px;
-    z-index: 1000; /* Asegurar que esté encima de otros elementos */
+    bottom: 20px; /* Alineado con Telegram */
+    right: 100px; /* Separado de Telegram (que está a 20px) */
+    z-index: 1000;
 
-    /* Estilo del botón */
-    background-color: #051f20; /* Color primario verde (puedes ajustarlo) */
+    background: linear-gradient(135deg, #051f20 0%, #0a3a3c 100%);
     color: white;
-    width: 60px;
-    height: 60px;
-    border: none;
+    width: 60px; /* Igual que Telegram */
+    height: 60px; /* Igual que Telegram */
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 50%;
     cursor: pointer;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(10px);
+}
+
+.cart-float-button .icono {
     font-size: 28px;
-    line-height: 60px;
-    text-align: center;
-    transition: background-color 0.3s ease, transform 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: auto;
+    width: auto;
 }
 
 .cart-float-button:hover {
-    background-color: #4cae4c; /* Tono más oscuro al pasar el ratón */
-    transform: scale(1.05);
+    transform: translateY(-5px) scale(1.08);
+    background: linear-gradient(135deg, #0a3a3c 0%, #051f20 100%);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
 }
 
 .cart-float-button:active {
     transform: scale(0.95);
 }
 
-/* Estilo del contador (Badge) */
 .cart-item-count {
-    /* Posicionamiento del contador relativo al botón */
     position: absolute;
-    top: -2px;
-    right: -2px;
-
-    /* Estilo del contador */
-    background-color: #d9534f; /* Rojo llamativo */
+    top: -5px;
+    right: -5px;
+    background: #ff4757;
     color: white;
-    font-size: 14px;
-    font-weight: bold;
+    font-size: 13px;
+    font-weight: 800;
     border-radius: 50%;
-    width: 20px;
-    height: 20px;
+    min-width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 2px;
-    line-height: 1; /* Asegura que el número esté centrado */
+    border: 2px solid #fff;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }

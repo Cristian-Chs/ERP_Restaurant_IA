@@ -7,12 +7,12 @@ import './PlatilloCard.css';
 export default function PlatilloCard(props) { 
     const { id, name, description, imagen, price, agregarAlCarrito } = props;
 
-    // 1. Lógica para detectar si es el plato de las empanadas (puedes usar el id o el nombre)
-    // 🚨 ASUMIMOS que el nombre 'Empanadas' lo identifica
-    const isEmpanada = name && name.toLowerCase().includes('empanada');
+    // 1. Lógica dinámica: Si el producto tiene sabores asignados en DB
+    const flavors = props.sabor_nombres || [];
+    const hasFlavors = flavors.length > 0;
 
-    // 2. Estado para el sabor, solo si es una empanada. Por defecto 'Pollo'.
-    const [saborSeleccionado, setSaborSeleccionado] = useState('Pollo');
+    // 2. Estado para el sabor seleccionado. Por defecto el primero de la lista.
+    const [saborSeleccionado, setSaborSeleccionado] = useState(flavors[0] || '');
 
     // 3. Función para manejar la adición al carrito
     const handleAdd = () => {
@@ -21,12 +21,15 @@ export default function PlatilloCard(props) {
             // Creamos una copia del objeto del plato
             let itemToAdd = { ...props };
 
-            // Si es una empanada, modificamos el nombre y agregamos el sabor
-            if (isEmpanada) {
-                // Modificamos el nombre para el carrito: "Empanadas (Cazón)"
-                itemToAdd.name = `${name} (${saborSeleccionado})`;
-                // Agregamos una propiedad extra al objeto
-                itemToAdd.sabor = saborSeleccionado;
+            // Si el producto tiene sabores, los incluimos en el nombre del carrito solo si uno está seleccionado
+            if (hasFlavors) {
+                if (saborSeleccionado) {
+                    itemToAdd.name = `${name} (${saborSeleccionado})`;
+                    itemToAdd.sabor = saborSeleccionado;
+                } else {
+                    itemToAdd.name = name;
+                    itemToAdd.sabor = 'Sin especificar';
+                }
             }
 
             // Llamamos a la función global con el objeto final
@@ -42,11 +45,13 @@ export default function PlatilloCard(props) {
       <h3>{name}</h3>
       <p>{description}</p>
 
-      {/* 4. Renderizamos el selector SOLO si es el plato de empanadas */}
-      {isEmpanada && (
+      {/* 4. Renderizamos el selector SOLO si el producto tiene sabores definidos */}
+      {hasFlavors && (
           <PlatilloOpciones 
+              id={id}
               selectedOption={saborSeleccionado}
-              onOptionChange={setSaborSeleccionado} // setSaborSeleccionado directamente maneja el cambio
+              onOptionChange={setSaborSeleccionado} 
+              opciones={flavors}
           />
       )}
       

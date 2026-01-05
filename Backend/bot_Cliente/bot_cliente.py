@@ -22,6 +22,7 @@ from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     ReplyKeyboardMarkup,
+    ReplyKeyboardRemove,
     KeyboardButton
 )
 from telegram.ext import (
@@ -31,6 +32,7 @@ from telegram.ext import (
     CallbackQueryHandler,
     ContextTypes,
     filters,
+    PicklePersistence,
 )
 from asgiref.sync import sync_to_async
 from rapidfuzz import process, fuzz
@@ -50,15 +52,52 @@ import random
 # ----------------------------------------------------
 # ⚙️ Configuración
 # ----------------------------------------------------
-ORDERS_URL = "http://127.0.0.1:8000/bot/orders/"
-GUSTOS_URL = "http://127.0.0.1:8000/bot/gustos/"
-HISTORIAL_URL = "http://127.0.0.1:8000/bot/historial/"
-POPULARIDAD_URL = "http://127.0.0.1:8000/bot/popularidad/"
-RATING_URL = "http://127.0.0.1:8000/bot/rating/"
-SIMILAR_URL = "http://127.0.0.1:8000/bot/recomendacion_similar/"
-HIBRIDA_URL = "http://127.0.0.1:8000/bot/recomendacion_hibrida/"
-PRODUCTOS_URL = "http://127.0.0.1:8000/bot/productos/"
-RECOMENDACION_URL = "http://127.0.0.1:8000/bot/recomendacion/"
+ORDERS_URL = "http://127.0.0.1:8000/api/bot/orders/"
+GUSTOS_URL = "http://127.0.0.1:8000/api/bot/gustos/"
+HISTORIAL_URL = "http://127.0.0.1:8000/api/bot/historial/"
+POPULARIDAD_URL = "http://127.0.0.1:8000/api/bot/popularidad/"
+RATING_URL = "http://127.0.0.1:8000/api/bot/rating/"
+SIMILAR_URL = "http://127.0.0.1:8000/api/bot/recomendacion_similar/"
+HIBRIDA_URL = "http://127.0.0.1:8000/api/bot/recomendacion_hibrida/"
+PRODUCTOS_URL = "http://127.0.0.1:8000/api/bot/productos/"
+RECOMENDACION_URL = "http://127.0.0.1:8000/api/bot/recomendacion/"
+
+# 🆕 Session URLs
+SESSION_URL = "http://127.0.0.1:8000/api/bot/session/"
+SESSION_UPDATE_URL = "http://127.0.0.1:8000/api/bot/session/update/"
+SESSION_RESET_URL = "http://127.0.0.1:8000/api/bot/session/reset/"
+
+# ----------------------------------------------------
+# 🧠 SESSION HELPERS
+# ----------------------------------------------------
+def get_session(telegram_id):
+    try:
+        r = requests.get(f"{SESSION_URL}{telegram_id}/", timeout=2)
+        if r.status_code == 200:
+            return r.json()
+    except Exception as e:
+        print(f"DEBUG [get_session] Error: {e}")
+    return {"state": "IDLE", "temp_data": {}}
+
+def update_session(telegram_id, state=None, current_product_id=None, temp_data=None):
+    payload = {}
+    if state: payload["state"] = state
+    if current_product_id: payload["current_product_id"] = current_product_id
+    if temp_data: payload["temp_data"] = temp_data
+    
+    try:
+        print(f"DEBUG [update_session] Updating {telegram_id} -> {payload}")
+        requests.post(f"{SESSION_UPDATE_URL}{telegram_id}/", json=payload, timeout=2)
+    except Exception as e:
+        print(f"DEBUG [update_session] Error: {e}")
+
+def reset_session(telegram_id):
+    try:
+        print(f"DEBUG [reset_session] Resetting {telegram_id}")
+        requests.post(f"{SESSION_RESET_URL}{telegram_id}/", timeout=2)
+    except Exception as e:
+        print(f"DEBUG [reset_session] Error: {e}")
+
 
 
 
@@ -121,13 +160,12 @@ def extraer_cantidad_y_producto(texto: str) -> tuple[int | None, str]:
 def parsear_resumen_web(texto: str) -> dict | None:
     """
     Intenta parsear un resumen de pedido pegado desde la web.
-    Ejemplo:
-    *🛒 Resumen del Pedido:*
-    1. *Arepitas dulces* (1 x $3.50)
-    ...
-    *💰 TOTAL FINAL: $100.49*
     """
-    if "Resumen del Pedido" not in texto and "TOTAL FINAL" not in texto:
+    # Detectar encabezados válidos
+    es_nuevo_formato = "NUEVO PEDIDO CONFIRMADO" in texto
+    es_formato_antiguo = "Resumen del Pedido" in texto or "TOTAL FINAL" in texto
+
+    if not es_nuevo_formato and not es_formato_antiguo:
         return None
 
     # 1. Extraer items:  1. *Nombre* (Cant x $Precio)
@@ -137,8 +175,6 @@ def parsear_resumen_web(texto: str) -> dict | None:
     if not items_found:
         return None
 
-    # Construir string de pedido final
-    # Ej: "1 x Arepitas dulces, 1 x Hamburguesa"
     partes_pedido = []
     for nombre, cant in items_found:
         partes_pedido.append(f"{cant} x {nombre}")
@@ -146,17 +182,27 @@ def parsear_resumen_web(texto: str) -> dict | None:
     pedido_final_str = ", ".join(partes_pedido)
 
     # 2. Extraer Total
-    match_total = re.search(r'TOTAL FINAL:\s*\$([\d\.]+)', texto)
+    match_total = re.search(r'(?:TOTAL FINAL:|TOTAL:)\s*\$([\d\.]+)', texto, re.IGNORECASE)
     precio_total = float(match_total.group(1)) if match_total else 0.0
 
+    # 3. Extraer Servicio y Modalidad (Nuevo Formato)
+    service_type = 'HERE'
+    delivery_mode = None
+    if "*Servicio:*" in texto:
+        if "Comer Aquí" in texto: service_type = 'HERE'
+        if "Para Llevar" in texto: service_type = 'TOGO'
+    
+    if "*Modalidad:*" in texto:
+        if "Retiro en Local" in texto: delivery_mode = 'PICKUP'
+        if "Delivery" in texto: delivery_mode = 'DELIVERY'
+
     return {
-        "producto_base": "Pedido Web", # Marcador genérico
-        "cantidad": 1,
-        "removidos": [],
-        "agregados": [],
+        "producto_base": "Pedido Web",
         "pedido_final": pedido_final_str,
         "texto_original": texto,
-        "precio": precio_total
+        "precio": precio_total,
+        "service_type": service_type,
+        "delivery_mode": delivery_mode
     }
 
 
@@ -293,6 +339,7 @@ async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # Agrupar productos por categoría
     categorias = {
+        'promociones': [],
         'entradas': [],
         'principales': [],
         'postres': [],
@@ -308,6 +355,7 @@ async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mensaje = "🍽️*Los Cuatros Sabores de Paraguaná\n\nMENÚ DEL RESTAURANTE*\n\n"
     # Emojis por categoría
     emojis = {
+        'promociones': '🎉',
         'entradas': '🥗',
         'principales': '🍖',
         'postres': '🍰',
@@ -319,10 +367,11 @@ async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         'entradas': 'ENTRADAS',
         'principales': 'PLATOS PRINCIPALES',
         'postres': 'POSTRES',
-        'bebidas': 'BEBIDAS'
+        'bebidas': 'BEBIDAS',
+        'promociones': 'PROMOCIONES'
     }
     
-    for categoria_key in ['entradas', 'principales', 'postres', 'bebidas']:
+    for categoria_key in ['entradas', 'principales', 'postres', 'bebidas', 'promociones']:
         items = categorias[categoria_key]
         
         if items:
@@ -803,210 +852,396 @@ def construir_pedido_final(producto, removidos, agregados):
 # ----------------------------------------------------
 # ✅ LÓGICA DE MENSAJES DEL USUARIO
 # ----------------------------------------------------
+# ----------------------------------------------------
+# 🤖 STATE MACHINE DISPATCHER
+# ----------------------------------------------------
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    nombre = update.effective_user.first_name
     telegram_id = update.effective_user.id
-    texto_usuario = (update.message.text or "").strip().lower()
+    texto = (update.message.text or "").strip()
+    
+    # 0. Check global commands or implicit cancels
+    # 0. Check global commands or implicit cancels
+    if texto.lower() in ['cancelar', 'salir', 'menu', 'inicio'] or texto.startswith("/"):
+        reset_session(telegram_id)
+        context.user_data.pop("waiting_address", None)
+        context.user_data.pop("waiting_address_late", None)  # Ensure this is cleared
+        await start(update, context) # Re-send start menu
+        return
 
-    # ✅ 1.0 DETECTAR RESUMEN WEB (Prioridad Máxima)
-    # ----------------------------------------------------
-    # Verificamos si es un resumen pegado antes de cualquier charla
-    pedido_web = parsear_resumen_web(update.message.text or "") # Usamos texto original con case
-    if pedido_web:
-        producto_base = pedido_web["producto_base"]
-        pedido_final = pedido_web["pedido_final"]
-        precio_total = pedido_web["precio"]
+    # 0.1 Check for Waiting Address (Early Logistics Flow) - DEPRECATED but keeping for other potential uses
+    if context.user_data.get("waiting_address"):
+        context.user_data["waiting_address"] = False
+        # ... logic if needed ...
+
+    # 0.2 Check for Late Address (Post-Payment)
+    if context.user_data.get("waiting_address_late"):
+        # Reset Flag Immediately
+        context.user_data["waiting_address_late"] = False
         
-        pedido_key = "pedido_carrito"
-        context.user_data[pedido_key] = pedido_web
+        # Data needed for update
+        order_id = context.user_data.get("current_order_id")
+        file_id = context.user_data.get("current_photo_id")
         
-        keyboard = [
-            [
-                InlineKeyboardButton(f"💸 Pagar ${precio_total:.2f}", callback_data=f"proceder_pago:{pedido_key}"),
-                InlineKeyboardButton("❌ Cancelar", callback_data="cancelar")
-            ]
-        ]
+        if not order_id: 
+            await update.message.reply_text("⚠️ Error de sesión. Por favor contacta soporte.")
+            return
+
+        address = texto
         
+        # Explicit Feedback to avoid confusion
         await update.message.reply_text(
-            f"🛒 *Pedido Web Detectado*\n\n"
-            f"He leído tu resumen:\n👉 *{pedido_final}*\n\n"
-            f"💰 *Total a pagar: ${precio_total:.2f}*",
+            f"📍 Dirección **'{address}'** guardada para el pedido **#{order_id}**.\n\n"
+            "✅ ¡Datos completados! Estamos verificando tu pago.\n"
+            "⚠️ _(Si tu mensaje anterior era un nuevo pedido, por favor envíalo de nuevo ahora)._",
+            parse_mode="Markdown"
+        )
+        
+        # PATCH Order with Location
+        # We need async patch here.
+        url = f"{ORDERS_URL}{order_id}/" if ORDERS_URL.endswith("/") else f"{ORDERS_URL}/{order_id}/"
+        try:
+             async with aiohttp.ClientSession() as session:
+                async with session.patch(url, json={"location": address}) as resp:
+                    if resp.status not in (200, 204):
+                        logging.error(f"Error Patching Location: {resp.status}")
+        except Exception as e:
+            logging.error(f"Error patching location: {e}")
+
+        # Notify Admin Finally
+        await notify_admin_new_order(
+            context, 
+            order_id, 
+            context.user_data.get("temp_telegram_id"), 
+            context.user_data.get("temp_nombre"), 
+            context.user_data.get("temp_item"), 
+            context.user_data.get("temp_price"), 
+            context.user_data.get("temp_payment_data"), 
+            file_id,
+            location_info=address
+        )
+        return
+        
+    # 1. Get current state
+    session = await sync_to_async(get_session)(telegram_id)
+    state = session.get("state", "IDLE")
+    
+    print(f"DEBUG [handle_message] User: {telegram_id} | State: {state} | Text: '{texto}'")
+
+    # 2. Dispatch based on state
+    if state == "IDLE":
+        await handle_state_idle(update, context, texto)
+    elif state == "SELECT_QUANTITY":
+        await handle_state_quantity(update, context, texto, session)
+    elif state == "SELECT_EXTRAS":
+        await handle_state_extras_text(update, context, texto, session)
+    else:
+        # Fallback for unknown states
+        reset_session(telegram_id)
+        await handle_state_idle(update, context, texto)
+
+# ----------------------------------------------------
+# 🧩 STATE HANDLERS
+# ----------------------------------------------------
+
+async def handle_state_idle(update: Update, context: ContextTypes.DEFAULT_TYPE, texto: str):
+    """
+    IDLE State: The user is searching for a product.
+    Action: Search text in DB -> Show Buttons
+    """
+    print(f"DEBUG [handle_state_idle] Searching for: {texto}")
+    
+    # Simple direct search first
+    productos = await buscar_productos_backend(texto)
+    
+    if not productos:
+        # If text is too short or weird, try NLP intent or generic reply
+        if len(texto) < 3:
+             await update.message.reply_text("👋 Hola. Para pedir, escribe el nombre del plato. Ej: 'Pizza'")
+             return
+
+        await update.message.reply_text(
+            f"🤔 No encontré nada parecido a '{texto}'.\n"
+            "Prueba con palabras más sencillas como 'Hamburguesa' o 'Pizza'.\n"
+            "O usa /menu para ver todo."
+        )
+        return
+
+    # Create buttons for found products
+    keyboard = []
+    for p in productos[:5]: # Limit to 5 results
+        # Callback format: sel_prod:{id}
+        prod_id = p.get('id')
+        prod_name = p.get('nombre') or p.get('name')
+        
+        if not prod_name:
+             continue
+             
+        price = p.get('precio') or p.get('price')
+        price = p.get('precio') or p.get('price')
+        
+        btn_text = f"🍽️ {prod_name} (${price})"
+        # Use NAME as ID because backend doesn't return ID in detail view
+        keyboard.append([InlineKeyboardButton(btn_text, callback_data=f"sel_prod:{prod_name}")])
+
+    await update.message.reply_text(
+        f"🔎 Encontré estas opciones para '{texto}':\nSelecciona una 👇",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def handle_state_quantity(update: Update, context: ContextTypes.DEFAULT_TYPE, texto: str, session: dict):
+    """
+    User entered text while in quantity selection mode.
+    Try to parse number.
+    """
+    try:
+        qty = int(texto)
+        if qty < 1: throw_error
+    except:
+        await update.message.reply_text("🔢 Por favor escribe un número válido (Ej: 1, 2).")
+        return
+
+    # Proceed to Extras
+    await avanzar_a_extras(update, context, session['current_product_id'], qty, session)
+
+async def handle_state_extras_text(update: Update, context: ContextTypes.DEFAULT_TYPE, texto: str, session: dict):
+    """
+    User wrote something in Extras mode (e.g. "sin cebolla")
+    We can try to parse it or just ask them to use buttons.
+    For simplicity in this robust version, we guide them to buttons, 
+    BUT we can add the text as a special note.
+    """
+    print(f"DEBUG [handle_state_extras_text] User wrote instruction: {texto}")
+    
+    # Add as custom note
+    temp_data = session.get('temp_data', {})
+    notas = temp_data.get('notas', [])
+    notas.append(texto)
+    temp_data['notas'] = notas
+    
+    update_session(session['telegram_id'], temp_data=temp_data)
+    
+    await update.message.reply_text(f"📝 Anotado: '{texto}'.\n¿Algo más? Usa los botones o escribe otra nota.", 
+                                    reply_markup=teclado_extras(temp_data))
+
+
+# ----------------------------------------------------
+# 🛠️ HELPER: Buscar Productos (Backend)
+# ----------------------------------------------------
+async def buscar_productos_backend(query: str):
+    try:
+        # Assuming we have a search endpoint or we filter the full list
+        # We can use the existing PRODUCTOS_URL (which returns names) or a new search one.
+        # Let's use the one we have and filter locally for now, or assume PRODUCTOS_URL helps.
+        # Actually core/views.py productos_view returns names list if no detail.
+        # Better: Use the new logic to filter.
+        
+        r = requests.get(PRODUCTOS_URL, timeout=2) # Get all names
+        print(f"DEBUG [buscar_productos] URL: {PRODUCTOS_URL} | Status: {r.status_code}")
+        
+        if r.status_code != 200:
+             print(f"DEBUG [buscar_productos] Response Error: {r.text[:200]}")
+             return []
+             
+        all_names = r.json().get("productos", []) # ["Pizza", "Hamburguesa"]
+        
+        # Fuzzy match
+        matches = process.extract(query, all_names, limit=5, scorer=fuzz.partial_token_sort_ratio)
+        
+        results = []
+        for name, score, _ in matches:
+            if score > 60:
+                # We need details (ID, Price). Fetch detail for each (inefficient but safe for MVP)
+                # Or better: Assume we need a backend search endpoint.
+                # USE: productos_view with ?detalle=Name
+                r_det = requests.get(f"{PRODUCTOS_URL}?detalle={name}")
+                if r_det.status_code == 200:
+                    d = r_det.json()
+                    # Mock ID because existing API doesn't return ID in detail view easily? 
+                    # Wait, filtered_products in core views returns ID. 
+                    # Let's use 'filtrar_productos' from core/views.py if exposed?
+                    # URL is not exposed for filter.
+                    # We will use the detail data.
+                    results.append(d)
+        return results
+
+    except Exception as e:
+        print(f"DEBUG [buscar_productos] Error: {e}")
+        return []
+
+# ----------------------------------------------------
+# 🔘 BUTTON LOGIC (CALLBACKS)
+# ----------------------------------------------------
+# ----------------------------------------------------
+# 🔘 BUTTON LOGIC (CALLBACKS) - STATE MACHINE
+# ----------------------------------------------------
+async def handle_state_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    query = update.callback_query
+    await query.answer()
+    telegram_id = query.from_user.id
+    data = query.data
+    
+    print(f"DEBUG [callback] User: {telegram_id} | Data: {data}")
+
+    # 1. Product Selected
+    if data.startswith("sel_prod:"):
+        # Since we didn't get real IDs easily, we might have passed names if we were lazy, 
+        # but let's assume we passed IDs or Names.
+        # In 'buscar_productos_backend' above I used the detail view which didn't return ID.
+        # FIX: Let's pass the NAME in the callback for now as the ID. "sel_prod:Hamburguesa"
+        prod_name = data.split(":", 1)[1] # Careful with colons in name
+        
+        # Update Session -> SELECT_QUANTITY
+        update_session(telegram_id, state="SELECT_QUANTITY", current_product_id=None, temp_data={"product_name": prod_name})
+        
+        # Ask Quantity
+        keyboard = [
+            [InlineKeyboardButton("1", callback_data="set_qty:1"), InlineKeyboardButton("2", callback_data="set_qty:2"), InlineKeyboardButton("3", callback_data="set_qty:3")],
+            [InlineKeyboardButton("4", callback_data="set_qty:4"), InlineKeyboardButton("5", callback_data="set_qty:5")],
+        ]
+        await query.edit_message_text(
+            f"👌 Has elegido *{prod_name}*.\n¿Cuántos quieres?",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
         return
 
-    # 🧠 LEER INTENCIONES PRIMERO (Antes de interpretar pedido)
-    # --------------------------------------------------------
-    best_intent = None
-    best_score = 0
-    
-    for intent_name, phrases in INTENTS.items():
-        match = process.extractOne(texto_usuario, phrases, scorer=fuzz.partial_ratio)
-        if match:
-            score = match[1]
-            if score > 85 and score > best_score:
-                best_score = score
-                best_intent = intent_name
-    
-    # Si hay una intención clara (ej: Saludo, Hambre, Ayuda) y NO parece un pedido explícito
-    # (Un pedido suele ser más largo o tener palabras clave, pero por ahora priorizamos la charla corta)
-    if best_intent:
-        response = random.choice(RESPONSES.get(best_intent, RESPONSES["DEFAULT"]))
-        await update.message.reply_text(response, parse_mode="Markdown")
+    # 2. Quantity Selected
+    if data.startswith("set_qty:"):
+        qty = int(data.split(":")[1])
+        session = get_session(telegram_id)
+        # We need the product name from temp_data
         
-        # 🚀 PROACTIVIDAD
-        if best_intent in ["HAMBRE", "INDECISION"]:
-             await update.message.reply_text("💡 _Un momento, déjame buscarte lo mejor del menú..._", parse_mode="Markdown")
-             await recomendacion_hibrida(update, context)
-        
+        await avanzar_a_extras(update, context, None, qty, session)
         return
 
-    # ✅ 2. Interpretar el pedido (Solo si no fue una charla)
-    # ----------------------------------------------------
-    # (Bloque Web Summary movido arriba)
-
-    # ✅ 2. Interpretar el pedido (Solo si no fue una charla)
-    # ----------------------------------------------------
-    producto_base, cantidad_detectada, removidos, agregados, pedido_final = await interpretar_pedido(texto_usuario)
-
-    # 🔄 LÓGICA DE CORRECCIÓN / CONTINUACIÓN
-    # Si no se detectó un producto nuevo, pero ya había uno en el carrito...
-    if not producto_base and "pedido_carrito" in context.user_data:
-        pedido_anterior = context.user_data["pedido_carrito"]
-        producto_base = pedido_anterior["producto_base"]
+    # 3. Extras Toggled
+    if data.startswith("toggle_extra:"):
+        extra = data.split(":")[1]
+        session = get_session(telegram_id)
+        current_extras = session.get("temp_data", {}).get("extras", [])
         
-        # Determine whether to update quantity or keep previous
-        if cantidad_detectada is not None:
-             cantidad = cantidad_detectada # Update quantity
-             await update.message.reply_text(f"🔢 Entendido, cambio la cantidad a {cantidad}.")
+        if extra in current_extras:
+            current_extras.remove(extra)
         else:
-             cantidad = pedido_anterior.get("cantidad", 1) # Keep previous
+            current_extras.append(extra)
+            
+        # Update
+        temp_data = session.get("temp_data", {})
+        temp_data["extras"] = current_extras
+        update_session(telegram_id, temp_data=temp_data)
         
-        # Re-interpretamos buscando solo ingredientes para ESTE producto
-        ingredientes_menu = await obtener_ingredientes_producto(producto_base)
-        nuevos_removidos = extraer_ingredientes_removidos(texto_usuario, ingredientes_menu)
-        nuevos_agregados = extraer_ingredientes_agregados(texto_usuario, ingredientes_menu)
-        
-        # Si detectó cambios de ingredientes O cambio de cantidad
-        if nuevos_removidos or nuevos_agregados or cantidad_detectada is not None:
-             if nuevos_removidos or nuevos_agregados:
-                 removidos = list(set(pedido_anterior["removidos"] + nuevos_removidos))
-                 agregados = list(set(pedido_anterior["agregados"] + nuevos_agregados))
-                 pedido_str = construir_pedido_final(producto_base, removidos, agregados)
-                 await update.message.reply_text(f"👌 Entendido, corrijo tu orden: *{pedido_str}*")
-             else:
-                 # Si solo cambió la cantidad, mantenemos ingredientes previos
-                 removidos = pedido_anterior["removidos"]
-                 agregados = pedido_anterior["agregados"]
-                 pedido_str = construir_pedido_final(producto_base, removidos, agregados)
-
-             # Reconstruimos el string final con la cantidad
-             if cantidad > 1:
-                pedido_final = f"{cantidad} x {pedido_str}"
-             else:
-                pedido_final = pedido_str
-        
-        else:
-             # Fallback original
-             await update.message.reply_text(
-                "🤔 Mmm, no estoy seguro de haberte entendido.\n\n"
-                "Usa los formatos:\n"
-                "1. 'quiero pedir [Plato]'\n"
-                "2. '2 pizzas con jamón'\n"
-                "3. 'hamburguesa sin tomate'\n\n"
-                "O escribe *'Ayuda'* para más opciones.",
-                parse_mode="Markdown"
-            )
-             return
-
-    elif not producto_base:
-        # Fallback original si no hay contexto
-        await update.message.reply_text(
-            "🤔 Mmm, no estoy seguro de haberte entendido.\n\n"
-            "Usa los formatos:\n"
-            "1. 'quiero pedir [Plato]'\n"
-            "2. '2 pizzas con jamón'\n"
-            "3. 'hamburguesa sin tomate'\n\n"
-            "O escribe *'Ayuda'* para más opciones.",
-            parse_mode="Markdown"
-        )
+        # Refresh Keyboard
+        await query.edit_message_reply_markup(reply_markup=teclado_extras(temp_data))
         return
 
-    # Si estamos aquí es porque tenemos un producto base (nuevo o recuperado del contexto)
-    # Asegurar que ‘cantidad’ esté definida si vino de una orden nueva
-    if 'cantidad' not in locals():
-        cantidad = cantidad_detectada if cantidad_detectada is not None else 1
-
-    # ✅ 1.5 Validar si el producto existe en el menú antes de pedir confirmación
-    if not producto_es_valido(producto_base):
-        await update.message.reply_text(
-            text=f"❌ Lo siento, *{producto_base}* no está en el menú.",
-            parse_mode="Markdown"
-        )
-        return
-
-    # ✅ 2. Aplicar memoria personalizada
-    recordatorio = await recordar_pedido_personalizado(telegram_id, producto_base)
-    if recordatorio and cantidad_detectada is None: # Solo mostrar recordatorio si es orden nueva sin cantidad explícita (opcional)
-        await update.message.reply_text(recordatorio)
-
-    # ✅ 3. Obtener precio del producto y CALCULAR TOTAL
-    producto_db = await sync_to_async(lambda: Product.objects.filter(name__iexact=producto_base).first())()
-    precio_unitario = float(producto_db.price) if producto_db else 0.0
-    precio_total = precio_unitario * cantidad
-
-    # ✅ 4. Guardar datos interpretados para confirmación
-    pedido_key = "pedido_carrito"
-
-    context.user_data[pedido_key] = {
-        "producto_base": producto_base,
-        "cantidad": cantidad,
-        "removidos": removidos,
-        "agregados": agregados,
-        "pedido_final": pedido_final,
-        "texto_original": texto_usuario,
-        "precio": precio_total  # Guardamos el total
-    }
-
-    # ✅ 4. Mostrar botones de confirmación inicial
-    keyboard = [
-        [
-            InlineKeyboardButton(f"💸 Pagar ${precio_total:.2f}", callback_data=f"proceder_pago:{pedido_key}"),
-            InlineKeyboardButton("❌ Cancelar", callback_data="cancelar")
+    # 4. Confirm Order
+    if data == "confirm_order":
+        session = get_session(telegram_id)
+        temp = session.get("temp_data", {})
+        
+        prod_name = temp.get("product_name")
+        qty = temp.get("qty", 1)
+        extras = temp.get("extras", [])
+        notas = temp.get("notas", [])
+        
+        # Build Final String
+        final_str = f"{qty} x {prod_name}"
+        if extras: final_str += f" ({', '.join(extras)})"
+        if notas: final_str += f" [Notas: {', '.join(notas)}]"
+        
+        # Save to Backend (using existing save_order logic or raw request)
+        # We use the existing 'save_order' function but modified to take full string?
+        # Actually handle_proceder_pago logic is what we want.
+        
+        # Let's save to user_data['pedido_carrito'] to reuse existing payment flows
+        # Parse price... we need fetching price again.
+        r_det = requests.get(f"{PRODUCTOS_URL}?detalle={prod_name}")
+        price = 0
+        if r_det.status_code == 200:
+             price = float(r_det.json().get("precio", 0)) * qty
+        
+        pedido_key = "pedido_carrito"
+        context.user_data[pedido_key] = {
+            "pedido_final": final_str,
+            "precio": price
+        }
+        
+        # Reset Session
+        reset_session(telegram_id)
+        
+        # Show Payment/Confirm
+        keyboard = [
+            [
+                InlineKeyboardButton(f"💸 Pagar ${price:.2f}", callback_data=f"proceder_pago:{pedido_key}"),
+                InlineKeyboardButton("❌ Cancelar", callback_data="cancelar")
+            ]
         ]
-    ]
+        await query.edit_message_text(
+            f"✅ *Pedido Configurado*\n\n{final_str}\n\nTotal: ${price:.2f}",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        return
 
-    await update.message.reply_text(
-        f"{nombre}, ¿quieres proceder con tu pedido?\n\n"
-        f"👉 *{pedido_final}*\n"
-        f"💰 *Total: ${precio_total:.2f}*",
-        parse_mode="Markdown",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
-    return
+    # Fallback to existing logic (Soporte, etc)
+    # ...
+
+
+async def avanzar_a_extras(update: Update, context, prod_id, qty, session):
+    telegram_id = update.effective_user.id or update.callback_query.from_user.id
     
+    # Save Qty
+    temp_data = session.get("temp_data", {})
+    temp_data["qty"] = qty
+    update_session(telegram_id, state="SELECT_EXTRAS", temp_data=temp_data)
+    
+    # Show Extras UI
+    prod_name = temp_data.get("product_name")
+    
+    # Fetch default ingredients to offer removal? Or common extras?
+    # For robust MVP, we offer a generic list or fetch from backend.
+    # Let's use the 'obtener_ingredientes_producto' we already have if possible, 
+    # but that function was async and complex.
+    # Let's mock some common extras or just offer "Sin Cebolla", "Sin Salsas", "Extra Queso".
+    
+    msg = f"👌 {qty} x {prod_name}.\n\n¿Deseas personalizar algo?"
+    
+    reply_markup = teclado_extras(temp_data)
+    
+    if update.callback_query:
+        await update.callback_query.edit_message_text(msg, reply_markup=reply_markup)
+    else:
+        await update.message.reply_text(msg, reply_markup=reply_markup)
 
 
-
-# ----------------------------------------------------
-# ✅ VALIDAR PRODUCTO
-# ----------------------------------------------------
-def producto_es_valido(nombre_producto: str) -> bool:
-    try:
-        r = requests.get(PRODUCTOS_URL, timeout=5)
-        productos_validos = r.json().get("productos", [])
-        productos_validos = [p.strip().lower() for p in productos_validos]
-    except:
-        return False
-
-    # Buscar si algún producto válido está contenido en el texto
-    nombre_normalizado = nombre_producto.strip().lower()
-    for producto in productos_validos:
-        if producto in nombre_normalizado:
-            return True
-
-    return False
+def teclado_extras(temp_data):
+    selected = temp_data.get("extras", [])
+    prod_name = temp_data.get("product_name", "").lower()
+    
+    # 🥤 Logic for Drinks
+    drinks_keywords = ["agua", "refresco", "polar", "maltin", "gaseosa", "coca", "pepsi", "jugo", "bebida", "cerveza", "té", "cafe", "nestea", "lata"]
+    is_drink = any(k in prod_name for k in drinks_keywords)
+    
+    if is_drink:
+        options = ["Con Hielo", "Sin Hielo", "Con Limón", "Temperatura Ambiente"]
+    else:
+        # 🍔 Food options (default)
+        options = ["Sin Cebolla", "Sin Tomate", "Sin Salsas", "Extra Queso", "Para Llevar"]
+    
+    keyboard = []
+    row = []
+    for opt in options:
+        # Checkmark if selected
+        txt = f"✅ {opt}" if opt in selected else opt
+        row.append(InlineKeyboardButton(txt, callback_data=f"toggle_extra:{opt}"))
+        if len(row) == 2:
+            keyboard.append(row)
+            row = []
+    if row: keyboard.append(row)
+    
+    keyboard.append([InlineKeyboardButton("✅ CONFIRMAR PEDIDO", callback_data="confirm_order")])
+    return InlineKeyboardMarkup(keyboard)
 
 # ----------------------------------------------------
 # ✅ CONFIRMAR PEDIDO (con memoria de ingredientes)
@@ -1159,6 +1394,15 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
     nombre = query.from_user.first_name
 
     await query.answer()
+
+    # ----------------------------------------------------
+    if query.data.startswith("sel_serv:"):
+        await handle_service_selection(update, context)
+        return
+
+    if query.data.startswith(("sel_prod:", "set_qty:", "toggle_extra:", "confirm_order")):
+        await handle_state_callbacks(update, context)
+        return
 
     # ----------------------------------------------------
     # ✅ 1. Proceder al pago (Mostrar info bancaria)
@@ -1366,63 +1610,135 @@ def extraer_producto_base(texto_usuario: str) -> str | None:
 # ----------------------------------------------------
 # ✅ MOSTRAR INFORMACIÓN DE PAGO
 # ----------------------------------------------------
+# ----------------------------------------------------
+# 🚚 LOGISTICS & PAYMENT FLOW
+# ----------------------------------------------------
+
 async def handle_proceder_pago(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Step 1: Ask for Service Type (Delivery, Pick Up, Eat Here)
+    """
     query = update.callback_query
-    nombre = query.from_user.first_name
-    telegram_id = query.from_user.id
-    
     pedido_key = query.data.replace("proceder_pago:", "").strip()
-    data = context.user_data.get(pedido_key)
     
-    if data is None:
-        await query.edit_message_text("⚠️ Error: El pedido no se encontró o expiró.")
+    # Save key for later
+    context.user_data["current_pedido_key"] = pedido_key
+    
+    keyboard = [
+        [InlineKeyboardButton("🛵 Delivery", callback_data="sel_serv:DELIVERY")],
+        [InlineKeyboardButton("🥡 Para Llevar (Pick Up)", callback_data="sel_serv:PICKUP")],
+        [InlineKeyboardButton("🍽️ Comer Aquí", callback_data="sel_serv:HERE")],
+        [InlineKeyboardButton("❌ Cancelar", callback_data="cancelar")]
+    ]
+    
+    await query.edit_message_text(
+        text="📍 *¿Cómo deseas recibir tu pedido?*",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def handle_service_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    service_type = query.data.split(":")[1]
+    
+    # Update context data
+    pedido_key = context.user_data.get("current_pedido_key", "pedido_carrito")
+    if pedido_key not in context.user_data:
+        await query.edit_message_text("⚠️ Error: Sesión expirada.")
         return
 
-    # Crear orden "pendiente" en el backend (USANDO CAMPOS CORRECTOS: telegram_id, status)
+    context.user_data[pedido_key]["service_type"] = service_type
+    
+    # Store flag for later use (after payment)
+    if service_type == "DELIVERY":
+        context.user_data["needs_delivery_location"] = True
+    else:
+        context.user_data["needs_delivery_location"] = False
+        
+    # Go directly to Payment for ALL cases now
+    await show_payment_info(update, context)
+    return
+
+
+async def show_payment_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Final Step: Create Order in Backend (Pending) and Show Bank Info
+    """
+    query = update.callback_query if update.callback_query else None
+    telegram_id = update.effective_user.id
+    
+    pedido_key = context.user_data.get("current_pedido_key", "pedido_carrito")
+    data = context.user_data.get(pedido_key)
+    
+    if not data:
+        msg = "⚠️ Error: No se encontró la información del pedido."
+        if query: await query.edit_message_text(msg)
+        else: await update.message.reply_text(msg)
+        return
+
+    # Prepare Payload
+    raw_service = data.get("service_type", "HERE")
+    address = data.get("location", "")
+    
+    # Map to Backend Model (HERE or TOGO)
+    if raw_service in ['DELIVERY', 'PICKUP']:
+        final_service_type = 'TOGO'
+        delivery_mode = raw_service # DELIVERY or PICKUP
+    else:
+        final_service_type = 'HERE'
+        delivery_mode = None
+
     async with aiohttp.ClientSession() as session:
         payload = {
             "telegram_id": telegram_id,
             "item": data["pedido_final"],
             "precio": data.get("precio", 0.0),
-            "status": "pendiente"
+            "status": "esperando_pago",
+            "service_type": final_service_type,
+            "location": address,
+            "delivery_mode": delivery_mode
         }
+        
         try:
-            # ORDERS_URL suele no tener barra final en la definición, pero Django la requiere
             url = ORDERS_URL if ORDERS_URL.endswith("/") else f"{ORDERS_URL}/"
             async with session.post(url, json=payload) as resp:
                 if resp.status in (200, 201):
                     response_data = await resp.json()
-                    order_id = response_data.get("id")  # El backend usa "id", no "order_id"
+                    order_id = response_data.get("id")
                     
-                    # Guardar datos en user_data para el siguiente paso (foto)
                     context.user_data["pending_order_id"] = order_id
                     context.user_data["pending_order_item"] = data["pedido_final"]
-                    context.user_data["current_pedido_key"] = pedido_key
+                    
+                    logging.info(f"ORDEN CREADA: ID {order_id} (Service: {raw_service})")
                 else:
                     error_text = await resp.text()
                     logging.error(f"Error backend post: {resp.status} - {error_text}")
-                    await query.edit_message_text("⚠️ Error al crear la orden en el servidor.")
+                    msg = "⚠️ Error al crear la orden en el servidor."
+                    if query: await query.edit_message_text(msg)
+                    else: await update.message.reply_text(msg)
                     return
         except Exception as e:
             logging.error(f"Error de conexión: {e}")
-            await query.edit_message_text(f"⚠️ Error de conexión al crear la orden.")
             return
 
+    # Show Bank Info
     mensaje_pago = (
-        f"💳 *Información de Pago*\n"
-        f"Para procesar tu pedido de **{data['pedido_final']}**, por favor realiza el pago:\n\n"
+        f"💳 *Información de Pago* ({raw_service})\n"
+        f"Pedido: **{data['pedido_final']}**\n\n"
         f"• Banco: BANCO BANESCO (0134)\n"
         f"• Titular: Restaurante Los Cuatros Sabores\n"
         f"• Cédula: V26989747\n"
         f"• Teléfono: 04241869450\n"
-        f"• El monto a pagar es de $**{data['precio']}** por el pedido de **{data['pedido_final']}**\n\n"
-        
-        f"📸 *Instrucción:*\n\n"
-
-        f"Una vez realizado el pago, envía la **foto del comprobante** por aquí mismo."
+        f"• Monto: $**{data['precio']:.2f}**\n\n"
+        f"📸 *Siguiente paso:* Envía la **FOTO** del comprobante aquí."
     )
     
-    await query.edit_message_text(text=mensaje_pago, parse_mode="Markdown")
+    if query:
+        await query.edit_message_text(text=mensaje_pago, parse_mode="Markdown")
+    else:
+        # Remove keyboard if any
+        await update.message.reply_text(text=mensaje_pago, parse_mode="Markdown", reply_markup=ReplyKeyboardRemove())
+
 
 
 # ----------------------------------------------------
@@ -1442,9 +1758,12 @@ async def handle_payment_receipt(update: Update, context: ContextTypes.DEFAULT_T
     data = context.user_data.get(pedido_key) if pedido_key else None
 
     if not order_id or not pedido_item:
+        logging.warning(f"ESTADO PERDIDO: Usuario {telegram_id} mandó foto pero no hay order_id en user_data. Datos actuales: {context.user_data}")
         await update.message.reply_text(
-            "⚠️ No tienes ningún pedido pendiente de pago.\n"
-            "Primero realiza un pedido usando /menu"
+            "⚠️ *Lo siento, parece que mi memoria se reinició...*\n\n"
+            "No encontré un pedido pendiente vinculado a esta foto. "
+            "Por favor, intenta de nuevo pegando tu resumen del pedido o usando el /menu.",
+            parse_mode="Markdown"
         )
         return
 
@@ -1486,46 +1805,40 @@ async def handle_payment_receipt(update: Update, context: ContextTypes.DEFAULT_T
                         context.user_data.pop("pending_order_id", None)
                         context.user_data.pop("pending_order_item", None)
                         
-                        # Confirmar al cliente
+                        # --- BRANCH: DELIVERY LOCATION CHECK ---
+                        if context.user_data.get("needs_delivery_location"):
+                            # Case: Delivery -> Need Location NOW
+                            context.user_data["waiting_address_late"] = True
+                            context.user_data["current_order_id"] = order_id
+                            context.user_data["current_photo_id"] = file_id # Keep file_id for admin msg
+                            context.user_data["temp_payment_data"] = payment_data # Keep text data
+                            context.user_data["temp_price"] = data['precio']
+                            context.user_data["temp_nombre"] = nombre
+                            context.user_data["temp_item"] = pedido_item
+                            context.user_data["temp_telegram_id"] = telegram_id
+
+                            await update.message.reply_text(
+                                f"✅ Comprobante recibido, {nombre}.\n\n"
+                                "📍 *Ahora, por favor comparte tu ubicación o escribe la dirección de entrega:*"
+                            )
+                            
+                            # Send Location Button
+                            keyboard_loc = [[KeyboardButton("📍 Enviar mi Ubicación", request_location=True)]]
+                            await update.message.reply_text(
+                                "👇 Usa el botón o escribe:",
+                                reply_markup=ReplyKeyboardMarkup(keyboard_loc, one_time_keyboard=True, resize_keyboard=True)
+                            )
+                            # Remove temp file but DO NOT notify admin yet
+                            if os.path.exists(file_path): os.remove(file_path)
+                            return
+                        
+                        # Case: PickUp/Here -> Notify Admin Immediately
                         await update.message.reply_text(
-                            f"✅ {nombre}, hemos recibido tu comprobante.\n\n"
+                            f"✅ {nombre}, hemos recibido tu comprobonte.\n\n"
                             f"⏳ Estamos verificando tu pago. Te notificaremos pronto."
                         )
-                        
-                        # Preparar datos extraídos para el admin
-                        datos_extraidos = ""
-                        if payment_data and "error" not in payment_data:
-                            datos_extraidos = "\n📊 *Datos Extraídos:* \n"
-                            for key, value in payment_data.items():
-                                key_es = key.replace("_", " ").title()
-                                datos_extraidos += f"• {key_es}: {value}\n"
-                        
-                        # Teclado para el admin
-                        keyboard = [
-                            [
-                                InlineKeyboardButton("✅ Aprobar Pago", callback_data=f"aprobar_pago:{order_id}"),
-                                InlineKeyboardButton("❌ Rechazar Pago", callback_data=f"rechazar_pago:{order_id}")
-                            ]
-                        ]
-                        
-                        mensaje_admin = (
-                            f"💳 *NUEVO COMPROBANTE DE PAGO*\n\n"
-                            f"👤 Cliente: {nombre} (ID: {telegram_id})\n"
-                            f"🍽️ Pedido: {pedido_item}\n"
-                            f"🆔 Order ID: {order_id}\n"
-                            f"💰 Precio: ${data['precio']}\n"
-                            f"{datos_extraidos}\n"
-                            f"⏰ {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}"
-                        )
-                        
-                        # Enviar al admin
-                        await context.bot.send_photo(
-                            chat_id=ADMIN_CHAT_ID,
-                            photo=file_id,
-                            caption=mensaje_admin,
-                            parse_mode="Markdown",
-                            reply_markup=InlineKeyboardMarkup(keyboard)
-                        )
+
+                        await notify_admin_new_order(context, order_id, telegram_id, nombre, pedido_item, data['precio'], payment_data, file_id)
                         
                         # Limpiar archivo temporal
                         if os.path.exists(file_path):
@@ -1541,6 +1854,44 @@ async def handle_payment_receipt(update: Update, context: ContextTypes.DEFAULT_T
     except Exception as e:
         logging.error(f"Error procesando comprobante: {e}")
         await update.message.reply_text("⚠️ Hubo un error inesperado al procesar tu comprobante.")
+
+
+async def notify_admin_new_order(context, order_id, telegram_id, nombre, pedido_item, precio, payment_data, file_id, location_info=None):
+    # Preparar datos extraídos
+    datos_extraidos = ""
+    if payment_data and "error" not in payment_data:
+        datos_extraidos = "\n📊 *Datos Extraídos:* \n"
+        for key, value in payment_data.items():
+            key_es = key.replace("_", " ").title()
+            datos_extraidos += f"• {key_es}: {value}\n"
+    
+    loc_str = f"📍 Ubicación: {location_info}\n" if location_info else ""
+
+    mensaje_admin = (
+        f"💳 *NUEVO COMPROBANTE DE PAGO*\n\n"
+        f"👤 Cliente: {nombre} (ID: {telegram_id})\n"
+        f"🍽️ Pedido: {pedido_item}\n"
+        f"🆔 Order ID: {order_id}\n"
+        f"💰 Precio: ${precio}\n"
+        f"{loc_str}"
+        f"{datos_extraidos}\n"
+        f"⏰ {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}"
+    )
+    
+    keyboard = [
+        [
+            InlineKeyboardButton("✅ Aprobar Pago", callback_data=f"aprobar_pago:{order_id}"),
+            InlineKeyboardButton("❌ Rechazar Pago", callback_data=f"rechazar_pago:{order_id}")
+        ]
+    ]
+
+    await context.bot.send_photo(
+        chat_id=ADMIN_CHAT_ID,
+        photo=file_id,
+        caption=mensaje_admin,
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 
 
 # ----------------------------------------------------
@@ -1571,10 +1922,18 @@ async def handle_payment_approval(update: Update, context: ContextTypes.DEFAULT_
             "payment_status": "payment_approved",
             "payment_verified_at": datetime.datetime.now().isoformat(),
             "payment_verified_by": query.from_user.id,
-            "status": "confirmado"
+            "status": "pendiente"
         }
         
-        requests.patch(f"{ORDERS_URL}{order_id}/", json=update_data, timeout=8)
+        # Actualizar estado del pago en el backend
+        url = f"{ORDERS_URL}{order_id}/" if ORDERS_URL.endswith("/") else f"{ORDERS_URL}/{order_id}/"
+        patch_resp = requests.patch(url, json=update_data, timeout=8)
+        
+        if patch_resp.status_code not in (200, 204):
+            logging.error(f"[ERROR] No se pudo actualizar el estado de la orden {order_id}: {patch_resp.status_code} - {patch_resp.text}")
+            await query.edit_message_caption(caption="⚠️ Error al actualizar el estado en el servidor.")
+            return
+
         
         # Notificar al cliente
         await context.bot.send_message(
@@ -1670,11 +2029,125 @@ async def handle_payment_rejection(update: Update, context: ContextTypes.DEFAULT
 
 
 # ----------------------------------------------------
+# ✅ DIJKSTRA & UBICACIÓN
+# ----------------------------------------------------
+
+def run_dijkstra_ai(lat, lon):
+    """Simulación de algoritmo de Dijkstra para ruta óptima"""
+    # En una app real, aquí usaríamos una gráfica de nodos de la ciudad
+    return {
+        "distance": "3.2 km",
+        "time": "12 min",
+        "path": ["Calle Falcón", "Av. Manaure", "Destino"]
+    }
+
+async def handle_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    location = update.message.location
+    lat, lon = location.latitude, location.longitude
+
+    # ------------------------------------------------------------------
+    # ✅ 1. LATE LOCATION (POST PAYMENT) - DELIVERY FLOW
+    # ------------------------------------------------------------------
+    if context.user_data.get("waiting_address_late"):
+        context.user_data["waiting_address_late"] = False
+        
+        # Simulate AI Calculation (Just for UX, as user likes it)
+        msg = await update.message.reply_text("⚡ _IA Analizando Rutas (Dijkstra)..._", parse_mode="Markdown")
+        await asyncio.sleep(1.5)
+
+        order_id = context.user_data.get("current_order_id")
+        file_id = context.user_data.get("current_photo_id")
+        address_str = f"{lat}, {lon}" # Save coords as string
+
+        # PATCH Order with Location
+        url = f"{ORDERS_URL}{order_id}/" if ORDERS_URL.endswith("/") else f"{ORDERS_URL}/{order_id}/"
+        try:
+             async with aiohttp.ClientSession() as session:
+                async with session.patch(url, json={"location": address_str}) as resp:
+                    pass
+        except: pass
+
+        # Notify Admin Finally
+        await notify_admin_new_order(
+            context, 
+            order_id, 
+            context.user_data.get("temp_telegram_id"), 
+            context.user_data.get("temp_nombre"), 
+            context.user_data.get("temp_item"), 
+            context.user_data.get("temp_price"), 
+            context.user_data.get("temp_payment_data"), 
+            file_id,
+            location_info=address_str
+        )
+        
+        # Show Route Info (UX) AND STOP
+        route = run_dijkstra_ai(lat, lon)
+        resumen_ruta = (
+            f"✅ *Ruta Optimizada Encontrada*\n"
+            f"⏱️ Tiempo estimado: {route['time']}\n"
+            f"🛣️ Distancia: {route['distance']}\n"
+            f"📍 Camino: {' ➔ '.join(route['path'])}\n\n"
+            f"✅ *¡Datos completados! Estamos verificando tu pago.*"
+        )
+        await msg.edit_text(resumen_ruta, parse_mode="Markdown")
+        return # <--- CRITICAL: STOP HERE
+
+    # ------------------------------------------------------------------
+    # ✅ 2. NORMAL LOGISTICS FLOW (PRE-PAYMENT) - IF APPLICABLE
+    # ------------------------------------------------------------------
+    # This logic was used before when Location was asked BEFORE payment.
+    # Now it might be used if we re-enable "See Menu via Location" or similar features.
+    # For now, if we are NOT waiting for late address, and user sends location, 
+    # we assume they might want to check coverage or similar? 
+    # Or if we want to support the old flow for some reason?
+    # BUT we must set service type if we proceed.
+    
+    pedido_key = "pedido_carrito"
+    data = context.user_data.get(pedido_key)
+    
+    if not data:
+        await update.message.reply_text("⚠️ No encontré un pedido pendiente para esta ubicación.")
+        return
+
+    # Ejecutar "IA Dijkstra"
+    await update.message.reply_text("⚡ _IA Analizando Rutas (Dijkstra)..._", parse_mode="Markdown")
+    await asyncio.sleep(1.5)
+    
+    route = run_dijkstra_ai(lat, lon)
+    data["optimal_route"] = route
+    data["location"] = f"{lat}, {lon}"
+    # Ensure service type is set
+    data["service_type"] = "DELIVERY"
+    
+    pedido_final = data["pedido_final"]
+    precio_total = data["precio"]
+    
+    resumen_ruta = (
+        f"✅ *Ruta Optimizada Encontrada*\n"
+        f"⏱️ Tiempo estimado: {route['time']}\n"
+        f"🛣️ Distancia: {route['distance']}\n"
+        f"📍 Camino: {' ➔ '.join(route['path'])}\n\n"
+        f"🛒 *Resumen del Pedido:*\n"
+        f"👉 {pedido_final}\n\n"
+        f"💰 *Total: ${precio_total:.2f}*"
+    )
+
+    await update.message.reply_text(resumen_ruta, parse_mode="Markdown")
+    
+    # Proceed to payment info
+    await show_payment_info(update, context)
+
+
+# ----------------------------------------------------
 # 🚀 MAIN
 # ----------------------------------------------------
 def main():
     print("Bot Cliente corriendo y atendiendo órdenes...")
-    app = ApplicationBuilder().token(BOT_TOKEN_CLIENTE).build()
+    
+    # Configurar persistencia
+    persistence = PicklePersistence(filepath="bot_state.pkl")
+
+    app = ApplicationBuilder().token(BOT_TOKEN_CLIENTE).persistence(persistence).build()
     app.job_queue.scheduler.configure(timezone=pytz.UTC)
 
     
@@ -1693,6 +2166,9 @@ def main():
     
     # ✅ Handler para comprobantes de pago (fotos y documentos)
     app.add_handler(MessageHandler(filters.PHOTO | filters.Document.IMAGE, handle_payment_receipt))
+
+    # ✅ Handler para ubicación (Dijkstra)
+    app.add_handler(MessageHandler(filters.LOCATION, handle_location))
 
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 

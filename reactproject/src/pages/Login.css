@@ -97,3 +97,25 @@
 .login-links button:hover {
   color: #1d6fa5;
 }
+.login-divider {
+  margin: 1.5rem 0;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.login-divider::before, 
+.login-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.telegram-btn-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}

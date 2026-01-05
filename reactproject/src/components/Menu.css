@@ -6,57 +6,120 @@
   align-items: center;
 }
 .menu-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr); /* ✅ 3 columnas exactas */
-  gap: 2rem;
-  max-width: 1200px; /* Ancho máximo para que no se estiren demasiado */
-  margin: 2rem auto;
-  padding: 0 1rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem 3rem 4rem 3rem; /* ✅ Más espacio abajo para evitar desborde */
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 40px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.2);
+  position: relative;
+  z-index: 2;
+  min-height: 400px;
+  width: 90vw;
 }
 
-/* Responsividad: 2 columnas en tablets, 1 en móviles */
+.menu-section-title {
+  font-size: 3.5rem;
+  color: #c0392b;
+  
+  margin-top: 0;
+  margin-bottom: 3.5rem;
+  text-align: center;
+  font-weight: 800;
+  text-transform: none; /* ✅ Fuente estática (sin mayúsculas forzadas) */
+  letter-spacing: normal; /* ✅ Espaciado normal */
+  text-shadow: none; /* ✅ Sin sombras pesadas */
+}
+
+.menu-items-container {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2.5rem; /* ✅ Mayor separación entre tarjetas */
+}
+
+@media (max-width: 1100px) {
+  .menu-items-container {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
 @media (max-width: 900px) {
-  .menu-grid {
+  .menu-items-container {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-@media (max-width: 600px) {
-  .menu-grid {
+@media (max-width: 768px) {
+  .menu-items-container {
     grid-template-columns: 1fr;
   }
+  .menu-grid {
+    padding: 1.5rem;
+    width: 95vw;
+    border-radius: 20px;
+  }
+  .menu-section-title {
+    font-size: 1.8rem;
+    margin-bottom: 1.5rem;
+  }
 }
-
 .menu-container {
   min-height: 100vh;
   background-color: transparent;
-  padding: 2rem;
+  padding: 100px 1rem 2rem 1rem; /* ✅ Top padding (100px) para el Navbar, resto original */
   position: relative;
   z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* ✅ Centra el contenido horizontalmente */
 }
 
 .menu-header-actions {
+  position: absolute; /* ✅ Se queda arriba de la página, no baja al hacer scroll */
+  top: 1.5rem;
+  left: 2rem;
+  right: 2rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  z-index: 1001;
+  pointer-events: none;
+}
+
+.menu-header-actions > * {
+  pointer-events: auto; /* Permitir clicks en botones */
 }
 
 .profile-btn-link {
   color: #fff;
   text-decoration: none;
-  background: rgba(255, 255, 255, 0.1);
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-weight: 600;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.7rem 1.4rem;
+  border-radius: 30px;
+  font-weight: 700;
   transition: all 0.3s ease;
-  backdrop-filter: blur(5px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .profile-btn-link:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  background-color: #8eb69b;
+}
+
+/* Estilo para el botón Volver que está en las acciones del header */
+.menu-header-actions a {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 700;
 }
 
 html,
@@ -64,10 +127,5 @@ body {
   height: 100%;
   margin: 0;
   padding: 0;
-  font-family: "Segoe UI", sans-serif;
-  background-image: url("../assets/images/FondoMenu.png");
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-attachment: fixed; /* ✅ Fondo fijo al hacer scroll */
+  background-color: transparent; /* Permite ver la aurora */
 }

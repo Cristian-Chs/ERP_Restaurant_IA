@@ -1,32 +1,51 @@
 .categorias-container {
   display: flex;
   justify-content: center;
-  gap: 1rem;
-  margin-bottom: 2rem;
+  align-items: center;
+  gap: 1.5rem; /* ✅ Gap mucho mejor */
+  margin-bottom: 2.5rem;
+  background: rgba(255, 255, 255, 0.15); /* ✅ Fondo sutil */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 0.5rem 1.5rem;
+  border-radius: 50px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  width: fit-content; /* ✅ Se ajusta al contenido */
+  margin-left: auto;
+  margin-right: auto;
+  z-index: 1000;
 }
 
 .categoria-btn {
   background: none;
   border: none;
-  font-size: 1rem;
-  color: #555;
-  padding: 0.5rem 1rem;
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.6); /* ✅ Blanco tenue para inactivas */
+  padding: 0.7rem 1.2rem;
   cursor: pointer;
   position: relative;
-  transition: color 0.3s ease;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.categoria-btn:hover {
+  color: #fff;
 }
 
 .categoria-btn.active {
-  color: #051f20;
-  font-weight: bold;
+  color: #fff;
+  font-weight: 600; /* Subtle bold instead of 800 */
+  /* Remove transform scale to prevent jumping */
 }
 
 .categoria-btn.active::after {
   content: '';
   position: absolute;
-  bottom: -4px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background-color: #051f20;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30px;
+  height: 3px;
+  background-color: #fff; /* ✅ Línea blanca */
+  border-radius: 2px;
 }

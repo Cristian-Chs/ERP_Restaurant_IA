@@ -14,38 +14,89 @@
 
 .platillo-card {
   background-color: #fff;
-  padding: 1rem 1.5rem;
+  padding: 1.1rem; /* ✅ Un poco más de aire */
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
   text-align: left;
   display: flex;
   flex-direction: column;
+  height: 100%;
+  transition: transform 0.3s ease;
+}
+
+.platillo-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+}
+
+.platillo-img-container {
+  width: 100%;
+  height: 70px; /* ✅ Más pequeño para evitar que sobresalga */
+  overflow: hidden;
+  border-radius: 6px;
+  margin-bottom: 0.4rem;
+  background: #f8f9fa;
+}
+
+.platillo-card img {
+  max-width: 100%;
+  height: 300px;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 12%;
+}
+
+.img:hover {
+  opacity: 0.7;
 }
 
 .platillo-card h3 {
   margin: 0;
-  font-size: 1.4rem;
+  font-size: 1.15rem; /* ✅ Fuente más grande */
   color: #c0392b;
+  line-height: 1.2;
+  margin-bottom: 0.3rem;
+  min-height: 2.8rem; /* ✅ Alineación ajustada */
+  display: flex;
+  align-items: center;
 }
 
 .platillo-card p {
-  margin: 0.5rem 0;
-  font-size: 1rem;
-  color: #555;
+  margin: 0;
+  font-size: 0.88rem;
+  color: #666;
+  line-height: 1.3; /* ✅ Un poco más apretado */
+  flex-grow: 1;
+  margin-bottom: 0.4rem;
 }
 
 .precios {
   display: flex;
-  justify-content: space-between;
-  font-weight: bold;
-  margin-top: 0.5rem;
+  justify-content: flex-start;
+  font-weight: 700;
+  margin-bottom: 0.6rem;
   color: #2c3e50;
+  font-size: 1rem; /* ✅ Fuente más grande */
 }
 
-.platillo-card img {
+.add-to-cart-btn {
   width: 100%;
-  height: 180px; /* ✅ fuerza altura uniforme */
-  object-fit: cover; /* ✅ recorta sin deformar */
+  padding: 0.6rem; /* ✅ Un poco más de cuerpo */
+  background: #e1f0e5;
+  border: none;
   border-radius: 8px;
-  margin-bottom: 1rem;
+  color: #1e4d2b;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.9rem; /* ✅ Fuente más grande */
+}
+
+.add-to-cart-btn:hover {
+  background: #d1e8d8;
+  transform: scale(1.02);
+}
+
+.add-to-cart-btn:active {
+  transform: scale(0.98);
 }
