@@ -25,9 +25,24 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = (
-            'id', 'name', 'description', 'price', 'category', 'is_active', 
+            'id', 'name', 'description', 'price', 'cost_price', 'category', 'is_active', 
             'imagen', 'ingredientes', 'sabores', 'ingrediente_nombres', 'sabor_nombres'
         )
+
+# ✅ Nuevo: Serializers para RRHH
+from .models import Employee, PayrollPayment, Recipe, InventoryMovement
+
+class EmployeeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Employee
+        fields = '__all__'
+
+class PayrollPaymentSerializer(serializers.ModelSerializer):
+    employee_name = serializers.StringRelatedField(source='employee', read_only=True)
+    
+    class Meta:
+        model = PayrollPayment
+        fields = ('id', 'employee', 'employee_name', 'amount', 'payment_date', 'notes')
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
@@ -46,3 +61,32 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
             token['rol'] = 'cliente'
 
         return token
+
+# ✅ Serializers para Inventario y Recetas
+class RecipeSerializer(serializers.ModelSerializer):
+    ingredient_name = serializers.StringRelatedField(source='ingredient', read_only=True)
+    product_name = serializers.StringRelatedField(source='product', read_only=True)
+    unit = serializers.CharField(source='ingredient.unit', read_only=True)
+    cost = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Recipe
+        fields = ('id', 'product', 'product_name', 'ingredient', 'ingredient_name', 'quantity', 'unit', 'cost')
+    
+    def get_cost(self, obj):
+        """Calcula el costo de este ingrediente en la receta"""
+        return float(obj.get_cost())
+
+class InventoryMovementSerializer(serializers.ModelSerializer):
+    ingredient_name = serializers.StringRelatedField(source='ingredient', read_only=True)
+    unit = serializers.CharField(source='ingredient.unit', read_only=True)
+    total_cost = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = InventoryMovement
+        fields = ('id', 'ingredient', 'ingredient_name', 'movement_type', 'quantity', 'unit', 
+                  'cost_per_unit', 'total_cost', 'date', 'notes')
+    
+    def get_total_cost(self, obj):
+        """Calcula el costo total del movimiento"""
+        return float(obj.get_total_cost())
