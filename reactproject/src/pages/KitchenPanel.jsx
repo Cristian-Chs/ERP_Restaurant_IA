@@ -12,6 +12,7 @@ const API_BASE_URL = 'http://localhost:8000/api/bot'; // Ajustado para incluir /
 function KitchenPanel() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('COCINA'); // COCINA, CAJA
   const navigate = useNavigate();
 
   /* Modal State */
@@ -40,10 +41,10 @@ function KitchenPanel() {
     }
   };
 
-  // Polling cada 10 segundos
+  // Polling cada 8 segundos
   useEffect(() => {
     fetchOrders();
-    const interval = setInterval(fetchOrders, 10000);
+    const interval = setInterval(fetchOrders, 8000);
     return () => clearInterval(interval);
   }, []);
 
@@ -53,9 +54,8 @@ function KitchenPanel() {
         method: 'POST',
       });
       if (response.ok) {
-        // Eliminar localmente para feedback inmediato
         setOrders(orders.filter(o => o.id !== orderId));
-        alert('¡Pedido marcado como listo! ✅'); // O usar un toast mejor
+        alert('¡Pedido marcado como listo! ✅');
       } else {
         alert('Error al actualizar pedido');
       }
@@ -64,32 +64,51 @@ function KitchenPanel() {
     }
   };
 
-  const rejectOrder = async (orderId) => {
-    if (!window.confirm("¿Seguro que deseas RECHAZAR este pedido?")) return;
-
+  const approvePayment = async (orderId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/cocina/orders/${orderId}/reject/`, {
+      const response = await fetch(`${API_BASE_URL}/api/cocina/orders/${orderId}/approve-payment/`, {
         method: 'POST',
       });
       if (response.ok) {
-        setOrders(orders.filter(o => o.id !== orderId));
-        alert('Pedido RECHAZADO ❌'); 
-      } else {
-        alert('Error al rechazar pedido');
+        alert('¡Pago APROBADO! El pedido se movió a Cocina. ✅');
+        fetchOrders(); // Recargar para ver el cambio
       }
     } catch (error) {
-      console.error('Error rejecting order:', error);
+      console.error('Error approving payment:', error);
     }
   };
 
-  const localOrders = orders.filter(o => o.service_type === 'Eat Here');
-  const externalOrders = orders.filter(o => o.service_type !== 'Eat Here');
+  const rejectPayment = async (orderId) => {
+    if (!window.confirm("¿Rechazar comprobante de pago? El cliente será notificado.")) return;
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/cocina/orders/${orderId}/reject-payment/`, {
+        method: 'POST',
+      });
+      if (response.ok) {
+        alert('Pago rechazado. ❌');
+        fetchOrders();
+      }
+    } catch (error) {
+      console.error('Error rejecting payment:', error);
+    }
+  };
 
-  const OrderGrid = ({ title, orderList, icon }) => (
+  // 🧪 Lógica de Filtrado por Pestaña
+  // CAJA: Pedidos Externos con pago enviado pero NO aprobado aún.
+  const cajaOrders = orders.filter(o => 
+    o.payment_status === 'payment_submitted' && o.service_type !== 'HERE'
+  );
+
+  // COCINA: Pedidos aprobados O pedidos locales (Comer Aquí)
+  const cocinaOrders = orders.filter(o => 
+    o.payment_status === 'payment_approved' || o.service_type === 'HERE'
+  );
+
+  const OrderGrid = ({ title, orderList, icon, isCaja = false }) => (
     <div className="orders-section">
       <h2 className="section-title">{icon} {title} ({orderList.length})</h2>
       {orderList.length === 0 ? (
-        <p className="no-orders-msg">No hay pedidos en esta sección.</p>
+        <p className="no-orders-msg">No hay pedidos pendientes en esta sección.</p>
       ) : (
         <div className="orders-grid">
           {orderList.map(order => (
@@ -100,12 +119,12 @@ function KitchenPanel() {
               </div>
               
               <div className="order-logistics-badges">
-                <span className={`badge ${order.service_type === 'Eat Here' ? 'here' : 'togo'}`}>
-                  {order.service_type === 'Eat Here' ? '🍽️ Local' : '🛍️ Para Llevar'}
+                <span className={`badge ${order.service_type === 'HERE' ? 'here' : 'togo'}`}>
+                  {order.service_type_display}
                 </span>
                 {order.delivery_mode !== 'N/A' && (
                   <span className={`badge mode ${order.delivery_mode === 'Delivery' ? 'delivery' : 'pickup'}`}>
-                    {order.delivery_mode === 'Delivery' ? '🛵 Domicilio' : '🏪 Retiro'}
+                    {order.delivery_mode}
                   </span>
                 )}
               </div>
@@ -117,8 +136,7 @@ function KitchenPanel() {
 
               {order.location !== 'N/A' && (
                 <div className="order-location-box">
-                  <strong>📍 Entrega en:</strong>
-                  <p>{order.location}</p>
+                  <strong>📍 Entrega:</strong> {order.location}
                 </div>
               )}
 
@@ -127,27 +145,28 @@ function KitchenPanel() {
                   Total: ${parseFloat(order.precio).toFixed(2)}
                 </div>
                 
-                {order.payment_proof && (
-                  <button className="view-proof-btn" onClick={() => openImageModal(order.payment_proof)}>
-                    🖼️ Ver Pago
-                  </button>
+                {isCaja ? (
+                  <div className="caja-actions">
+                    {order.payment_proof && (
+                      <div className="payment-thumbnail-preview" onClick={() => openImageModal(order.payment_proof)}>
+                        <img src={`http://localhost:8000${order.payment_proof}`} alt="Miniatura de pago" />
+                        <span className="expand-hint">🔍 Ampliar Comprobante</span>
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                      <button className="reject-btn-glow" onClick={() => rejectPayment(order.id)}>RECHAZAR</button>
+                      <button className="mark-ready-btn-glow" onClick={() => approvePayment(order.id)} style={{ flex: 1 }}>
+                        APROBAR PAGO
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button className="mark-ready-btn-glow" onClick={() => markAsReady(order.id)} style={{ flex: 1 }}>
+                      MARCAR COMO LISTO ✅
+                    </button>
+                  </div>
                 )}
-
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button 
-                    className="reject-btn-glow"
-                    onClick={() => rejectOrder(order.id)}
-                  >
-                    ❌
-                  </button>
-                  <button 
-                    className="mark-ready-btn-glow"
-                    onClick={() => markAsReady(order.id)}
-                    style={{ flex: 1 }}
-                  >
-                    LISTO
-                  </button>
-                </div>
               </div>
             </div>
           ))}
@@ -169,22 +188,37 @@ function KitchenPanel() {
       )}
 
       <div className="kitchen-header">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-          <h1 className="kitchen-title">Panel de Cocina</h1>
+        <h1 className="kitchen-title">Panel de Control</h1>
+        
+        {/* TABS SELECTOR */}
+        <div className="kitchen-tabs">
+          <button 
+            className={`tab-btn ${activeTab === 'COCINA' ? 'active' : ''}`}
+            onClick={() => setActiveTab('COCINA')}
+          >
+            👨‍🍳 COCINA <span className="tab-count">{cocinaOrders.length}</span>
+          </button>
+          <button 
+            className={`tab-btn ${activeTab === 'CAJA' ? 'active' : ''}`}
+            onClick={() => setActiveTab('CAJA')}
+          >
+            💸 CAJA <span className="tab-count">{cajaOrders.length}</span>
+          </button>
         </div>
-        <p>Total pendientes: {orders.length}</p>
       </div>
 
       {loading ? (
         <div className="kitchen-loader">
-          <div className="spinner"></div>
-          <p>Sincronizando con Cocina...</p>
+          <div className="ai-spinner"></div>
+          <p>Sincronizando...</p>
         </div>
       ) : (
         <div className="kitchen-sections-wrapper">
-          <OrderGrid title="Sección Local (Comer Aquí)" orderList={localOrders} icon="🍽️" />
-          <div className="section-divider" />
-          <OrderGrid title="Sección Externo (Delivery / Para Llevar)" orderList={externalOrders} icon="🛵" />
+          {activeTab === 'COCINA' ? (
+            <OrderGrid title="Pedidos para Preparar" orderList={cocinaOrders} icon="🍽️" />
+          ) : (
+            <OrderGrid title="Pagos por Verificar" orderList={cajaOrders} icon="🔍" isCaja={true} />
+          )}
         </div>
       )}
     </div>

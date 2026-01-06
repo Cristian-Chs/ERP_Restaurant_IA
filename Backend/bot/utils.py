@@ -86,4 +86,22 @@ def notificar_nuevo_pedido_externo(order):
             "parse_mode": "Markdown"
         }
         requests.post(TELEGRAM_API_URL, json=payload)
+ 
++def notificar_pago_aprobado(telegram_id, order_id):
++    mensaje = f"✅ *¡Pago Aprobado!* (Orden #{order_id})\n\nTu pedido ha sido enviado a cocina y estará listo pronto. 😊🍽️"
++    payload = {
++        "chat_id": telegram_id,
++        "text": mensaje,
++        "parse_mode": "Markdown"
++    }
++    requests.post(TELEGRAM_API_URL, json=payload)
++
++def notificar_pago_rechazado(telegram_id, order_id):
++    mensaje = f"❌ *Pago Rechazado* (Orden #{order_id})\n\nHubo un problema con tu comprobante. Por favor, contacta a soporte o intenta de nuevo con una captura legible. 👩‍🍳🆘"
++    payload = {
++        "chat_id": telegram_id,
++        "text": mensaje,
++        "parse_mode": "Markdown"
++    }
++    requests.post(TELEGRAM_API_URL, json=payload)
 

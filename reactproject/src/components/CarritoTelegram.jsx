@@ -149,17 +149,18 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
                                 </>
                             ) : (
                                 <>
-                                    <p>Redirigiendo a Telegram para finalizar...</p>
+                                    <p style={{fontSize: '1.1rem', marginBottom: '10px'}}>¡Gracias por su compra!</p>
+                                    <p style={{opacity: 0.8}}>Estamos verificando su pago. Le avisaremos por Telegram cuando su pedido sea aprobado.</p>
+                                    
                                     <button 
                                         onClick={() => {
-                                            window.open(telegramUrl, '_blank');
                                             vaciarCarrito();
                                             navigate('/menu');
-                                        }}
-                                        className="main-action-btn"
-                                        style={{marginTop: '15px', width: 'auto', padding: '10px 20px'}}
+                                        }} 
+                                        className="main-action-btn" 
+                                        style={{marginTop: '20px'}}
                                     >
-                                        Abrir Telegram ✈️
+                                        Volver al Menú 🏠
                                     </button>
                                 </>
                             )

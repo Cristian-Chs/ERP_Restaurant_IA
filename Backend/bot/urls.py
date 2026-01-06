@@ -5,6 +5,8 @@ from .views import (
     api_cocina_orders,
     api_cocina_mark_ready,
     api_cocina_reject,
+    api_cocina_approve_payment, # 🆕
+    api_cocina_reject_payment,  # 🆕
     historial,
     guardar_rating,
     gustos,
@@ -29,6 +31,8 @@ urlpatterns = [
     path("api/cocina/orders/", api_cocina_orders, name="api_cocina_orders"),
     path("api/cocina/orders/<int:order_id>/ready/", api_cocina_mark_ready, name="api_cocina_mark_ready"),
     path("api/cocina/orders/<int:order_id>/reject/", api_cocina_reject, name="api_cocina_reject"),
+    path("api/cocina/orders/<int:order_id>/approve-payment/", api_cocina_approve_payment, name="api_cocina_approve_payment"),
+    path("api/cocina/orders/<int:order_id>/reject-payment/", api_cocina_reject_payment, name="api_cocina_reject_payment"),
     
     # Dashboard de pagos
     path("payment-dashboard/", payment_dashboard, name="payment_dashboard"),

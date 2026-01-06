@@ -25,10 +25,23 @@ class OrderViewSet(viewsets.ModelViewSet):
     permission_classes = [AllowAny]
 
     def perform_create(self, serializer):
+        # Guardar la orden
         order = serializer.save()
-        # Si NO es 'Comer Aquí' (Local) y NO está pendiente (ya pagado o validado), notificar.
-        # En el flujo del bot, se crea como 'pendiente' y luego se notifica al subir foto.
-        if order.service_type != 'HERE' and order.status not in ['pendiente', 'esperando_pago']:
+        
+        # ✅ Si el pedido trae una imagen de comprobante (subida desde Web)
+        if order.payment_proof:
+            order.payment_status = 'payment_submitted'
+            order.save()
+            
+            # Notificar al Administrador/Chef inmediatamente
+            try:
+                notificar_nuevo_pedido_externo(order)
+                print(f"DEBUG [OrderViewSet] Notificación enviada para pedido web {order.id}")
+            except Exception as e:
+                print(f"Error notificando pedido web: {e}")
+        
+        # ⚠️ Lógica antigua para otros casos (si aplica)
+        elif order.service_type != 'HERE' and order.status not in ['pendiente', 'esperando_pago']:
             try:
                 notificar_nuevo_pedido_externo(order)
             except Exception as e:
@@ -123,10 +136,15 @@ def recomendacion_ml_view(request, telegram_id):
 
 def api_cocina_orders(request):
     """
-    Devuelve la lista de pedidos pendientes en JSON.
+    Devuelve pedidos para el panel (Cocina y Caja).
+    Cocina: Pagados o Locales.
+    Caja: En espera de verificación.
     """
-    # Los pedidos aparecen en cocina cuando están pendientes de preparación
-    pedidos = Order.objects.filter(status="pendiente").order_by("fecha")
+    # Obtenemos todos los que no estén entregados/listos/rechazados aún
+    pedidos = Order.objects.filter(
+        status__in=["pendiente", "esperando_pago"]
+    ).order_by("fecha")
+    
     data = [
         {
             "id": p.id,
@@ -135,7 +153,9 @@ def api_cocina_orders(request):
             "precio": float(p.precio),
             "fecha": p.fecha.isoformat(),
             "status": p.status,
-            "service_type": p.get_service_type_display(),
+            "payment_status": p.payment_status,
+            "service_type": p.service_type, # Devolvemos el código (HERE/TOGO)
+            "service_type_display": p.get_service_type_display(),
             "delivery_mode": p.get_delivery_mode_display() if p.delivery_mode else "N/A",
             "location": p.location or "N/A",
             "payment_proof": p.payment_proof.url if p.payment_proof else None
@@ -143,6 +163,50 @@ def api_cocina_orders(request):
         for p in pedidos
     ]
     return JsonResponse(data, safe=False)
+
+@csrf_exempt
+def api_cocina_approve_payment(request, order_id):
+    """
+    Aprueba un pago desde el panel de Caja.
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Método no permitido"}, status=405)
+    
+    try:
+        order = Order.objects.get(id=order_id)
+        order.payment_status = 'payment_approved'
+        order.status = 'pendiente' # Aseguramos que pase a cocina
+        order.save()
+        
+        # Opcional: Notificar al usuario por Telegram que su pago fue aprobado
+        from .utils import notificar_pago_aprobado
+        notificar_pago_aprobado(order.telegram_id, order.id)
+        
+        return JsonResponse({"status": "ok"})
+    except Order.DoesNotExist:
+        return JsonResponse({"error": "Pedido no encontrado"}, status=404)
+
+@csrf_exempt
+def api_cocina_reject_payment(request, order_id):
+    """
+    Rechaza un pago desde el panel de Caja.
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Método no permitido"}, status=405)
+    
+    try:
+        order = Order.objects.get(id=order_id)
+        order.payment_status = 'payment_rejected'
+        order.status = 'rechazado'
+        order.save()
+        
+        # Opcional: Notificar rechazo
+        from .utils import notificar_pago_rechazado
+        notificar_pago_rechazado(order.telegram_id, order.id)
+        
+        return JsonResponse({"status": "ok"})
+    except Order.DoesNotExist:
+        return JsonResponse({"error": "Pedido no encontrado"}, status=404)
 
 @csrf_exempt
 def api_cocina_mark_ready(request, order_id):

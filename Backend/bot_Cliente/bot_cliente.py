@@ -16,6 +16,7 @@ import pytz
 import asyncio
 import datetime
 import aiohttp
+from groq import Groq  # ✅ Nueva integración
 
 from telegram import (
     Update,
@@ -61,6 +62,10 @@ SIMILAR_URL = "http://127.0.0.1:8000/api/bot/recomendacion_similar/"
 HIBRIDA_URL = "http://127.0.0.1:8000/api/bot/recomendacion_hibrida/"
 PRODUCTOS_URL = "http://127.0.0.1:8000/api/bot/productos/"
 RECOMENDACION_URL = "http://127.0.0.1:8000/api/bot/recomendacion/"
+
+# 🆕 Configuración Groq
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "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")
+groq_client = Groq(api_key=GROQ_API_KEY)
 
 # 🆕 Session URLs
 SESSION_URL = "http://127.0.0.1:8000/api/bot/session/"
@@ -948,7 +953,8 @@ async def handle_state_idle(update: Update, context: ContextTypes.DEFAULT_TYPE, 
     IDLE State: The user is searching for a product.
     Action: Search text in DB -> Show Buttons
     """
-    print(f"DEBUG [handle_state_idle] Searching for: {texto}")
+    telegram_id = update.effective_user.id
+    print(f"DEBUG [handle_state_idle] User: {telegram_id} | Searching for: {texto}")
     
     # Simple direct search first
     productos = await buscar_productos_backend(texto)
@@ -959,11 +965,9 @@ async def handle_state_idle(update: Update, context: ContextTypes.DEFAULT_TYPE, 
              await update.message.reply_text("👋 Hola. Para pedir, escribe el nombre del plato. Ej: 'Pizza'")
              return
 
-        await update.message.reply_text(
-            f"🤔 No encontré nada parecido a '{texto}'.\n"
-            "Prueba con palabras más sencillas como 'Hamburguesa' o 'Pizza'.\n"
-            "O usa /menu para ver todo."
-        )
+        # 🆕 FALLBACK INTELIGENTE CON IA (Sustituye respuesta genérica)
+        respuesta_ia = await chatbot_groq_servidor(texto, telegram_id)
+        await update.message.reply_text(respuesta_ia)
         return
 
     # Create buttons for found products
@@ -987,6 +991,61 @@ async def handle_state_idle(update: Update, context: ContextTypes.DEFAULT_TYPE, 
         f"🔎 Encontré estas opciones para '{texto}':\nSelecciona una 👇",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
+
+# ----------------------------------------------------
+# 🤖 CHATBOT IA (GROQ FALLBACK)
+# ----------------------------------------------------
+async def chatbot_groq_servidor(pregunta_usuario: str, telegram_id: int):
+    """
+    Usa Groq para responder preguntas que el sistema de búsqueda no entiende.
+    Proporciona contexto dinámico sobre el menú y el restaurante.
+    """
+    try:
+        # 1. Obtener contexto dinámico (Menú)
+        # Reutilizamos la lógica de buscar productos para tener el menú fresco
+        r = requests.get(PRODUCTOS_URL, timeout=3)
+        productos_lista = []
+        if r.status_code == 200:
+            productos_lista = r.json().get("productos", [])
+            
+        # 2. Construir el system prompt
+        system_prompt = f"""Eres el asistente virtual amigable de "4 Sabores de Paraguaná".
+Tu objetivo es ayudar a los clientes con información, dudas y sugerencias.
+
+INFORMACIÓN DEL RESTAURANTE:
+- Horario: Lunes a Domingo, 9:00 AM a 10:00 PM
+- Ubicación: Calle Principal #123, Paraguaná, Falcón, Venezuela
+- Delivery: $3.00 (radio 5km)
+- Métodos de Pago: Efectivo, Pago Móvil, Zelle, Transferencia
+- WiFi: Sí, gratuito para clientes
+- Notas: Somos especialistas en comida típica y fusión.
+
+MENÚ ACTUAL DISPONIBLE:
+{", ".join(productos_lista) if productos_lista else "Consultar /menu"}
+
+INSTRUCCIONES:
+1. Responde de forma breve (máximo 3 líneas) y usa emojis 😊🍔
+2. Si preguntan por un plato que está en el menú, anímalos a pedirlo escribiendo el nombre.
+3. Si preguntan por algo que no sabes, sugiere contactar al soporte humano (/soporte).
+4. Mantén siempre un tono servicial y alegre.
+"""
+
+        # 3. Llamar a Groq
+        completion = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": pregunta_usuario}
+            ],
+            temperature=0.7,
+            max_tokens=250,
+            stream=False
+        )
+        
+        return completion.choices[0].message.content.strip()
+    except Exception as e:
+        logging.error(f"Error en chatbot_groq: {e}")
+        return "🤔 Mmm, no estoy seguro de eso. ¿Te gustaría ver el /menu o hablar con /soporte?"
 
 async def handle_state_quantity(update: Update, context: ContextTypes.DEFAULT_TYPE, texto: str, session: dict):
     """
