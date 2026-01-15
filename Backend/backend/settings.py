@@ -18,7 +18,9 @@ if not SECRET_KEY:
     raise ValueError("❌ DJANGO_SECRET_KEY no configurado en variables de entorno")
 
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+
+# Permitir Render y hosts configurados
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,.onrender.com').split(',')
 
 # --- Email (Solo para desarrollo, imprime en consola) ---
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
