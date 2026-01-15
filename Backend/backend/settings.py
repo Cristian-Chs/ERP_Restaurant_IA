@@ -73,31 +73,25 @@ CHANNEL_LAYERS = {
     },
 }
 
-# --- Base de datos (PostgreSQL para producción) ---
-# En Render, DATABASE_URL se inyecta automáticamente
-import dj_database_url
-
-DATABASES = {
-    'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL', 'postgresql://postgres:postgres@localhost:5432/telegram_bot'),
-        conn_max_age=600
-    )
-}
-
-# Fallback local si no hay DATABASE_URL válida ni PostgreSQL local
-if not os.getenv('DATABASE_URL') and os.getenv('USE_SQLITE', 'False') == 'True':
-    DATABASES['default'] = {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# --- Base de datos ---
+if os.getenv('DATABASE_URL'):
+    # Producción (Render)
+    import dj_database_url
+    DATABASES = {
+        'default': dj_database_url.config(conn_max_age=600, ssl_require=True)
     }
-
-# --- Validación de contraseñas ---
-AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
-]
+else:
+    # Desarrollo Local
+    DATABASES = {
+        'default': {
+            'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.sqlite3'), # Default a SQLite si no hay variables
+            'NAME': os.getenv('DB_NAME', BASE_DIR / 'db.sqlite3'),
+            'USER': os.getenv('DB_USER', ''),
+            'PASSWORD': os.getenv('DB_PASSWORD', ''),
+            'HOST': os.getenv('DB_HOST', ''),
+            'PORT': os.getenv('DB_PORT', ''),
+        }
+    }
 
 # --- Internacionalización ---
 LANGUAGE_CODE = 'es'   # prefiero español para tu caso
