@@ -9,7 +9,7 @@ services:
     name: react-python-backend
     runtime: python
     buildCommand: "./build.sh"
-    startCommand: "cd Backend && gunicorn backend.wsgi:application"
+    startCommand: "cd Backend && python bot_Cliente/main.py & gunicorn backend.wsgi:application"
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
