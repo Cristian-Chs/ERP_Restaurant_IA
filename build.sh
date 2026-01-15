@@ -4,6 +4,7 @@ set -o errexit
 
 # 1. Install Dependencies
 pip install -r Backend/requirements.txt
+pip install gunicorn # Ensure binary is installed
 
 # 2. Build Frontend (React)
 cd reactproject
