@@ -2,6 +2,7 @@ from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from .utils import notificar_pedido_listo
+from core.models import Product # 🆕 Importamos productos para análisis ML
 
 
 # ✅ Modelo principal de pedidos
@@ -35,6 +36,11 @@ class Order(models.Model):
     payment_verified_at = models.DateTimeField(blank=True, null=True)
     payment_verified_by = models.BigIntegerField(blank=True, null=True)
     payment_data = models.JSONField(blank=True, null=True)
+    payment_hash = models.CharField(max_length=64, blank=True, null=True, db_index=True) # Hash perceptual para evitar duplicados
+
+    # ✅ Finanzas Multi-moneda
+    currency = models.CharField(max_length=5, default='USD')
+    exchange_rate = models.DecimalField(max_digits=10, decimal_places=2, default=1.0)
 
     def __str__(self):
         return f"{self.item} - Cliente {self.telegram_id}"
@@ -45,6 +51,8 @@ class Rating(models.Model):
     telegram_id = models.BigIntegerField()
     plato = models.CharField(max_length=255)
     estrellas = models.IntegerField(choices=[(i, f"{i} ⭐") for i in range(1, 6)])
+    comentario = models.TextField(blank=True, null=True) # 🆕 Feedback textual
+    sentimiento = models.CharField(max_length=20, blank=True, null=True) # 🆕 Positivo, Neutral, Negativo
     fecha = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -64,7 +72,16 @@ class GustoCliente(models.Model):
 @receiver(post_save, sender=Order)
 def enviar_notificacion(sender, instance, **kwargs):
     if instance.status == "listo":
+        # 🔔 Notificar al cliente
         notificar_pedido_listo(instance.telegram_id, instance.item)
+        
+        # 💎 Agregar Puntos de Fidelización (Fase 9)
+        loyalty, created = LoyaltyPoints.objects.get_or_create(telegram_id=instance.telegram_id)
+        puntos_ganados = loyalty.agregar_puntos(instance.precio)
+        
+        # Notificar puntos ganados via Telegram (opcional pero recomendado)
+        from .utils import notificar_puntos_ganados
+        notificar_puntos_ganados(instance.telegram_id, puntos_ganados, loyalty.puntos)
 
 class PedidoPersonalizado(models.Model):
     telegram_id = models.BigIntegerField()
@@ -99,3 +116,141 @@ class TelegramSession(models.Model):
 
     def __str__(self):
         return f"Session {self.telegram_id} - {self.state}"
+
+
+# ✅ Modelo para detectar fraude por duplicados visuales
+class PaymentHash(models.Model):
+    hash_value = models.CharField(max_length=64, unique=True, db_index=True)
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='hashes')
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Hash {self.hash_value[:10]}... (Orden {self.order_id})"
+
+
+# ✅ Sistema de Fidelización
+class LoyaltyPoints(models.Model):
+    telegram_id = models.BigIntegerField(unique=True)
+    puntos = models.IntegerField(default=0)
+    nivel = models.CharField(max_length=50, default="Bronce")
+    total_gastado = models.DecimalField(max_digits=12, decimal_places=2, default=0.0)
+    ultima_actualizacion = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Cliente {self.telegram_id} - {self.puntos} pts ({self.nivel})"
+
+    def agregar_puntos(self, monto):
+        """
+        Agrega 1 punto por cada $1 gastado.
+        """
+        puntos_nuevos = int(float(monto))
+        self.puntos += puntos_nuevos
+        self.total_gastado += monto
+        
+        # Lógica de niveles (ejemplo)
+        if self.total_gastado > 500:
+            self.nivel = "Diamante"
+        elif self.total_gastado > 200:
+            self.nivel = "Oro"
+        elif self.total_gastado > 100:
+            self.nivel = "Plata"
+            
+        self.save()
+        return puntos_nuevos
+    
+    def redeem_points(self, points_to_redeem):
+        """
+        Canjea puntos por descuento. 
+        Retorna el monto de descuento en USD o None si no tiene suficientes puntos.
+        Conversión: 10 puntos = $1 de descuento
+        """
+        if self.puntos >= points_to_redeem:
+            self.puntos -= points_to_redeem
+            self.save()
+            discount_amount = points_to_redeem / 25.0  # 10 puntos = $1
+            return discount_amount
+        return None
+
+
+# ✅ Modelo para desglosar ítems de un pedido (Estructura para ML)
+class OrderItem(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items_detalle')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='ventas')
+    cantidad = models.IntegerField(default=1)
+    precio_unitario = models.DecimalField(max_digits=10, decimal_places=2) # Precio capturado en el momento de la venta
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.cantidad}x {self.product.name} (Orden {self.order.id})"
+
+
+# ✅ Sistema de Cupones
+class Coupon(models.Model):
+    COUPON_TYPE_CHOICES = [
+        ('fixed', 'Descuento Fijo'),
+        ('percentage', 'Porcentaje'),
+    ]
+    
+    code = models.CharField(max_length=50, unique=True, db_index=True)  # Ej: "PROMO2026"
+    discount_type = models.CharField(max_length=20, choices=COUPON_TYPE_CHOICES, default='fixed')
+    discount_amount = models.DecimalField(max_digits=10, decimal_places=2)  # $5 o 10 (para 10%)
+    points_cost = models.IntegerField(default=0, help_text="Puntos necesarios para canjear (0 = cupón manual)")
+    
+    # Validez
+    is_active = models.BooleanField(default=True)
+    valid_from = models.DateTimeField(blank=True, null=True)
+    valid_until = models.DateTimeField(blank=True, null=True)
+    max_uses = models.IntegerField(default=0, help_text="0 = ilimitado")
+    current_uses = models.IntegerField(default=0)
+    
+    # Restricciones
+    min_order_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.code} (-${self.discount_amount})"
+    
+    def is_valid(self):
+        """Verifica si el cupón está activo y dentro del período de validez"""
+        from django.utils import timezone
+        now = timezone.now()
+        
+        if not self.is_active:
+            return False
+        
+        if self.valid_from and now < self.valid_from:
+            return False
+            
+        if self.valid_until and now > self.valid_until:
+            return False
+        
+        if self.max_uses > 0 and self.current_uses >= self.max_uses:
+            return False
+            
+        return True
+    
+    def apply_discount(self, order_amount):
+        """Calcula el descuento aplicable al monto del pedido"""
+        if not self.is_valid():
+            return 0
+        
+        if order_amount < self.min_order_amount:
+            return 0
+        
+        if self.discount_type == 'fixed':
+            return min(float(self.discount_amount), float(order_amount))
+        else:  # percentage
+            return float(order_amount) * (float(self.discount_amount) / 100.0)
+
+
+class RedeemedCoupon(models.Model):
+    """Registro de cupones canjeados por usuarios"""
+    telegram_id = models.BigIntegerField()
+    coupon = models.ForeignKey(Coupon, on_delete=models.CASCADE, related_name='redemptions')
+    order = models.ForeignKey(Order, on_delete=models.SET_NULL, null=True, blank=True, related_name='coupons_used')
+    discount_applied = models.DecimalField(max_digits=10, decimal_places=2)
+    fecha_canje = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.coupon.code} - Usuario {self.telegram_id}"

@@ -34,6 +34,17 @@ function Menu({ agregarAlCarrito }) {
   const [allProducts, setAllProducts] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [exchangeRate, setExchangeRate] = useState(35); // Default fallback
+
+  useEffect(() => {
+    API.get('/currency/rates/')
+      .then(res => {
+        if (res.data && res.data.VES) {
+          setExchangeRate(res.data.VES);
+        }
+      })
+      .catch(e => console.error("Error fetching rates", e));
+  }, []);
 
 
 
@@ -103,6 +114,7 @@ useEffect(() => {
                       key={p.id || i} 
                       {...p} 
                       agregarAlCarrito={agregarAlCarrito} 
+                      exchangeRate={exchangeRate}
                     />
                   ))
                 ) : (

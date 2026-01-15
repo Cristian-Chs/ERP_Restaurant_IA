@@ -1,0 +1,34 @@
+server {
+    listen 80;
+    server_name tudominio.com www.tudominio.com;
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    
+    # Archivos estáticos de Django
+    location /static/ {
+        root /var/www/reactpythonbackend/Backend;
+    }
+
+    # Archivos multimedia de Django (Imágenes de platos, etc.)
+    location /media/ {
+        root /var/www/reactpythonbackend/Backend;
+    }
+
+    # API Backend (Django + Gunicorn)
+    location /api/ {
+        include proxy_params;
+        proxy_pass http://unix:/run/gunicorn.sock;
+    }
+
+    # Admin Panel (Django)
+    location /admin/ {
+        include proxy_params;
+        proxy_pass http://unix:/run/gunicorn.sock;
+    }
+
+    # Frontend React (Archivos estáticos construidos)
+    location / {
+        root /var/www/reactpythonbackend/reactproject/dist;
+        try_files $uri $uri/ /index.html;
+    }
+}

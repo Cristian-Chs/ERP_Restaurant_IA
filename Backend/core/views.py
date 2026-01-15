@@ -11,15 +11,78 @@ from django.db.models import Sum, Count
 from django.db.models.functions import TruncDay, TruncMonth, TruncYear
 from datetime import datetime, timedelta
 import numpy as np
+import re
 from sklearn.linear_model import LinearRegression
 
-from .models import Product, Ingredient, Flavor
+from .models import Product, Ingredient, Flavor, GlobalSetting, InventoryMovement
+from django.db.models import Sum, Count, Avg, F
 from .serializers import ProductSerializer, IngredientSerializer, FlavorSerializer
 import hmac
 import hashlib
 import time
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
+
+# ✅ Helper para calcular gastos basados en recetas (Dinámico)
+def calculate_recipe_expenses(orders_queryset):
+    """
+    Calcula los gastos teóricos basados en las recetas de los productos vendidos.
+    Retorna:
+    - total_expenses (float): Costo total de ingredientes
+    - shopping_list (list): Lista detallada de ingredientes requeridos [{nombre, qty, unit, cost, total}]
+    """
+    total_expenses = 0
+    ingredient_needs = {} # {ing_name: {qty, unit, cost_per_unit, total_cost}}
+    
+    # 1. Agrupar productos vendidos
+    sold_items = {} # {product_name: qty}
+    
+    # Iterar eficientemente con iterator()
+    for order_item in orders_queryset.values_list('item', flat=True).iterator():
+        # Parsear cantidad y nombre: "2 x Hamburguesa (Extra...)"
+        match = re.search(r'^(\d+)\s*x\s*(.*?)(?:\s*[\(\[].*|$)', order_item)
+        if match:
+            qty = int(match.group(1))
+            product_name = match.group(2).strip()
+        else:
+            qty = 1
+            product_name = order_item.strip()
+            
+        sold_items[product_name] = sold_items.get(product_name, 0) + qty
+
+    # 2. Calcular ingredientes necesarios basado en recetas
+    for product_name, total_qty in sold_items.items():
+        # Buscar producto
+        product = Product.objects.filter(name__iexact=product_name).first()
+        if not product:
+            product = Product.objects.filter(name__icontains=product_name).first()
+            
+        if product:
+            # Obtener recetas del producto
+            recipes = product.recetas.select_related('ingredient').all()
+            
+            for recipe in recipes:
+                ing = recipe.ingredient
+                needed_qty = float(recipe.quantity) * total_qty
+                cost = float(ing.cost) * needed_qty
+                
+                if ing.nombre not in ingredient_needs:
+                    ingredient_needs[ing.nombre] = {
+                        'ingredient_name': ing.nombre,
+                        'quantity': 0.0,
+                        'unit': ing.unit,
+                        'cost_per_unit': float(ing.cost),
+                        'total_cost': 0.0
+                    }
+                
+                ingredient_needs[ing.nombre]['quantity'] += needed_qty
+                ingredient_needs[ing.nombre]['total_cost'] += cost
+                total_expenses += cost
+
+    # Convertir a lista ordenada
+    shopping_list = sorted(ingredient_needs.values(), key=lambda x: x['total_cost'], reverse=True)
+    
+    return total_expenses, shopping_list
 
 def listar_ingredientes(request):
     ingredientes = Ingredient.objects.all()
@@ -172,6 +235,19 @@ class FlavorViewSet(viewsets.ModelViewSet):
     queryset = Flavor.objects.all()
     serializer_class = FlavorSerializer
 
+# ✅ Recipe ViewSet (Recetario)
+from .serializers import RecipeSerializer
+from .models import Recipe
+
+class RecipeViewSet(viewsets.ModelViewSet):
+    queryset = Recipe.objects.all()
+    serializer_class = RecipeSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+    def create(self, request, *args, **kwargs):
+        # Override to ensure integrity or custom logic if needed
+        return super().create(request, *args, **kwargs)
+
 # ✅ RRHH ViewSets
 from .serializers import EmployeeSerializer, PayrollPaymentSerializer
 from .models import Employee, PayrollPayment
@@ -187,7 +263,7 @@ class PayrollPaymentViewSet(viewsets.ModelViewSet):
 
 # --- ESTADÍSTICAS Y IA ---
 
-from django.db.models import Sum, Count, Avg
+from django.db.models import Sum, Count, Avg, F
 from bot.models import Order, Rating
 
 class AdminStatsView(APIView):
@@ -226,12 +302,19 @@ class AdminStatsView(APIView):
             payment_status='payment_approved'
         ).values('item').annotate(
             total_pedidos=Count('id'),
-            total_revenue=Sum('precio')
+            recaudado=Sum('precio')
         ).order_by('-total_pedidos')[:5]
 
+        top_products_list = []
         for prod in top_products:
             avg_stars = Rating.objects.filter(plato=prod['item']).aggregate(Avg('estrellas'))['estrellas__avg']
-            prod['avg_stars'] = round(avg_stars, 1) if avg_stars else 0
+            prod_dict = {
+                'item': prod['item'],
+                'total_pedidos': prod['total_pedidos'],
+                'recaudado': float(prod['recaudado'] or 0),
+                'avg_stars': round(avg_stars, 1) if avg_stars else 0
+            }
+            top_products_list.append(prod_dict)
 
         # 4. Insights: Top Clientes
         top_customers = Order.objects.filter(
@@ -240,6 +323,14 @@ class AdminStatsView(APIView):
             total_ordenes=Count('id'),
             total_gastado=Sum('precio')
         ).order_by('-total_gastado')[:5]
+
+        top_customers_list = [
+            {
+                'telegram_id': c['telegram_id'],
+                'total_pedidos': c['total_ordenes'],
+                'total_gastado': float(c['total_gastado'] or 0)
+            } for c in top_customers
+        ]
 
         # 5. Breakdown por Tipo de Servicio
         service_stats = Order.objects.filter(payment_status='payment_approved').values('service_type').annotate(
@@ -251,8 +342,8 @@ class AdminStatsView(APIView):
             "diarias": [{"dia": d['dia'], "total": float(d['total'] or 0), "cantidad": d['cantidad']} for d in daily_stats],
             "mensuales": [{"mes": d['mes'], "total": float(d['total'] or 0), "cantidad": d['cantidad']} for d in monthly_stats],
             "anuales": [{"year": d['year'], "total": float(d['total'] or 0), "cantidad": d['cantidad']} for d in yearly_stats],
-            "top_products": list(top_products),
-            "top_customers": list(top_customers),
+            "top_products": top_products_list,
+            "top_customers": top_customers_list,
             "service_breakdown": service_breakdown,
             # ✅ Financial Module Data
             "financial_summary": self.get_financial_summary(monthly_stats),
@@ -268,19 +359,30 @@ class AdminStatsView(APIView):
                 current_revenue = float(m['total'] or 0)
                 break
         
-        # 2. Estimated Tax (10%)
+        # 2. Expenses based on RECIPES (Theoretical)
+        # Calcula ingredientes necesarios según recetas de ventas
+        first_day = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        orders_this_month = Order.objects.filter(
+            payment_status='payment_approved',
+            fecha__gte=first_day
+        )
+        
+        monthly_expenses, _ = calculate_recipe_expenses(orders_this_month)
+        
+        # 3. Estimated Tax (10%)
         estimated_tax = current_revenue * 0.10
         
-        # 3. Payment Methods (Mocked/Parsed)
-        # Since most orders with 'payment_proof' are likely manual transfers (Zelle/PagoMovil)
-        # We will assume "Transferencia" is the dominant method for this version.
-        # In the future, we can parse 'payment_data' JSON if it becomes structured.
+        # 4. Net Profit (Revenue - Real Expenses - Tax)
+        net_profit = current_revenue - monthly_expenses - estimated_tax
+        
+        # 5. Payment Methods (Mocked/Parsed)
         top_method = "Transferencia" 
         
         return {
             "current_month_revenue": current_revenue,
+            "monthly_expenses": monthly_expenses,
             "estimated_tax": estimated_tax,
-            "net_profit": current_revenue - estimated_tax,
+            "net_profit": net_profit,
             "currency": "$",
             "top_payment_method": top_method
         }
@@ -427,9 +529,21 @@ class ExportFinancialPDFView(APIView):
             if m['mes'].strftime('%Y-%m') == current_month:
                 current_revenue = float(m['total'] or 0)
                 break
-                
+        
+        # 2. Expenses based on RECIPES (Theoretical & Shopping List)
+        first_day = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        orders_this_month = Order.objects.filter(
+            payment_status='payment_approved',
+            fecha__gte=first_day
+        )
+        
+        monthly_expenses, shopping_list = calculate_recipe_expenses(orders_this_month)
+
+        # 3. Estimated Tax (10%)
         estimated_tax = current_revenue * 0.10
-        net_profit = current_revenue - estimated_tax
+        
+        # 4. Net Profit (Revenue - Real Expenses - Tax)
+        net_profit = current_revenue - monthly_expenses - estimated_tax
         
         # Reliability Score Mock/Calc
         total_orders = Order.objects.count()
@@ -469,7 +583,16 @@ class ExportFinancialPDFView(APIView):
         p.line(50, y-10, 500, y-10)
         
         y -= 50
-        # Box 2: Tax
+        # Box 2: Real Expenses (NEW)
+        p.setFont("Helvetica-Bold", 14)
+        p.drawString(50, y, "Gastos de Mercancía (Compras)")
+        p.setFillColor(colors.red)
+        p.drawString(350, y, f"-${monthly_expenses:,.2f}")
+        p.setFillColor(colors.black)
+        p.line(50, y-10, 500, y-10)
+
+        y -= 50
+        # Box 3: Tax
         p.setFont("Helvetica-Bold", 14)
         p.drawString(50, y, "Impuesto Estimado (10%)")
         p.setFillColor(colors.red)
@@ -478,13 +601,64 @@ class ExportFinancialPDFView(APIView):
         p.line(50, y-10, 500, y-10)
 
         y -= 50
-        # Box 3: Net Profit
+        # Box 4: Net Profit
         p.setFont("Helvetica-Bold", 16)
-        p.drawString(50, y, "Utilidad Neta (Disponible)")
+        p.drawString(50, y, "Utilidad Neta (Libre)")
         p.setFillColor(colors.green)
         p.drawString(350, y, f"${net_profit:,.2f}")
         p.setFillColor(colors.black)
         p.line(50, y-10, 500, y-10)
+
+        # === DETAILED PURCHASES SECTION (New Page or Below) ===
+        p.showPage() # New page for details
+        
+        # Header Detailed
+        p.setFont("Helvetica-Bold", 18)
+        p.drawString(50, h - 50, "Lista de Compras Automática (Recetario)")
+        p.setFont("Helvetica", 10)
+        p.drawString(50, h - 70, "Generado según ingredientes necesarios para las ventas del mes.")
+        
+        y = h - 100
+        headers = ["Ingrediente", "Cant. Necesaria", "Unidad", "Costo/U", "Total"]
+        x_pos = [50, 200, 320, 380, 480]
+        
+        # Table Header
+        p.setFont("Helvetica-Bold", 10)
+        for i, head in enumerate(headers):
+            p.drawString(x_pos[i], y, head)
+        p.line(50, y-5, 550, y-5)
+        
+        y -= 25
+        p.setFont("Helvetica", 10)
+        
+        # Table Rows (Shopping List from Helper)
+        total_list_cost = 0
+        for item in shopping_list:
+            if y < 50:
+                p.showPage()
+                y = h - 50
+                p.setFont("Helvetica-Bold", 10)
+                for i, head in enumerate(headers):
+                    p.drawString(x_pos[i], y, head)
+                p.line(50, y-5, 550, y-5)
+                y -= 25
+                p.setFont("Helvetica", 10)
+            
+            p.drawString(x_pos[0], y, item['ingredient_name'][:30])
+            p.drawString(x_pos[1], y, f"{item['quantity']:.2f}")
+            p.drawString(x_pos[2], y, item['unit'])
+            p.drawString(x_pos[3], y, f"${item['cost_per_unit']:.2f}")
+            p.drawString(x_pos[4], y, f"${item['total_cost']:.2f}")
+            
+            total_list_cost += item['total_cost']
+            y -= 20
+        
+        # Total Check Line
+        y -= 10
+        p.line(50, y+15, 550, y+15)
+        p.setFont("Helvetica-Bold", 12)
+        p.drawString(350, y, "TOTAL NECESARIO:")
+        p.drawString(480, y, f"${total_list_cost:,.2f}")
 
         y -= 80
         # AI Section
@@ -591,3 +765,70 @@ class ExportPayrollPDFView(APIView):
         p.showPage()
         p.save()
         return response
+from .ml_engine import get_price_suggestion
+
+class PriceOptimizationAPI(APIView):
+    permission_classes = [permissions.IsAdminUser]
+
+    def get(self, request, product_id):
+        suggestion = get_price_suggestion(product_id)
+        
+        try:
+            product = Product.objects.get(id=product_id)
+            return Response({
+                "product_id": product_id,
+                "current_price": float(product.price),
+                "suggested_price": suggestion,
+                "status": "success",
+                "message": "Sugerencia calculada basada en elasticidad de demanda e histórico."
+            })
+        except Product.DoesNotExist:
+            return Response({"error": "Producto no encontrado"}, status=404)
+from .demand_engine import get_demand_forecast
+
+class DemandPredictionAPI(APIView):
+    permission_classes = [permissions.IsAdminUser]
+
+    def get(self, request):
+        try:
+            forecast = get_demand_forecast()
+            return Response({
+                "status": "success",
+                "predictions": forecast,
+                "message": "Predicción de demanda horaria para las próximas 24 horas (Facebook Prophet)."
+            })
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
+from .currency_service import get_current_rates
+
+class CurrencyRatesAPI(APIView):
+    permission_classes = [permissions.AllowAny] # Público para que los clientes vean los precios convertidos
+
+    def get(self, request):
+        rates = get_current_rates()
+        return Response(rates)
+
+class UpdateCurrencyRateAPI(APIView):
+    permission_classes = [permissions.IsAdminUser]
+
+    def post(self, request):
+        new_rate = request.data.get("rate")
+        if not new_rate:
+            return Response({"error": "Tasa requerida"}, status=400)
+        
+        try:
+            rate_obj, created = GlobalSetting.objects.get_or_create(key="VES_USD_RATE")
+            rate_obj.value = str(new_rate)
+            rate_obj.save()
+            
+            # Limpiar cache para que se refresque al instante
+            from django.core.cache import cache
+            cache.delete('exchange_rates')
+            
+            return Response({
+                "status": "success",
+                "message": f"Tasa actualizada a {new_rate} Bs.",
+                "rate": new_rate
+            })
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)

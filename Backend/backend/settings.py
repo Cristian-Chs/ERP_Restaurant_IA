@@ -4,25 +4,35 @@ Django settings for unified backend project.
 
 from pathlib import Path
 from datetime import timedelta
+import os
+from dotenv import load_dotenv
+
+# Cargar variables de entorno desde .env
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # --- Seguridad ---
-SECRET_KEY = 'django-insecure-^15*o2sb@$c9ee%ihz*2kdj!7f)v+d6fe=6c7)1-x9a!%2mh#c'
-DEBUG = True
-ALLOWED_HOSTS = []
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
+if not SECRET_KEY:
+    raise ValueError("❌ DJANGO_SECRET_KEY no configurado en variables de entorno")
+
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 # --- Email (Solo para desarrollo, imprime en consola) ---
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # --- Aplicaciones instaladas ---
 INSTALLED_APPS = [
+    'daphne', # 🆕 Debe ir antes de staticfiles
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'channels', # 🆕
 
     # Apps de terceros
     'corsheaders',
@@ -39,6 +49,7 @@ INSTALLED_APPS = [
 # --- Middleware ---
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # 🆕 Static files for Render
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',   # importante para frontend
     'django.middleware.common.CommonMiddleware',
@@ -48,21 +59,35 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# --- URLs y WSGI ---
-ROOT_URLCONF = 'backend.urls'   # cámbialo si tu proyecto principal es telegram_bot
+# --- URLs y WSGI/ASGI ---
+ROOT_URLCONF = 'backend.urls'
 WSGI_APPLICATION = 'backend.wsgi.application'
+ASGI_APPLICATION = 'backend.asgi.application' # 🆕
+
+# --- Channel Layers (En memoria para desarrollo) ---
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    },
+}
 
 # --- Base de datos (PostgreSQL para producción) ---
+# En Render, DATABASE_URL se inyecta automáticamente
+import dj_database_url
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'telegram_bot',
-        'USER': 'cristian',
-        'PASSWORD': '12345',
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
+    'default': dj_database_url.config(
+        default=os.getenv('DATABASE_URL', 'postgresql://postgres:postgres@localhost:5432/telegram_bot'),
+        conn_max_age=600
+    )
 }
+
+# Fallback local si no hay DATABASE_URL válida ni PostgreSQL local
+if not os.getenv('DATABASE_URL') and os.getenv('USE_SQLITE', 'False') == 'True':
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 
 # --- Validación de contraseñas ---
 AUTH_PASSWORD_VALIDATORS = [
@@ -79,7 +104,11 @@ USE_I18N = True
 USE_TZ = True
 
 # --- Archivos estáticos ---
+# --- Archivos estáticos ---
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # --- Configuración de login/logout ---
@@ -87,7 +116,7 @@ LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'home'
 
 # --- CORS ---
-CORS_ALLOWED_ORIGINS = ['http://localhost:5173']
+CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:5173').split(',')
 CORS_ALLOW_CREDENTIALS = True
 
 # --- Django REST Framework ---

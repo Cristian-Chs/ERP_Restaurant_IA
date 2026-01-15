@@ -11,7 +11,8 @@ const ProtectedRoute = ({ children, requiredRole }) => {
 
     try {
         const payload = JSON.parse(atob(token.split('.')[1]));
-        const userRole = payload.rol;
+        // Fallback: Si no hay rol en el token, buscar en localStorage (como hace Login.jsx)
+        const userRole = payload.rol || localStorage.getItem('rol');
 
         if (requiredRole && userRole !== requiredRole) {
             // Si el rol no coincide, redirigir al menú (o página permitida)

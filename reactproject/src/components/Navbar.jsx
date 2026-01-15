@@ -12,6 +12,8 @@ const Navbar = () => {
     
     const token = localStorage.getItem('token');
     const rol = localStorage.getItem('rol');
+    const isAdmin = rol === 'admin';
+    const isChef = rol === 'chef';
 
     // Cerrar el menú al cambiar de ruta
     React.useEffect(() => {
@@ -70,6 +72,15 @@ const Navbar = () => {
                                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
                                     transition={{ duration: 0.2 }}
                                 >
+                                    {(isAdmin || isChef) && (
+                                        <>
+                                            <Link to="/kitchen-panel" className="dropdown-item">Cocina</Link>
+                                            <Link to="/dashboard" className="dropdown-item dashboard-link">
+                                                Dashboard <span className="live-dot"></span>
+                                            </Link>
+                                            <Link to="/admin" className="dropdown-item">Admin</Link>
+                                        </>
+                                    )}
                                     <Link to="/profile" className="dropdown-item">
                                         👤 Editar Perfil
                                     </Link>

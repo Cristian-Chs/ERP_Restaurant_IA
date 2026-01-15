@@ -1,0 +1,10 @@
+# 1. Tratar todo como texto y que Git decida según el OS del usuario
+* text=auto
+
+# 2. Forzar que los archivos .sh SIEMPRE usen LF (formato Linux)
+# Esto evita que se rompan al ejecutarlos en servidores o Docker
+*.sh text eol=lf
+
+# 3. Forzar que archivos de configuración también mantengan LF
+.env* text eol=lf
+Dockerfile text eol=lf

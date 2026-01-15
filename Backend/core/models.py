@@ -152,3 +152,18 @@ class InventoryMovement(models.Model):
         """Calcula el costo total de este movimiento"""
         return self.quantity * self.cost_per_unit
 
+# ✅ CONFIGURACIONES GLOBALES (Tasa de cambio, etc)
+class GlobalSetting(models.Model):
+    key = models.CharField(max_length=50, unique=True)
+    value = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.key}: {self.value}"
+
+    @classmethod
+    def get_value(cls, key, default=None):
+        try:
+            return cls.objects.get(key=key).value
+        except cls.DoesNotExist:
+            return default

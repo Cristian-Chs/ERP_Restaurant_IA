@@ -15,7 +15,11 @@ from .views import (
     recomendacion_similar_view,
     recomendacion_hibrida_view,
     guardar_pedido_personalizado,
-    get_or_create_session, update_session, reset_session
+    get_or_create_session, update_session, reset_session,
+    get_loyalty_points, # 🆕
+    coupon_list_create, coupon_detail, coupon_redemptions, # 🆕 Coupon endpoints
+    validate_coupon, # 🆕 Coupon validation for web cart
+    calculate_route_view # 🆕 Route Calculation
 )
 from core.views import productos_view, productos_view # Ensure it is available
 from .payment_views import payment_dashboard, export_payments_csv, export_payments_excel
@@ -53,4 +57,14 @@ urlpatterns = [
     path("session/<int:telegram_id>/", get_or_create_session),
     path("session/update/<int:telegram_id>/", update_session),
     path("session/reset/<int:telegram_id>/", reset_session),
+    path("loyalty/<int:telegram_id>/", get_loyalty_points), # 🆕
+    
+    # Coupon Management
+    path("coupons/", coupon_list_create, name="coupon_list_create"),
+    path("coupons/<int:coupon_id>/", coupon_detail, name="coupon_detail"),
+    path("coupons/redemptions/", coupon_redemptions, name="coupon_redemptions"),
+    path("coupons/validate/", validate_coupon, name="validate_coupon"),
+    
+    # Route API
+    path("route/calculate/", calculate_route_view, name="calculate_route"),
 ]

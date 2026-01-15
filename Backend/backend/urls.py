@@ -14,6 +14,9 @@ urlpatterns = [
 
     # Admin
     path("admin/", admin.site.urls),
+    
+    # Admin de Cupones (Panel Separado)
+    path("admin/coupons/", include('bot.coupon_urls')),
 ]
 
 from django.conf import settings

@@ -1,12 +1,16 @@
 # ======================================================
-# Archivos y directorios generados por Python / Flask
+# Archivos y directorios generados por Python / Flask / Django
 # ======================================================
 
 # Entornos Virtuales (¡Muy Importante para Python!)
 venv/
+.venv/
 *.venv/
 env/
+
+# Archivos de entorno (BLOQUEAR .env pero PERMITIR .env.example)
 .env
+!.env.example
 
 # Archivos de caché de Python
 __pycache__/
@@ -14,24 +18,35 @@ __pycache__/
 *.pyd
 *.pyo
 
-# Bases de datos SQLite (si no son persistentes y de desarrollo)
+# Bases de datos Local
+db.sqlite3
 instance/*.db
+
+# Archivos runtime de ML/Bot
+*.pkl
+bot_state.pkl
+*.joblib
+*.sav
 
 # ======================================================
 # Archivos y directorios generados por Node / React / Electron
 # ======================================================
 
 # Dependencias (node_modules)
-/reactproject/node_modules
+node_modules/
+reactproject/node_modules/
 
 # Directorios de compilación/salida (Vite/React/Electron)
-/reactproject/dist
-/reactproject/build
-/reactproject/out
+dist/
+build/
+out/
+reactproject/dist/
+reactproject/build/
 
 # Archivos de Bloqueo de Paquetes
-/reactproject/package-lock.json
-/reactproject/yarn.lock
+package-lock.json
+yarn.lock
+reactproject/package-lock.json
 
 # Archivos temporales y de logs
 logs/
@@ -46,7 +61,10 @@ lerna-debug.log*
 # ======================================================
 
 # Archivos de Entorno sensibles (¡MUY IMPORTANTE!)
-.env*
+.env
+.env.local
+.env.*.local
+!.env.example
 *.local
 
 # Configuración del IDE/Sistema Operativo
@@ -54,7 +72,7 @@ lerna-debug.log*
 Thumbs.db
 .idea/
 .vscode/
-!.vscode/extensions.json  # Mantener extensions.json si lo necesitas para VSCode
+!.vscode/extensions.json
 *.suo
 *.ntvs*
 *.njsproj

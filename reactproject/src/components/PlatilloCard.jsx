@@ -55,9 +55,12 @@ export default function PlatilloCard(props) {
           />
       )}
       
-      <div className="precios">
-        <span>Precio: ${price}</span> 
-      </div>
+      <div className="precios">
+        <span className="price-usd">Precio: ${price}</span> 
+        {props.exchangeRate && (
+            <span className="price-ves">~ { (price * props.exchangeRate).toFixed(2) } Bs.</span>
+        )}
+      </div>
         
         <button 
             className="add-to-cart-btn" 

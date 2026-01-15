@@ -20,6 +20,26 @@ const PAYMENT_METHODS = [
     { id: 'transferencia', name: 'Transferencia', icon: '💳', desc: 'Banesco, Provincial o Mercantil', color: '#1565c0' }
 ];
 
+const SUPPORTED_LOCATIONS = [
+    "Puerta Maraven",
+    "Comunidad Cardón",
+    "Maraven",
+    "Centro de Punto Fijo",
+    "Banco Obrero",
+    "Caja de Agua",
+    "Santa Irene",
+    "Santa Fe",
+    "Las Margaritas",
+    "Judibana",
+    "Los Taques",
+    "Villa Marina",
+    "El Cayude"
+];
+
+// ⚠️ REEMPLAZA ESTO CON TU API KEY REAL DE GOOGLE MAPS ⚠️
+// Debe tener habilitadas las APIs: "Maps JavaScript API" y "Places API"
+const GOOGLE_MAPS_API_KEY = "TU_GOOGLE_MAPS_API_KEY_AQUI"; 
+
 function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) {
     const navigate = useNavigate();
     const [step, setStep] = React.useState('CART'); // CART, SERVICE, DELIVERY_MODE, LOCATION, METHODS, DETAILS
@@ -29,29 +49,163 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
     const [selectedMethod, setSelectedMethod] = React.useState(null);
     const [paymentProof, setPaymentProof] = React.useState(null);
     const [orderStatus, setOrderStatus] = React.useState(null);
+    const [currency, setCurrency] = React.useState('USD');
+    const [exchangeRate, setExchangeRate] = React.useState(1);
+    
+    // Coupon states
+    const [couponCode, setCouponCode] = React.useState('');
+    const [appliedCoupon, setAppliedCoupon] = React.useState(null);
+    const [couponError, setCouponError] = React.useState('');
+    const [validatingCoupon, setValidatingCoupon] = React.useState(false);
+
+    // Google Maps Script Loader
+    React.useEffect(() => {
+        if (step === 'LOCATION' && deliveryMode === 'DELIVERY' && !window.google) {
+            const script = document.createElement('script');
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
+            script.async = true;
+            script.defer = true;
+            script.onload = () => initAutocomplete(); // Call init when loaded
+            document.head.appendChild(script);
+        } else if (step === 'LOCATION' && window.google) {
+            initAutocomplete(); // Call immediately if already loaded
+        }
+    }, [step, deliveryMode]);
+
+    const initAutocomplete = () => {
+        try {
+            const input = document.getElementById("google-maps-input");
+            if (input && window.google) {
+                const autocomplete = new window.google.maps.places.Autocomplete(input, {
+                    types: ['geocode'], // or 'address'
+                    componentRestrictions: { country: "ve" } // Limit to Venezuela
+                });
+
+                autocomplete.addListener("place_changed", () => {
+                    const place = autocomplete.getPlace();
+                    if (place.geometry) {
+                        const address = place.formatted_address;
+                        const lat = place.geometry.location.lat();
+                        const lng = place.geometry.location.lng();
+                        
+                        console.log("📍 Lugar seleccionado:", address, lat, lng);
+                        setLocation(address); // Save full address
+                        
+                        // Optional: Save coordinates separately if needed
+                        // setCoordinates({ lat, lng });
+                        
+                        runAIPathfinding(address);
+                    }
+                });
+            }
+        } catch (e) {
+            console.error("Error initializing Google Maps:", e);
+        }
+    };
+
+
+    React.useEffect(() => {
+        const fetchRates = async () => {
+            try {
+                const res = await API.get('/currency/rates/');
+                if (res.data && res.data.VES) {
+                    setExchangeRate(res.data.VES);
+                }
+            } catch (e) { console.error("Error fetching rates", e); }
+        };
+        fetchRates();
+    }, []);
 
     const subtotal = carrito.reduce((acc, item) => acc + (parseFloat(item.price) * item.cantidad), 0);
     const serviceFee = 0.50;
+    const discount = appliedCoupon ? appliedCoupon.discount : 0;
     const [isOptimizing, setIsOptimizing] = React.useState(false);
     const [optimalRoute, setOptimalRoute] = React.useState(null);
 
-    // Mock Dijkstra para simular optimización de ruta IA
-    const runAIPathfinding = (userLoc) => {
-        setIsOptimizing(true);
-        setTimeout(() => {
-            // Simulación de nodos y búsqueda del camino más corto
-            const restaurantLoc = { lat: 11.411, lng: -69.673 }; 
-            // En una App real, aquí usaríamos una Graph Library (como ngraph.path)
-            setOptimalRoute({
-                distance: "3.2 km",
-                time: "12 min",
-                path: ["Calle Falcón", "Av. Manaure", "Destino"]
-            });
-            setIsOptimizing(false);
-        }, 1500);
+    // Autocomplete State
+    const [filteredLocations, setFilteredLocations] = React.useState([]);
+    const [showSuggestions, setShowSuggestions] = React.useState(false);
+
+    const handleLocationSearch = (query) => {
+        setLocation(query);
+        if (query.length > 0) {
+            const matches = SUPPORTED_LOCATIONS.filter(loc => 
+                loc.toLowerCase().includes(query.toLowerCase())
+            );
+            setFilteredLocations(matches);
+            setShowSuggestions(true);
+        } else {
+            setFilteredLocations([]);
+            setShowSuggestions(false);
+        }
     };
 
-    const total = subtotal + serviceFee;
+    const selectLocation = (loc) => {
+        setLocation(loc);
+        setShowSuggestions(false);
+        runAIPathfinding(loc);
+    };
+
+    // Real AI Pathfinding using Backend API
+    const runAIPathfinding = async (userLoc) => {
+        setIsOptimizing(true);
+        setOptimalRoute(null);
+        
+        try {
+            const response = await API.post('/bot/route/calculate/', {
+                location: userLoc
+            });
+            
+            if (response.data && response.data.distance) {
+                setOptimalRoute({
+                    distance: response.data.distance,
+                    time: response.data.time,
+                    path: response.data.path.map(p => `[${p.join(', ')}]`) // Simple representation of path points
+                });
+            } else {
+                 console.warn("No route data returned", response.data);
+            }
+        } catch (error) {
+            console.error("Error calculating route:", error);
+            // Optional: fallback or error state
+        } finally {
+            setIsOptimizing(false);
+        }
+    };
+
+    const total = Math.max(0, subtotal + serviceFee - discount);
+    
+    // Validate coupon
+    const validateCoupon = async () => {
+        if (!couponCode.trim()) {
+            setCouponError('Ingresa un código de cupón');
+            return;
+        }
+        
+        setValidatingCoupon(true);
+        setCouponError('');
+        
+        try {
+            const response = await API.post('/bot/coupons/validate/', {
+                code: couponCode,
+                order_amount: subtotal + serviceFee
+            });
+            
+            setAppliedCoupon(response.data);
+            setCouponError('');
+        } catch (error) {
+            setCouponError(error.response?.data?.error || 'Cupón no válido');
+            setAppliedCoupon(null);
+        } finally {
+            setValidatingCoupon(false);
+        }
+    };
+    
+    const removeCoupon = () => {
+        setAppliedCoupon(null);
+        setCouponCode('');
+        setCouponError('');
+    };
 
     const handleFinalize = async () => {
         try {
@@ -80,6 +234,8 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
             formData.append('service_type', serviceType);
             formData.append('delivery_mode', deliveryMode || '');
             formData.append('location', location || '');
+            formData.append('currency', currency);
+            formData.append('exchange_rate', exchangeRate);
             
             if (paymentProof) {
                 formData.append('payment_proof', paymentProof);
@@ -206,12 +362,69 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
                         <span>Tarifa de servicio</span>
                         <span>{CURRENCY_SYMBOL}{serviceFee.toFixed(2)}</span>
                     </div>
-                    <div className="summary-total">
-                        <div>
-                            <strong>Total:</strong>
-                            <span className="cashback-text">Ahorras {CURRENCY_SYMBOL}0.30</span>
+                    
+                    {/* Coupon Section */}
+                    {!appliedCoupon ? (
+                        <div className="coupon-input-section" style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                            <label style={{ fontSize: '0.9rem', color: '#8b949e', marginBottom: '0.5rem', display: 'block' }}>¿Tienes un cupón?</label>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <input 
+                                    type="text" 
+                                    placeholder="Código de cupón"
+                                    value={couponCode}
+                                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                                    onKeyPress={(e) => e.key === 'Enter' && validateCoupon()}
+                                    style={{
+                                        flex: 1,
+                                        padding: '8px 12px',
+                                        background: '#0d1117',
+                                        border: '1px solid #30363d',
+                                        borderRadius: '6px',
+                                        color: '#fff',
+                                        fontSize: '0.9rem'
+                                    }}
+                                />
+                                <button 
+                                    onClick={validateCoupon}
+                                    disabled={validatingCoupon}
+                                    style={{
+                                        padding: '8px 16px',
+                                        background: '#238636',
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        color: '#fff',
+                                        cursor: 'pointer',
+                                        fontSize: '0.9rem',
+                                        fontWeight: 600
+                                    }}
+                                >
+                                    {validatingCoupon ? '...' : 'Aplicar'}
+                                </button>
+                            </div>
+                            {couponError && (
+                                <p style={{ color: '#ff4d4d', fontSize: '0.85rem', marginTop: '0.5rem', marginBottom: 0 }}>
+                                    ❌ {couponError}
+                                </p>
+                            )}
                         </div>
-                        <span className="total-amount">{CURRENCY_SYMBOL}{total.toFixed(2)}</span>
+                    ) : (
+                        <div className="summary-row" style={{ color: '#2ecc71' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span>Descuento ({appliedCoupon.code})</span>
+
+                            </div>
+                            <span>-{CURRENCY_SYMBOL}{discount.toFixed(2)}</span>
+                        </div>
+                    )}
+                    
+                    <div className="summary-total">
+                        <div className="total-labels">
+                            <strong>Total:</strong>
+                        </div>
+                        <div className="total-display">
+                            <span className="total-amount">${total.toFixed(2)}</span>
+                            <span className="total-amount-ves">Bs. {(total * exchangeRate).toFixed(2)}</span>
+                        </div>
                     </div>
 
                     {isProofRequired && !paymentProof && (
@@ -274,7 +487,8 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
                                                 </div>
                                             </div>
                                             <div className="item-price">
-                                                {CURRENCY_SYMBOL}{(parseFloat(item.price) * item.cantidad).toFixed(2)}
+                                                <div className="price-primary">${(parseFloat(item.price) * item.cantidad).toFixed(2)}</div>
+                                                <div className="price-secondary">Bs. {(parseFloat(item.price) * item.cantidad * exchangeRate).toFixed(2)}</div>
                                             </div>
                                         </div>
                                     ))}
@@ -336,7 +550,7 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
                             <h2 className="step-title">¿Dónde entregamos?</h2>
                             <div className="location-selection-card">
                                 <div className="location-icon">📍</div>
-                                <p>Necesitamos tu ubicación para calcular la mejor ruta (AI Dijkstra).</p>
+                                <p>Ingresa tu dirección exacta para calcular el delivery.</p>
                                 
                                 <button 
                                     className="use-location-btn"
@@ -352,38 +566,86 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
                                         }
                                     }}
                                 >
-                                    {location ? '✅ Ubicación Lista' : '🌐 Compartir Ubicación Actual'}
+                                    {location && location.includes(',') && !isNaN(parseFloat(location.split(',')[0])) 
+                                        ? '✅ Ubicación GPS Lista' 
+                                        : '🌐 Usar GPS Actual'}
                                 </button>
+
+                                <div className="manual-location" style={{ marginTop: '1.5rem', position: 'relative' }}>
+                                    <label style={{display:'block', marginBottom:'8px', color:'#8b949e'}}>Selecciona tu sector:</label>
+                                    <input 
+                                        type="text"
+                                        placeholder="Ej: Puerta Maraven..."
+                                        value={location || ''}
+                                        onChange={(e) => handleLocationSearch(e.target.value)}
+                                        onFocus={() => {
+                                            if(location) handleLocationSearch(location);
+                                        }}
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px',
+                                            borderRadius: '8px',
+                                            border: '1px solid #30363d',
+                                            backgroundColor: '#0d1117',
+                                            color: '#fff',
+                                            marginBottom: '10px'
+                                        }}
+                                    />
+                                    
+                                    {/* Autocomplete Dropdown */}
+                                    {showSuggestions && filteredLocations.length > 0 && (
+                                        <ul style={{
+                                            position: 'absolute',
+                                            top: '100%',
+                                            left: 0,
+                                            right: 0,
+                                            background: '#161b22',
+                                            border: '1px solid #30363d',
+                                            borderRadius: '6px',
+                                            listStyle: 'none',
+                                            padding: '5px 0',
+                                            margin: 0,
+                                            zIndex: 10,
+                                            maxHeight: '200px',
+                                            overflowY: 'auto',
+                                            boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
+                                        }}>
+                                            {filteredLocations.map((loc, index) => (
+                                                <li 
+                                                    key={index}
+                                                    onClick={() => selectLocation(loc)}
+                                                    style={{
+                                                        padding: '10px 15px',
+                                                        cursor: 'pointer',
+                                                        color: '#c9d1d9',
+                                                        borderBottom: index < filteredLocations.length - 1 ? '1px solid #21262d' : 'none'
+                                                    }}
+                                                    onMouseEnter={(e) => e.target.style.background = '#1f6feb'}
+                                                    onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                                                >
+                                                    📍 {loc}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </div>
 
                                 {isOptimizing && (
                                     <motion.div className="routing-loader" initial={{opacity:0}} animate={{opacity:1}}>
                                         <div className="ai-spinner"></div>
-                                        <span>IA Analizando Rutas (Dijkstra)...</span>
+                                        <span>Calculando ruta...</span>
                                     </motion.div>
                                 )}
 
                                 {optimalRoute && !isOptimizing && (
                                     <motion.div className="route-result-card" initial={{scale:0.9, opacity:0}} animate={{scale:1, opacity:1}}>
-                                        <div className="route-badge">Ruta Óptima de Entrega</div>
+                                        <div className="route-badge">Ruta Estimada</div>
                                         <div className="route-stats">
                                             <span>⏱️ {optimalRoute.time}</span>
                                             <span>🛣️ {optimalRoute.distance}</span>
                                         </div>
-                                        <p><strong>Camino:</strong> {optimalRoute.path.join(' ➔ ')}</p>
                                     </motion.div>
                                 )}
-
-                                <div className="manual-location">
-                                    <span>O ingresa tu dirección manualmente:</span>
-                                    <textarea 
-                                        placeholder="Calle, número de casa, punto de referencia..."
-                                        value={location || ''}
-                                        onChange={(e) => {
-                                            setLocation(e.target.value);
-                                            if (e.target.value.length > 5) runAIPathfinding(e.target.value);
-                                        }}
-                                    />
-                                </div>
                             </div>
                         </div>
                     )}
@@ -392,7 +654,7 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
                         <div className="methods-step">
                             <h2 className="step-title">Selecciona un método de pago</h2>
                             <div className="payment-grid">
-                                {PAYMENT_METHODS.map(m => (
+                                {PAYMENT_METHODS.filter(m => !(deliveryMode === 'DELIVERY' && m.id === 'efectivo')).map(m => (
                                     <div 
                                         key={m.id} 
                                         className={`payment-card ${selectedMethod?.id === m.id ? 'active' : ''}`}

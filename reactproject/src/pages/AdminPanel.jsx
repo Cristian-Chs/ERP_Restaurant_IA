@@ -5,9 +5,10 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend 
 } from 'recharts';
 import { 
-  LayoutDashboard, ShoppingBag, List, ClipboardList, LogOut, Plus, Edit, Trash2, Brain, Menu, X, CheckSquare, Tag, Users, TrendingUp, Star, Download 
+  LayoutDashboard, ShoppingBag, List, ClipboardList, LogOut, Plus, Edit, Trash2, Brain, Menu, X, CheckSquare, Tag, Users, TrendingUp, Star, Download, Edit3, ChefHat, Save, Ticket
 } from 'lucide-react';
 import API from '../api/axios';
+import CouponSection from './CouponSection';
 import './AdminPanel.css';
 
 // Sub-componente para el formulario de producto
@@ -109,6 +110,7 @@ export default function AdminPanel() {
   const [prediction, setPrediction] = useState(null);
   const [products, setProducts] = useState([]);
   const [ingredients, setIngredients] = useState([]);
+  const [recipes, setRecipes] = useState([]);
   const [flavors, setFlavors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -123,6 +125,9 @@ export default function AdminPanel() {
     ingredientes: [], sabores: [] 
   });
   const [genericItem, setGenericItem] = useState({ nombre: '', id: null });
+  const [vesRate, setVesRate] = useState(55.40);
+  const [isUpdatingRate, setIsUpdatingRate] = useState(false);
+  const [selectedRecipeProduct, setSelectedRecipeProduct] = useState(null); // ID del producto seleccionado para recetario
 
   useEffect(() => {
     fetchInitialData();
@@ -137,18 +142,24 @@ export default function AdminPanel() {
         return;
       }
 
-      const [statsRes, predictRes, prodRes, ingRes, flavRes] = await Promise.all([
+      const [statsRes, predictRes, prodRes, ingRes, flavRes, rateRes, recipesRes] = await Promise.all([
         API.get('/admin/stats/'),
         API.get('/admin/prediction/'),
         API.get('/products-admin/'),
         API.get('/ingredients-admin/'),
-        API.get('/flavors-admin/')
+        API.get('/flavors-admin/'),
+        API.get('/currency/rates/'),
+        API.get('/recipes-admin/')
       ]);
       setStats(statsRes.data);
       setPrediction(predictRes.data);
       setProducts(prodRes.data || []);
       setIngredients(ingRes.data || []);
       setFlavors(flavRes.data || []);
+      if (rateRes.data && rateRes.data.VES) {
+        setVesRate(rateRes.data.VES);
+      }
+      setRecipes(recipesRes.data || []);
     } catch (err) {
       console.error("Error al cargar datos de admin", err);
       if (err.response?.status === 401) {
@@ -157,6 +168,19 @@ export default function AdminPanel() {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUpdateRate = async () => {
+    setIsUpdatingRate(true);
+    try {
+      await API.post('/currency/update-rate/', { rate: vesRate });
+      alert("¡Tasa de cambio actualizada con éxito!");
+    } catch (err) {
+      console.error("Error updating rate", err);
+      alert("Error al actualizar la tasa");
+    } finally {
+      setIsUpdatingRate(false);
     }
   };
 
@@ -208,21 +232,66 @@ export default function AdminPanel() {
   const saveGeneric = async (type) => {
     try {
       const endpoint = type === 'ingredients' ? '/ingredients-admin/' : '/flavors-admin/';
+      const payload = { ...genericItem };
+      
+      // Asegurar que el costo sea un número decimal si es un ingrediente
+      if (type === 'ingredients' && payload.cost) {
+        payload.cost = parseFloat(payload.cost);
+      }
+
       if (genericItem.id) {
-        await API.put(`${endpoint}${genericItem.id}/`, genericItem);
+        // Usamos PATCH para actualizaciones parciales más seguras
+        await API.patch(`${endpoint}${genericItem.id}/`, payload);
       } else {
-        await API.post(endpoint, genericItem);
+        await API.post(endpoint, payload);
       }
       setShowGenericModal(false);
       fetchInitialData();
+      alert("¡Guardado con éxito!");
     } catch (err) {
-      alert("Error al guardar");
+      console.error("Error saving generic:", err);
+      const detail = err.response?.data?.detail || JSON.stringify(err.response?.data) || "Error desconocido";
+      alert("Error al guardar: " + detail);
+    }
+  };
+
+  const handleSyncCosts = async () => {
+    try {
+      // Sincronización silenciosa: sin confirmación ni alerta de éxito
+      await API.post('/analytics/recalculate-costs/');
+      fetchInitialData();
+    } catch (err) {
+      console.error("Error al sincronizar costos", err);
+    }
+  };
+
+  const handleSaveRecipe = async (recipeData) => {
+    try {
+      await API.post('/recipes-admin/', recipeData);
+      // Actualizar localmente o refetch
+      const res = await API.get('/recipes-admin/');
+      setRecipes(res.data);
+      alert("✅ Ingrediente agregado a la receta");
+    } catch (err) {
+      console.error("Error saving recipe:", err);
+      if (err.response?.status === 401) {
+        alert("Tu sesión ha expirado. Por favor inicia sesión nuevamente.");
+        localStorage.removeItem('token');
+        window.location.href = '/Login'; // Usar window.location para forzar recargalimpia
+      } else {
+        alert("Error al guardar receta: " + (err.response?.data?.detail || "Error desconocido"));
+      }
     }
   };
 
   const deleteItem = async (type, id) => {
     if (window.confirm("¿Seguro que quieres eliminar este elemento?")) {
-      const endpoint = type === 'products' ? '/products-admin/' : (type === 'ingredients' ? '/ingredients-admin/' : '/flavors-admin/');
+      let endpoint = '';
+      if (type === 'products') endpoint = '/products-admin/';
+      else if (type === 'ingredients') endpoint = '/ingredients-admin/';
+      else if (type === 'flavors') endpoint = '/flavors-admin/';
+      else if (type === 'recipes') endpoint = '/recipes-admin/';
+      
       await API.delete(`${endpoint}${id}/`);
       fetchInitialData();
     }
@@ -363,22 +432,31 @@ export default function AdminPanel() {
               <small style={{ color: '#2ecc71', fontSize: '0.8rem' }}>+ Ingresos Brutos</small>
             </div>
 
+            {/* Gastos de Mercancía (NUEVO) */}
+            <div className="fin-card">
+              <span className="fin-label" style={{ color: '#8b949e', fontSize: '0.9rem' }}>Gastos de Mercancía</span>
+              <div className="fin-value" style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#ff4d4d' }}>
+                ${parseFloat(stats.financial_summary.monthly_expenses || 0).toFixed(2)}
+              </div>
+              <small style={{ color: '#ff4d4d', fontSize: '0.8rem' }}>Costos Reales de Compra</small>
+            </div>
+
             {/* Impuesto Estimado */}
             <div className="fin-card">
-              <span className="fin-label" style={{ color: '#8b949e', fontSize: '0.9rem' }}>Impuesto / Presupuesto (10%)</span>
+              <span className="fin-label" style={{ color: '#8b949e', fontSize: '0.9rem' }}>Impuesto Estimado (10%)</span>
               <div className="fin-value" style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#f1bc00' }}>
                 ${parseFloat(stats.financial_summary.estimated_tax).toFixed(2)}
               </div>
               <small style={{ color: '#f1bc00', fontSize: '0.8rem' }}>Reserva Sugerida</small>
             </div>
 
-            {/* Utilidad Neta (Estimada) */}
+            {/* Utilidad Neta (Real) */}
             <div className="fin-card">
-              <span className="fin-label" style={{ color: '#8b949e', fontSize: '0.9rem' }}>Dinero Utilizable (Neto)</span>
+              <span className="fin-label" style={{ color: '#8b949e', fontSize: '0.9rem' }}>Utilidad Neta (Libre)</span>
               <div className="fin-value" style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#58a6ff' }}>
                 ${parseFloat(stats.financial_summary.net_profit).toFixed(2)}
               </div>
-              <small style={{ color: '#58a6ff', fontSize: '0.8rem' }}>Disponible Real</small>
+              <small style={{ color: '#58a6ff', fontSize: '0.8rem' }}>Disponible Real (Ingreso-Costos-Imp)</small>
             </div>
 
             {/* Método de Pago Top */}
@@ -389,6 +467,29 @@ export default function AdminPanel() {
               </div>
               <small style={{ color: '#a371f7', fontSize: '0.8rem' }}>Más Usado</small>
             </div>
+          </div>
+
+          <div className="exchange-rate-control" style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid #30363d', display: 'flex', alignItems: 'center', gap: '15px' }}>
+            <div style={{ color: '#8b949e', fontSize: '0.95rem' }}>
+              <strong>Control de Divisas:</strong> Tasa actual para Bolívares (VES)
+            </div>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <span style={{ position: 'absolute', left: '12px', color: '#8b949e' }}>Bs.</span>
+              <input 
+                type="number" 
+                value={vesRate} 
+                onChange={(e) => setVesRate(e.target.value)}
+                style={{ background: '#0d1117', border: '1px solid #30363d', borderRadius: '6px', padding: '8px 12px 8px 40px', color: '#fff', width: '120px', fontSize: '1rem', fontWeight: 600 }}
+              />
+            </div>
+            <button 
+              className="btn-primary" 
+              onClick={handleUpdateRate}
+              disabled={isUpdatingRate}
+              style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              {isUpdatingRate ? 'Guardando...' : <><Edit3 size={16} /> Actualizar Tasa</>}
+            </button>
           </div>
         </div>
       )}
@@ -603,13 +704,153 @@ export default function AdminPanel() {
     </div>
   );
 
+  const renderRecipeSection = () => {
+    const selectedProd = products.find(p => p.id === parseInt(selectedRecipeProduct));
+    const productRecipes = recipes.filter(r => r.product === parseInt(selectedRecipeProduct));
+    
+    // Calcular costo total basado en receta
+    const cachedCost = productRecipes.reduce((acc, r) => acc + (parseFloat(r.cost) || 0), 0);
+
+    return (
+      <div className="admin-section">
+        <h1 className="section-title">📘 Recetario y Costos</h1>
+        <p style={{ color: '#8b949e', marginBottom: '2rem' }}>
+          Define la receta de cada plato para calcular su costo real automáticamente.
+        </p>
+
+        <div className="recipe-layout" style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '2rem' }}>
+          {/* SELECCION DE PRODUCTO */}
+          <div className="product-list-sidebar" style={{ background: '#161b22', padding: '1rem', borderRadius: '8px', border: '1px solid #30363d' }}>
+            <h3 style={{ color: '#fff', marginBottom: '1rem' }}>Selecciona un Plato</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '500px', overflowY: 'auto' }}>
+              {products.map(p => (
+                <button 
+                  key={p.id}
+                  onClick={() => setSelectedRecipeProduct(p.id)}
+                  className={`btn-sidebar-item ${selectedRecipeProduct === p.id ? 'active' : ''}`}
+                  style={{ 
+                    textAlign: 'left', 
+                    padding: '10px', 
+                    background: selectedRecipeProduct === p.id ? '#1f6feb' : 'transparent',
+                    border: '1px solid #30363d',
+                    borderRadius: '6px',
+                    color: '#fff',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {p.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* DETALLE DE RECETA */}
+          <div className="recipe-detail">
+            {selectedProd ? (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', borderBottom: '1px solid #30363d', paddingBottom: '1rem' }}>
+                  <div>
+                    <h2 style={{ fontSize: '1.5rem', color: '#fff' }}>{selectedProd.name}</h2>
+                    <span style={{ color: '#8b949e' }}>Costo Calculado: </span>
+                    <span style={{ color: '#2ecc71', fontWeight: 'bold', fontSize: '1.2rem' }}>${cachedCost.toFixed(2)}</span>
+                  </div>
+                  <button className="btn-secondary" onClick={handleSyncCosts}>
+                    <TrendingUp size={16} /> Recalcular Costos (Global)
+                  </button>
+                </div>
+
+                {/* FORMULARIO AGREGAR INGREDIENTE */}
+                <div className="add-ingredient-box" style={{ background: '#0d1117', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', border: '1px dashed #30363d' }}>
+                  <h4 style={{ color: '#fff', marginBottom: '10px' }}>Agregar Ingrediente a la Receta</h4>
+                  <form 
+                    style={{ display: 'flex', gap: '10px', alignItems: 'center' }}
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const ingId = e.target.ingredient.value;
+                      const qty = e.target.qty.value;
+                      if (!ingId || !qty) return; // Corrected from typeName/typeQty
+                      // Logic handled inside
+                      handleSaveRecipe({
+                          product: selectedProd.id,
+                          ingredient: ingId,
+                          quantity: qty
+                      });
+                      e.target.reset();
+                    }}
+                  >
+                    <select name="ingredient" className="form-input" required style={{ flex: 2 }}>
+                      <option value="">Selecciona ingrediente...</option>
+                      {ingredients.map(i => (
+                        <option key={i.id} value={i.id}>{i.nombre} ({i.unit}) - ${i.cost}</option>
+                      ))}
+                    </select>
+                    <input name="qty" type="number" step="0.001" className="form-input" placeholder="Cantidad" required style={{ flex: 1 }} />
+                    <button type="submit" className="btn-primary"><Plus size={16} /> Agregar</button>
+                  </form>
+                </div>
+
+                {/* TABLA DE INGREDIENTES */}
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Ingrediente</th>
+                      <th>Cantidad</th>
+                      <th>Costo Un.</th>
+                      <th>Subtotal</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {productRecipes.map(r => (
+                      <tr key={r.id}>
+                        <td>{r.ingredient_name}</td>
+                        <td>{r.quantity} {r.unit}</td>
+                        <td>${parseFloat(ingredients.find(i => i.id === r.ingredient)?.cost || 0).toFixed(2)}</td>
+                        <td><strong style={{color: '#ff7b72'}}>${r.cost.toFixed(2)}</strong></td>
+                        <td>
+                          <button className="btn-icon btn-danger-text" onClick={() => deleteItem('recipes', r.id)}>
+                            <Trash2 size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {productRecipes.length === 0 && (
+                      <tr>
+                        <td colSpan="5" style={{ textAlign: 'center', padding: '2rem', color: '#8b949e' }}>
+                          Este plato aún no tiene receta configurada.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+
+              </>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#8b949e' }}>
+                <ChefHat size={48} style={{ opacity: 0.5, marginBottom: '1rem' }} />
+                <h3>Selecciona un plato para editar su receta</h3>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderGenericSection = (type, data) => (
     <div className="admin-section">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <h1 className="section-title">{type === 'ingredients' ? 'Ingredientes' : 'Sabores'}</h1>
-        <button className="btn-primary" onClick={() => { setGenericItem({ nombre: '', cost: '', unit: 'und', id: null }); setShowGenericModal(true); }}>
-          <Plus size={18} /> Nuevo {type === 'ingredients' ? 'Ingrediente' : 'Sabor'}
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          {type === 'ingredients' && (
+            <button className="btn-secondary" onClick={handleSyncCosts} title="Recalcular costos de platos">
+              <TrendingUp size={18} /> Sincronizar Costos
+            </button>
+          )}
+          <button className="btn-primary" onClick={() => { setGenericItem({ nombre: '', cost: '', unit: 'und', id: null }); setShowGenericModal(true); }}>
+            <Plus size={18} /> Nuevo {type === 'ingredients' ? 'Ingrediente' : 'Sabor'}
+          </button>
+        </div>
       </div>
       <div className="admin-table-container">
         <table className="admin-table">
@@ -959,11 +1200,27 @@ export default function AdminPanel() {
           <div className={`nav-item ${activeSection === 'dashboard' ? 'active' : ''}`} onClick={() => { setActiveSection('dashboard'); setMobileMenuOpen(false); }}>
             <LayoutDashboard size={20} /> Dashboard
           </div>
-          <div className={`nav-item ${activeSection === 'products' ? 'active' : ''}`} onClick={() => { setActiveSection('products'); setMobileMenuOpen(false); }}>
-            <ShoppingBag size={20} /> Platos
+          <div 
+            className={`nav-item ${activeSection === 'products' ? 'active' : ''}`}
+            onClick={() => { setActiveSection('products'); setMobileMenuOpen(false); }}
+          >
+            <ShoppingBag size={20} />
+            <span>Platillos</span>
           </div>
-          <div className={`nav-item ${activeSection === 'ingredients' ? 'active' : ''}`} onClick={() => { setActiveSection('ingredients'); setMobileMenuOpen(false); }}>
-            <CheckSquare size={20} /> Ingredientes
+          
+          <div 
+            className={`nav-item ${activeSection === 'recipes' ? 'active' : ''}`}
+            onClick={() => { setActiveSection('recipes'); setMobileMenuOpen(false); }}
+          >
+            <ChefHat size={20} />
+            <span>Recetario</span>
+          </div>
+
+          <div 
+            className={`nav-item ${activeSection === 'ingredients' ? 'active' : ''}`}
+            onClick={() => { setActiveSection('ingredients'); setMobileMenuOpen(false); }}
+          >
+  <CheckSquare size={20} /> Ingredientes
           </div>
           <div className={`nav-item ${activeSection === 'flavors' ? 'active' : ''}`} onClick={() => { setActiveSection('flavors'); setMobileMenuOpen(false); }}>
             <Tag size={20} /> Sabores
@@ -973,6 +1230,9 @@ export default function AdminPanel() {
           </div>
           <div className={`nav-item ${activeSection === 'hr' ? 'active' : ''}`} onClick={() => { setActiveSection('hr'); setMobileMenuOpen(false); }}>
             <Users size={20} /> Recursos Humanos
+          </div>
+          <div className={`nav-item ${activeSection === 'coupons' ? 'active' : ''}`} onClick={() => { setActiveSection('coupons'); setMobileMenuOpen(false); }}>
+            <Ticket size={20} /> Cupones
           </div>
           <hr style={{ border: '0.5px solid #30363d', margin: '1rem 0' }} />
           <div className="nav-item" onClick={handleLogout} style={{ color: '#da3633' }}>
@@ -996,10 +1256,12 @@ export default function AdminPanel() {
       <div className="admin-content">
         {activeSection === 'dashboard' && renderDashboard()}
         {activeSection === 'products' && renderProducts()}
+        {activeSection === 'recipes' && renderRecipeSection()}
         {activeSection === 'insights' && renderInsights()}
         {activeSection === 'ingredients' && renderGenericSection('ingredients', ingredients)}
         {activeSection === 'flavors' && renderGenericSection('flavors', flavors)}
         {activeSection === 'hr' && renderHR()}
+        {activeSection === 'coupons' && <CouponSection />}
       </div>
     </div>
   );

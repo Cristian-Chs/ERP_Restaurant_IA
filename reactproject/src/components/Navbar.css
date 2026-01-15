@@ -171,3 +171,26 @@
         gap: 10px;
     }
 }
+
+/* live-dot for Dashboard */
+.live-dot {
+    width: 8px;
+    height: 8px;
+    background-color: #ff4d4d;
+    border-radius: 50%;
+    margin-left: 8px;
+    display: inline-block;
+    box-shadow: 0 0 8px #ff4d4d;
+    animation: blink 1.5s infinite;
+}
+
+@keyframes blink {
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.3; transform: scale(0.8); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+.dashboard-link:hover .live-dot {
+    background-color: #f1c40f;
+    box-shadow: 0 0 8px #f1c40f;
+}

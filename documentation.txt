@@ -1,0 +1,150 @@
+================================================================================
+SISTEMA DE RESTAURANTE 4 SABORES(ERP) - DOCUMENTACIÓN TÉCNICA
+================================================================================
+
+Versión: 2.0
+Fecha: Enero 2026
+
+1. INTRODUCCIÓN
+================================================================================
+El Sistema de Restaurante 4 Sabores es una solución integral diseñada para modernizar
+las operaciones del restaurante mediante la automatización de procesos clave. Integra
+un Bot de Telegram para pedidos automatizados con una Aplicación Web React de alto
+rendimiento para la gestión de cocina y administración.
+
+Objetivos:
+- Automatizar el proceso de pedidos mediante Telegram y Web.
+- Optimizar la gestión de inventario con recálculo dinámico de costos.
+- Proporcionar análisis inteligente de negocio con Pandas.
+- Facilidar la toma de decisiones mediante reportes avanzados.
+
+2. STACK TECNOLÓGICO
+================================================================================
+Backend:
+- Framework: Django 5.2.8
+- API: Django Rest Framework (DRF)
+- Base de Datos: SQLite (Desarrollo) / PostgreSQL (Producción)
+- Analytics: Pandas 2.3.3, NumPy 2.3.5
+- IA/ML: Scikit-learn, Sentence Transformers, Groq (Llama 3.3 70B)
+- Autenticación: JWT (Djoser) + Telegram Auth
+
+Frontend:
+- Framework: React 18 con Vite
+- Estilos: CSS Modules
+- Rutas: React Router DOM 6
+
+3. CREDENCIALES DE DESARROLLO (SOLO PARA USO LOCAL)
+================================================================================
+Admin Django:
+- User: Admin
+- Password: password (o 1234 en algunos entornos legacy)
+
+Usuario Cocina:
+- Usuario: cocina
+- Password: Pelota4321
+
+URLs Principales:
+- Admin Panel (React): http://localhost:5173/admin-panel
+- Kitchen Panel (React): http://localhost:5173/kitchen-panel
+- Django Admin: http://localhost:8000/admin/
+- API Root: http://localhost:8000/api/
+
+API Keys (Referencia):
+- Groq: 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
+
+4. ARQUITECTURA DEL SISTEMA
+================================================================================
+El sistema sigue una arquitectura Cliente-Servidor.
+- Frontend React: Interfaz de usuario para clientes, admins y cocina.
+- Backend Django: Lógica de negocio, API REST y gestión de datos.
+- Bot de Telegram: Canal alternativo para pedidos y notificaciones.
+- Analytics: Procesamiento de datos con Pandas.
+
+5. MÓDULOS DEL BACKEND
+================================================================================
+- core: Gestión de productos, ingredientes, empleados, nómina.
+- bot: Lógica del Bot de Telegram (webhooks, estados).
+- recomendacion: Motor de IA para recomendaciones.
+- analytics: Automatizaciones con Pandas (costos, BCG, proyecciones).
+
+6. MODELOS DE BASE DE DATOS PRINCIPALES
+================================================================================
+[Product]
+- name, description, price, cost_price, category, imagen, is_active.
+- Relaciones: ingredientes, sabores.
+
+[Ingredient]
+- nombre, cost, unit.
+
+[Recipe] (Nuevo)
+- Relaciona Product con Ingredient y quantity para costos dinámicos.
+
+[Order]
+- telegram_id, item, precio, status (pendiente, listo, etc.), 
+  service_type (HERE/TOGO), payment_status.
+
+[InventoryMovement]
+- Historial de compras, uso y ajustes de inventario.
+
+7. AUTOMATIZACIONES (ANALYTICS)
+================================================================================
+1. Control de Inventario Dinámico:
+   Recalcula costos de productos basado en recetas e ingredientes.
+   Endpoint: POST /api/analytics/recalculate-costs/
+
+2. Matriz BCG:
+   Clasifica productos en Estrellas, Caballos, Incógnitas y Perros.
+   Endpoint: GET /api/analytics/bcg-matrix/
+
+3. Proyección de Compras:
+   Predice necesidad de ingredientes basado en historial de 60 días.
+   Endpoint: GET /api/analytics/purchase-suggestions/
+
+4. Exportación Excel:
+   Genera reportes financieros completos.
+   Endpoint: GET /api/analytics/export-excel/
+
+8. BOT DE TELEGRAM
+================================================================================
+Comandos:
+- /start: Iniciar conversación.
+- /menu: Ver menú por categorías.
+- /carrito: Ver estado actual del carrito. #MANTENIMIENTO!!
+- /soporte: Información de contacto.
+- /pedidos: Historial.
+
+Flujo de Pedido:
+1. Usuario pide producto ("Quiero una pizza").
+2. Bot muestra opciones y precios (búsqueda difusa o IA Groq).
+3. Selección de detalles (sabor, cantidad).
+4. Selección de servicio (Comer Aquí / Para Llevar).
+5. Pago y envío de comprobante (imagen).
+6. Validación por Admin -> Notificación a Cocina y Cliente.
+
+9. CONFIGURACIÓN E INSTALACIÓN
+================================================================================
+Requisitos:
+- Python 3.10+
+- Node.js 18+
+
+Instalación Backend:
+1. cd Backend
+2. python -m venv .venv
+3. .venv\Scripts\activate
+4. pip install -r requirements.txt
+5. python manage.py migrate
+6. python manage.py runserver
+
+Instalación Frontend:
+1. cd reactproject
+2. npm install
+3. npm run dev
+
+Variables de Entorno (.env en Backend/):
+- SECRET_KEY, DEBUG, TELEGRAM_BOT_TOKEN, DATABASE_URL
+
+10. TROUBLESHOOTING
+================================================================================
+- CORS Error: Verificar ALLOWED_HOSTS y CORS_ALLOWED_ORIGINS en settings.py.
+- Bot no responde: Verificar webhook o que el script de polling esté activo (si no se usa webhook).
+- Errores de migración: Si hay conflictos, backup de db y recrear (en dev).

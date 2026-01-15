@@ -19,6 +19,7 @@ import TelegramButton from './components/TelegramButton';
 import KitchenPanel from './pages/KitchenPanel';
 import Profile from './pages/Profile';
 import ProtectedRoute from './components/ProtectedRoute';
+import RealTimeDashboard from './pages/RealTimeDashboard'; // 🆕
 
 // 🛑 LÓGICA DE CARRITO
 function useCartLogic() {
@@ -181,6 +182,11 @@ function AnimatedRoutes({ carrito, agregarAlCarrito, eliminarDelCarrito, vaciarC
         <Route path="/kitchen-panel" element={<KitchenPanel />} />
         
         {/* RUTA DE PERFIL */}
+        <Route path="/dashboard" element={
+          <ProtectedRoute requiredRole="admin">
+            <RealTimeDashboard />
+          </ProtectedRoute>
+        } />
         <Route path="/profile" element={<Profile />} />
       </Routes>
     </AnimatePresence>
@@ -190,7 +196,7 @@ function AnimatedRoutes({ carrito, agregarAlCarrito, eliminarDelCarrito, vaciarC
 function CartButtonWrapper({ totalItems }) {
   const location = useLocation();
 
-  const hiddenPaths = ['/', '/carrito', '/login', '/Login', '/admin', '/register', '/forgot-password', '/reset-password', '/kitchen-panel'];
+  const hiddenPaths = ['/', '/carrito', '/login', '/Login', '/admin', '/register', '/forgot-password', '/reset-password', '/kitchen-panel', '/dashboard'];
   const shouldHide = hiddenPaths.includes(location.pathname);
 
   if (shouldHide) {

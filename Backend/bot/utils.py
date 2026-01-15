@@ -59,7 +59,6 @@ def notificar_nuevo_pedido_externo(order):
     Incluye la foto del comprobante si existe.
     """
     mensaje = (
-
         f"🚨 *NUEVO PEDIDO EXTERNO*\n\n"
         f"🆔 #ORDEN: {order.id}\n"
         f"👤 Cliente: {order.telegram_id}\n"
@@ -68,6 +67,10 @@ def notificar_nuevo_pedido_externo(order):
         f"📦 Modalidad: {order.get_delivery_mode_display() if order.delivery_mode else 'N/A'}\n"
         f"📍 Ubicación: {order.location or 'N/A'}\n"
     )
+
+    if order.status == 'fraude_sospecha':
+        mensaje = f"🚩 *POSIBLE FRAUDE DETECTADO*\n\n" + mensaje
+        mensaje += f"\n\n⚠️ *ALERTA*: El comprobante parece duplicado."
 
     if order.payment_proof:
         # Enviar como foto
@@ -87,21 +90,34 @@ def notificar_nuevo_pedido_externo(order):
         }
         requests.post(TELEGRAM_API_URL, json=payload)
  
-+def notificar_pago_aprobado(telegram_id, order_id):
-+    mensaje = f"✅ *¡Pago Aprobado!* (Orden #{order_id})\n\nTu pedido ha sido enviado a cocina y estará listo pronto. 😊🍽️"
-+    payload = {
-+        "chat_id": telegram_id,
-+        "text": mensaje,
-+        "parse_mode": "Markdown"
-+    }
-+    requests.post(TELEGRAM_API_URL, json=payload)
-+
-+def notificar_pago_rechazado(telegram_id, order_id):
-+    mensaje = f"❌ *Pago Rechazado* (Orden #{order_id})\n\nHubo un problema con tu comprobante. Por favor, contacta a soporte o intenta de nuevo con una captura legible. 👩‍🍳🆘"
-+    payload = {
-+        "chat_id": telegram_id,
-+        "text": mensaje,
-+        "parse_mode": "Markdown"
-+    }
-+    requests.post(TELEGRAM_API_URL, json=payload)
+def notificar_pago_aprobado(telegram_id, order_id):
+    mensaje = f"✅ *¡Pago Aprobado!* (Orden #{order_id})\n\nTu pedido ha sido enviado a cocina y estará listo pronto. 😊🍽️"
+    payload = {
+        "chat_id": telegram_id,
+        "text": mensaje,
+        "parse_mode": "Markdown"
+    }
+    requests.post(TELEGRAM_API_URL, json=payload)
+
+def notificar_pago_rechazado(telegram_id, order_id):
+    mensaje = f"❌ *Pago Rechazado* (Orden #{order_id})\n\nHubo un problema con tu comprobante. Por favor, contacta a soporte o intenta de nuevo con una captura legible. 👩‍🍳🆘"
+    payload = {
+        "chat_id": telegram_id,
+        "text": mensaje,
+        "parse_mode": "Markdown"
+    }
+    requests.post(TELEGRAM_API_URL, json=payload)
+
+def notificar_puntos_ganados(telegram_id, puntos_ganados, total_puntos):
+    mensaje = (
+        f"💎 *¡Has ganado {puntos_ganados} puntos!*\n\n"
+        f"Tu saldo actual es de *{total_puntos} puntos*.\n"
+        f"¡Sigue acumulando para canjear por premios y descuentos! 🎁🛒"
+    )
+    payload = {
+        "chat_id": telegram_id,
+        "text": mensaje,
+        "parse_mode": "Markdown"
+    }
+    requests.post(TELEGRAM_API_URL, json=payload)
 

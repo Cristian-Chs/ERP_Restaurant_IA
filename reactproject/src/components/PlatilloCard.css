@@ -9,7 +9,6 @@
   margin-bottom: 2rem;
 }
 
-
 /* .menu-grid eliminado de aquí, se maneja en Menu.css */
 
 .platillo-card {
@@ -72,11 +71,23 @@
 
 .precios {
   display: flex;
-  justify-content: flex-start;
+  flex-direction: column;
+  gap: 2px;
   font-weight: 700;
   margin-bottom: 0.6rem;
   color: #2c3e50;
-  font-size: 1rem; /* ✅ Fuente más grande */
+  font-size: 1rem;
+}
+
+.price-usd {
+  color: #2e7d32;
+  font-size: 1.1rem;
+}
+
+.price-ves {
+  color: #7f8c8d;
+  font-size: 0.85rem;
+  font-weight: 400;
 }
 
 .add-to-cart-btn {

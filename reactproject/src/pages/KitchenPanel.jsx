@@ -142,7 +142,11 @@ function KitchenPanel() {
 
               <div className="order-footer">
                 <div className="order-total-price">
-                  Total: ${parseFloat(order.precio).toFixed(2)}
+                  Total: {order.currency === 'USD' ? '$' : 'Bs. '}
+                  {(parseFloat(order.precio) * (order.currency === 'VES' ? parseFloat(order.exchange_rate || 1) : 1)).toFixed(2)}
+                  {order.currency === 'VES' && (
+                    <small className="rate-badge"> (Tasa: {order.exchange_rate})</small>
+                  )}
                 </div>
                 
                 {isCaja ? (
