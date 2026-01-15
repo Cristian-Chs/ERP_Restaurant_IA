@@ -1,5 +1,6 @@
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
+from django.views.generic import TemplateView
 from core.views import check_user_and_get_reset_link
 
 urlpatterns = [
@@ -16,7 +17,12 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     
     # Admin de Cupones (Panel Separado)
+    # Admin de Cupones (Panel Separado)
     path("admin/coupons/", include('bot.coupon_urls')),
+
+    # Frontend React (Catch-all)
+    path("", TemplateView.as_view(template_name="index.html")),
+    re_path(r'^(?!api|admin|static|media).*$', TemplateView.as_view(template_name='index.html')),
 ]
 
 from django.conf import settings

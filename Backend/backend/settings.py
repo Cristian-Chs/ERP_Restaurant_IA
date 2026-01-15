@@ -148,7 +148,10 @@ DJOSER = {
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],  # puedes dejarlo vacío si no usas templates
+        "DIRS": [
+            BASE_DIR / 'templates',
+            BASE_DIR / 'staticfiles', # Render
+        ],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
