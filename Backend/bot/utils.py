@@ -90,13 +90,39 @@ def notificar_nuevo_pedido_externo(order):
         }
         requests.post(TELEGRAM_API_URL, json=payload)
  
-def notificar_pago_aprobado(telegram_id, order_id):
+def notificar_pago_aprobado(telegram_id, order_id, invoice_path=None):
+    """
+    Notifica al cliente que su pago fue aprobado.
+    Si se proporciona invoice_path, envía la factura como imagen.
+    """
     mensaje = f"✅ *¡Pago Aprobado!* (Orden #{order_id})\n\nTu pedido ha sido enviado a cocina y estará listo pronto. 😊🍽️"
+    
+    if invoice_path:
+        # Enviar factura como foto con caption
+        try:
+            import os
+            if os.path.exists(invoice_path):
+                with open(invoice_path, 'rb') as photo_file:
+                    files = {'photo': photo_file}
+                    payload = {
+                        "chat_id": telegram_id,
+                        "caption": mensaje + "\n\n📄 *Tu Factura Fiscal*",
+                        "parse_mode": "Markdown"
+                    }
+                    import requests
+                    requests.post(TELEGRAM_PHOTO_URL, data=payload, files=files)
+                    return
+        except Exception as e:
+            print(f"Error enviando factura por Telegram: {e}")
+            # Si falla, enviar solo el mensaje de texto
+    
+    # Fallback: enviar solo mensaje de texto
     payload = {
         "chat_id": telegram_id,
         "text": mensaje,
         "parse_mode": "Markdown"
     }
+    import requests
     requests.post(TELEGRAM_API_URL, json=payload)
 
 def notificar_pago_rechazado(telegram_id, order_id):

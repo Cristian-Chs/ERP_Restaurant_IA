@@ -57,6 +57,7 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
     const [appliedCoupon, setAppliedCoupon] = React.useState(null);
     const [couponError, setCouponError] = React.useState('');
     const [validatingCoupon, setValidatingCoupon] = React.useState(false);
+    const [lastOrderId, setLastOrderId] = React.useState(null);
 
     // Google Maps Script Loader
     React.useEffect(() => {
@@ -248,6 +249,9 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
 
             if (response.status === 201 || response.status === 200) {
                 setOrderStatus('SUCCESS');
+                if (response.data && response.data.id) {
+                    setLastOrderId(response.data.id);
+                }
                 
                 // ✅ TRIGGER POLLING IF EATING HERE
                 if (serviceType === 'HERE' && response.data && response.data.id) {
@@ -302,6 +306,17 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
                                     >
                                         Volver al Menú
                                     </button>
+                                    {lastOrderId && (
+                                        <a 
+                                            href={`http://localhost:8000/api/bot/invoices/${lastOrderId}/`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="main-action-btn"
+                                            style={{ marginTop: '10px', background: '#2ecc71', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}
+                                        >
+                                             Ver Factura Local
+                                        </a>
+                                    )}
                                 </>
                             ) : (
                                 <>

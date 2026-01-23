@@ -37,6 +37,9 @@ class Order(models.Model):
     payment_verified_by = models.BigIntegerField(blank=True, null=True)
     payment_data = models.JSONField(blank=True, null=True)
     payment_hash = models.CharField(max_length=64, blank=True, null=True, db_index=True) # Hash perceptual para evitar duplicados
+    
+    # ✅ Ruta de la factura generada
+    invoice_path = models.CharField(max_length=500, blank=True, null=True)
 
     # ✅ Finanzas Multi-moneda
     currency = models.CharField(max_length=5, default='USD')

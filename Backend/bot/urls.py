@@ -7,6 +7,7 @@ from .views import (
     api_cocina_reject,
     api_cocina_approve_payment, # 🆕
     api_cocina_reject_payment,  # 🆕
+    api_get_invoice,  # 🆕 Invoice endpoint
     historial,
     guardar_rating,
     gustos,
@@ -37,6 +38,9 @@ urlpatterns = [
     path("api/cocina/orders/<int:order_id>/reject/", api_cocina_reject, name="api_cocina_reject"),
     path("api/cocina/orders/<int:order_id>/approve-payment/", api_cocina_approve_payment, name="api_cocina_approve_payment"),
     path("api/cocina/orders/<int:order_id>/reject-payment/", api_cocina_reject_payment, name="api_cocina_reject_payment"),
+    
+    # Invoice endpoint
+    path("invoices/<int:order_id>/", api_get_invoice, name="api_get_invoice"),
     
     # Dashboard de pagos
     path("payment-dashboard/", payment_dashboard, name="payment_dashboard"),

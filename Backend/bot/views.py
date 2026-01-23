@@ -59,6 +59,18 @@ class OrderViewSet(viewsets.ModelViewSet):
             except Exception as e:
                 print(f"Error notificando pedido externo: {e}")
 
+        # ✅ GENERACIÓN INSTANTÁNEA PARA PEDIDOS LOCALES (HERE)
+        if order.service_type == 'HERE':
+            try:
+                from bot.factura import InvoiceGenerator
+                generator = InvoiceGenerator()
+                invoice_path = generator.generate(order)
+                order.invoice_path = invoice_path
+                order.save()
+                print(f"✅ Factura local generada: {invoice_path}")
+            except Exception as e:
+                print(f"⚠️ Error generando factura local: {e}")
+
 
 # ------------------------------
 # Endpoints IA (CORREGIDOS)
@@ -189,6 +201,7 @@ def api_cocina_orders(request):
 def api_cocina_approve_payment(request, order_id):
     """
     Aprueba un pago desde el panel de Caja.
+    Genera factura automáticamente y la envía al cliente.
     """
     if request.method != "POST":
         return JsonResponse({"error": "Método no permitido"}, status=405)
@@ -197,15 +210,32 @@ def api_cocina_approve_payment(request, order_id):
         order = Order.objects.get(id=order_id)
         order.payment_status = 'payment_approved'
         order.status = 'pendiente' # Aseguramos que pase a cocina
+        
+        # ✅ GENERAR FACTURA
+        try:
+            from bot.factura import InvoiceGenerator
+            generator = InvoiceGenerator()
+            invoice_path = generator.generate(order)
+            
+            # Guardar ruta de factura en el pedido
+            order.invoice_path = invoice_path
+            print(f"✅ Factura generada: {invoice_path}")
+        except Exception as e:
+            print(f"⚠️ Error generando factura: {e}")
+            invoice_path = None
+        
         order.save()
         
-        # Opcional: Notificar al usuario por Telegram que su pago fue aprobado
+        # Notificar al usuario por Telegram con la factura
         from .utils import notificar_pago_aprobado
-        notificar_pago_aprobado(order.telegram_id, order.id)
+        notificar_pago_aprobado(order.telegram_id, order.id, invoice_path)
         
-        return JsonResponse({"status": "ok"})
+        return JsonResponse({"status": "ok", "invoice_generated": invoice_path is not None})
     except Order.DoesNotExist:
         return JsonResponse({"error": "Pedido no encontrado"}, status=404)
+    except Exception as e:
+        print(f"Error en api_cocina_approve_payment: {e}")
+        return JsonResponse({"error": str(e)}, status=500)
 
 @csrf_exempt
 def api_cocina_reject_payment(request, order_id):
@@ -265,6 +295,31 @@ def api_cocina_reject(request, order_id):
     except Order.DoesNotExist:
         return JsonResponse({"error": "Pedido no encontrado"}, status=404)
     except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@csrf_exempt
+def api_get_invoice(request, order_id):
+    """
+    Devuelve la imagen de la factura para un pedido específico.
+    """
+    try:
+        from django.http import FileResponse
+        import os
+        
+        order = Order.objects.get(id=order_id)
+        
+        # Verificar que existe la factura
+        if not order.invoice_path or not os.path.exists(order.invoice_path):
+            return JsonResponse({"error": "Factura no encontrada"}, status=404)
+        
+        # Servir la imagen
+        return FileResponse(open(order.invoice_path, 'rb'), content_type='image/jpeg')
+        
+    except Order.DoesNotExist:
+        return JsonResponse({"error": "Pedido no encontrado"}, status=404)
+    except Exception as e:
+        print(f"Error sirviendo factura: {e}")
         return JsonResponse({"error": str(e)}, status=500)
 
 

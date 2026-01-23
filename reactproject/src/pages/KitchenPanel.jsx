@@ -165,10 +165,21 @@ function KitchenPanel() {
                     </div>
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <button className="mark-ready-btn-glow" onClick={() => markAsReady(order.id)} style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', width: '100%' }}>
+                    <button className="mark-ready-btn-glow" onClick={() => markAsReady(order.id)} style={{ flex: 1, minWidth: '150px' }}>
                       MARCAR COMO LISTO ✅
                     </button>
+                    {(order.payment_status === 'payment_approved' || order.service_type === 'HERE') && (
+                      <a 
+                        href={`http://localhost:8000/api/bot/invoices/${order.id}/`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="mark-ready-btn-glow" 
+                        style={{ flex: 1, minWidth: '150px', background: '#2ecc71', color: 'white', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        📄 VER FACTURA
+                      </a>
+                    )}
                   </div>
                 )}
               </div>

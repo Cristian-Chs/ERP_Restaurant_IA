@@ -11,12 +11,12 @@ function Presentacion() {
     <motion.div
       className="presentacion-container"
       initial={{ opacity: 0 }}
-      animate={{ opacity: 10 }}
+      animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
     >
       <img className="logo" src={logo} alt="Logo" />
-      <h1>Bienvenido a 4 Sabores Restaurant 🍽️</h1>
+      <h1>Bienvenido a los 4 Sabores Restaurant 🍽️</h1>
       <button onClick={() => navigate('/login')} className="btn-comenzar-presentacion">
         Comenzar
       </button>
