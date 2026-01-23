@@ -19,8 +19,8 @@ if not SECRET_KEY:
 
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-# Permitir Render y hosts configurados
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,.onrender.com').split(',')
+# Permitir Render, Railway y Koyeb
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,.onrender.com,.up.railway.app,.koyeb.app').split(',')
 
 # --- Email (Solo para desarrollo, imprime en consola) ---
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
