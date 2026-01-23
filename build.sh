@@ -2,17 +2,24 @@
 # exit on error
 set -o errexit
 
-# 1. Install Dependencies
-pip install -r Backend/requirements.txt
-pip install gunicorn # Ensure binary is installed
+echo "📦 1. Installing Backend Dependencies..."
+# Usamos --no-cache-dir para ahorrar espacio en disco durante el build
+pip install --no-cache-dir -r Backend/requirements.txt
+pip install --no-cache-dir gunicorn whitenoise
 
-# 2. Build Frontend (React)
+echo "🎨 2. Building Frontend (React)..."
 cd reactproject
-npm install
+# npm ci es más rápido y estable para despliegues
+if [ -f package-lock.json ]; then
+    npm ci
+else
+    npm install
+fi
 npm run build
 cd ..
 
-# 3. Collect Static Files (Django)
+echo "📂 3. Collecting Static Files..."
 cd Backend
 python manage.py collectstatic --no-input
 python manage.py migrate
+echo "✅ Build Complete!"
