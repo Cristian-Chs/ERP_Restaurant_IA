@@ -24,7 +24,7 @@ sys.path.append(ROOT_DIR)
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "backend.settings")
 django.setup()
 
-# ⚙️ CONFIGURACIÓN - COLOCA TU API KEY DE GROQ AQUÍ
+#  CONFIGURACIÓN - COLOCA TU API KEY DE GROQ AQUÍ
 GROQ_API_KEY = "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"  # ← Obtén tu key en https://console.groq.com/keys
 
 from groq import Groq
@@ -37,7 +37,7 @@ import re
 client = Groq(api_key=GROQ_API_KEY)
 
 # ----------------------------------------------------
-# 🧠 SISTEMA DE INTENTS ACTUAL (del bot_cliente.py)
+#  SISTEMA DE INTENTS ACTUAL (del bot_cliente.py)
 # ----------------------------------------------------
 
 def detectar_intent(texto: str) -> str | None:
@@ -63,7 +63,7 @@ def responder_con_intent(intent_name: str) -> str:
     return random.choice(RESPONSES["DEFAULT"])
 
 # ----------------------------------------------------
-# 🤖 CHATBOT CON GROQ (NUEVO)
+#  CHATBOT CON GROQ (NUEVO)
 # ----------------------------------------------------
 
 def obtener_contexto_restaurante():
@@ -144,7 +144,7 @@ Ingredientes disponibles como extras:
 
 INSTRUCCIONES:
 1. Responde de forma amigable y conversacional en español
-2. Usa emojis cuando sea apropiado 😊🍔🍕
+2. Usa emojis cuando sea apropiado 
 3. Si te preguntan por precios, usa la información del menú
 4. Si te preguntan por horarios, ubicación o servicios, usa la información proporcionada
 5. Si te preguntan algo que no sabes, sé honesto y sugiere contactar al restaurante
@@ -168,10 +168,10 @@ INSTRUCCIONES:
         return completion.choices[0].message.content.strip()
         
     except Exception as e:
-        return f"⚠️ Error al conectar con Groq: {str(e)}"
+        return f" Error al conectar con Groq: {str(e)}"
 
 # ----------------------------------------------------
-# 🔀 CHATBOT HÍBRIDO (Intents + Groq)
+#  CHATBOT HÍBRIDO (Intents + Groq)
 # ----------------------------------------------------
 
 def chatbot_hibrido(pregunta_usuario: str) -> tuple[str, str]:
@@ -191,7 +191,7 @@ def chatbot_hibrido(pregunta_usuario: str) -> tuple[str, str]:
     return respuesta, "GROQ"
 
 # ----------------------------------------------------
-# 🧪 MODO INTERACTIVO DE PRUEBA
+#  MODO INTERACTIVO DE PRUEBA
 # ----------------------------------------------------
 
 def test_interactivo():
@@ -199,7 +199,7 @@ def test_interactivo():
     Modo interactivo para probar el chatbot.
     """
     print("=" * 60)
-    print("🤖 PROTOTIPO: Chatbot Híbrido (Intents + Groq Llama 3.3)")
+    print(" PROTOTIPO: Chatbot Híbrido (Intents + Groq Llama 3.3)")
     print("=" * 60)
     print()
     print("Escribe tus preguntas para probar el bot.")
@@ -210,13 +210,13 @@ def test_interactivo():
     
     while True:
         try:
-            pregunta = input("👤 Tú: ").strip()
+            pregunta = input(" Tú: ").strip()
             
             if not pregunta:
                 continue
             
             if pregunta.lower() in ['salir', 'exit', 'quit']:
-                print("\n👋 ¡Hasta luego!")
+                print("\n ¡Hasta luego!")
                 break
             
             # Medir tiempo de respuesta
@@ -226,20 +226,20 @@ def test_interactivo():
             
             # Mostrar respuesta con indicador de fuente y tiempo
             if fuente == "INTENTS":
-                print(f"🤖 Bot [Intents] ({tiempo:.2f}s): {respuesta}")
+                print(f" Bot [Intents] ({tiempo:.2f}s): {respuesta}")
             else:
-                print(f"🤖 Bot [Groq AI] ({tiempo:.2f}s): {respuesta}")
+                print(f" Bot [Groq AI] ({tiempo:.2f}s): {respuesta}")
             
             print()
             
         except KeyboardInterrupt:
-            print("\n\n👋 ¡Hasta luego!")
+            print("\n\n ¡Hasta luego!")
             break
         except Exception as e:
-            print(f"\n⚠️ Error: {e}\n")
+            print(f"\n Error: {e}\n")
 
 # ----------------------------------------------------
-# 📊 MODO DE PRUEBAS AUTOMÁTICAS
+#  MODO DE PRUEBAS AUTOMÁTICAS
 # ----------------------------------------------------
 
 def test_automatico():
@@ -247,7 +247,7 @@ def test_automatico():
     Ejecuta una serie de preguntas de prueba.
     """
     print("=" * 60)
-    print("🧪 PRUEBAS AUTOMÁTICAS")
+    print(" PRUEBAS AUTOMÁTICAS")
     print("=" * 60)
     print()
     
@@ -274,16 +274,16 @@ def test_automatico():
     tiempos_groq = []
     
     for i, pregunta in enumerate(preguntas_prueba, 1):
-        print(f"{i}. 👤 Pregunta: {pregunta}")
+        print(f"{i}.  Pregunta: {pregunta}")
         
         inicio = time.time()
         respuesta, fuente = chatbot_hibrido(pregunta)
         tiempo = time.time() - inicio
         
         if fuente == "INTENTS":
-            print(f"   🤖 [Intents] ({tiempo:.2f}s): {respuesta}")
+            print(f"    [Intents] ({tiempo:.2f}s): {respuesta}")
         else:
-            print(f"   🤖 [Groq AI] ({tiempo:.2f}s): {respuesta}")
+            print(f"    [Groq AI] ({tiempo:.2f}s): {respuesta}")
             tiempos_groq.append(tiempo)
         
         print()
@@ -295,7 +295,7 @@ def test_automatico():
     # Estadísticas
     if tiempos_groq:
         print("=" * 60)
-        print("📊 ESTADÍSTICAS DE GROQ")
+        print(" ESTADÍSTICAS DE GROQ")
         print("=" * 60)
         print(f"Requests a Groq: {len(tiempos_groq)}")
         print(f"Tiempo promedio: {sum(tiempos_groq)/len(tiempos_groq):.2f}s")
@@ -303,7 +303,7 @@ def test_automatico():
         print(f"Tiempo más lento: {max(tiempos_groq):.2f}s")
 
 # ----------------------------------------------------
-# 🚀 MAIN
+#  MAIN
 # ----------------------------------------------------
 
 if __name__ == "__main__":
@@ -322,6 +322,6 @@ if __name__ == "__main__":
     elif modo == "2":
         test_automatico()
     else:
-        print("⚠️ Opción inválida. Ejecutando modo interactivo por defecto.")
+        print(" Opción inválida. Ejecutando modo interactivo por defecto.")
         print()
         test_interactivo()

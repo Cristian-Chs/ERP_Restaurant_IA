@@ -1,6 +1,6 @@
 # Instrucciones para Probar el Chatbot Híbrido con Gemini
 
-## 🚀 Pasos para Ejecutar
+##  Pasos para Ejecutar
 
 ### 1. Configurar API Key
 
@@ -26,7 +26,7 @@ El script te preguntará:
 - **Modo 1 (Interactivo)**: Escribe tus propias preguntas
 - **Modo 2 (Automático)**: Ejecuta 14 preguntas de prueba predefinidas
 
-## 📝 Ejemplos de Preguntas para Probar
+##  Ejemplos de Preguntas para Probar
 
 ### Preguntas que usa INTENTS (Sistema Actual)
 
@@ -47,21 +47,21 @@ El script te preguntará:
 - "¿Cuánto costarían 3 pizzas para delivery?"
 - "¿Tienen opciones sin gluten?"
 
-## 🎯 Qué Observar
+##  Qué Observar
 
 El bot te indicará la fuente de cada respuesta:
 
-- `🤖 Bot [Intents]:` = Usó el sistema de reglas actual
-- `🤖 Bot [Gemini AI]:` = Usó inteligencia artificial
+- ` Bot [Intents]:` = Usó el sistema de reglas actual
+- ` Bot [Gemini AI]:` = Usó inteligencia artificial
 
-## 💡 Ventajas del Sistema Híbrido
+##  Ventajas del Sistema Híbrido
 
 1. **Rápido**: Preguntas comunes usan intents (instantáneo)
 2. **Inteligente**: Preguntas nuevas usan Gemini (1-2 segundos)
 3. **Económico**: Solo paga API cuando es necesario
 4. **Escalable**: No necesitas programar cada pregunta nueva
 
-## 🔧 Personalización
+##  Personalización
 
 Puedes modificar la información del restaurante en la función `chatbot_gemini()`:
 
@@ -71,7 +71,7 @@ Puedes modificar la información del restaurante en la función `chatbot_gemini(
 - Métodos de pago
 - etc.
 
-## 📊 Costo Estimado
+##  Costo Estimado
 
 Con Gemini 2.5 Flash:
 
@@ -80,13 +80,13 @@ Con Gemini 2.5 Flash:
 - 1000 conversaciones/mes ≈ $0.50 USD
 - Muy económico para empezar
 
-## ⚠️ Notas Importantes
+##  Notas Importantes
 
 1. El script requiere que Django esté configurado (usa tus modelos)
 2. Necesitas tener productos en la base de datos para que el menú funcione
 3. La primera vez puede tardar un poco en cargar Django
 
-## 🎉 Próximos Pasos
+##  Próximos Pasos
 
 Si el prototipo funciona bien:
 

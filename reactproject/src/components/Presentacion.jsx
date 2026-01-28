@@ -16,7 +16,7 @@ function Presentacion() {
       transition={{ duration: 0.5 }}
     >
       <img className="logo" src={logo} alt="Logo" />
-      <h1>Bienvenido a los 4 Sabores Restaurant 🍽️</h1>
+      <h1>Bienvenido a los 4 Sabores Restaurant </h1>
       <button onClick={() => navigate('/login')} className="btn-comenzar-presentacion">
         Comenzar
       </button>

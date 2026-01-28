@@ -23,7 +23,7 @@ import time
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
 
-# ✅ Helper para calcular gastos basados en recetas (Dinámico)
+#  Helper para calcular gastos basados en recetas (Dinámico)
 def calculate_recipe_expenses(orders_queryset):
     """
     Calcula los gastos teóricos basados en las recetas de los productos vendidos.
@@ -137,7 +137,7 @@ class MenuListView(APIView):
         return Response(grouped_menu)
 
 def productos_view(request):
-    # ✅ Si se solicita detalle de un producto específico
+    #  Si se solicita detalle de un producto específico
     detalle = request.GET.get("detalle")
     
     if detalle:
@@ -174,7 +174,7 @@ def productos_view(request):
                 "ingredientes": []
             }, status=500)
     
-    # ✅ Si no hay detalle, devolver lista de nombres (comportamiento original)
+    #  Si no hay detalle, devolver lista de nombres (comportamiento original)
     productos = list(
         Product.objects.filter(is_active=True).values_list("name", flat=True)
     )
@@ -235,7 +235,7 @@ class FlavorViewSet(viewsets.ModelViewSet):
     queryset = Flavor.objects.all()
     serializer_class = FlavorSerializer
 
-# ✅ Recipe ViewSet (Recetario)
+#  Recipe ViewSet (Recetario)
 from .serializers import RecipeSerializer
 from .models import Recipe
 
@@ -248,7 +248,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         # Override to ensure integrity or custom logic if needed
         return super().create(request, *args, **kwargs)
 
-# ✅ RRHH ViewSets
+#  RRHH ViewSets
 from .serializers import EmployeeSerializer, PayrollPaymentSerializer
 from .models import Employee, PayrollPayment
 
@@ -345,7 +345,7 @@ class AdminStatsView(APIView):
             "top_products": top_products_list,
             "top_customers": top_customers_list,
             "service_breakdown": service_breakdown,
-            # ✅ Financial Module Data
+            #  Financial Module Data
             "financial_summary": self.get_financial_summary(monthly_stats),
             "reliability_score": self.get_reliability_score(service_breakdown)
         })

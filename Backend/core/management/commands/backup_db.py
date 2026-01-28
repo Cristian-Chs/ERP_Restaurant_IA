@@ -16,7 +16,7 @@ class Command(BaseCommand):
         engine = db_conf['ENGINE']
         db_name = db_conf['NAME']
 
-        self.stdout.write(f"📦 Iniciando backup de {db_name} ({engine})...")
+        self.stdout.write(f" Iniciando backup de {db_name} ({engine})...")
 
         if 'postgresql' in engine:
             filename = f"backup_{db_name}_{timestamp}.sql"
@@ -38,9 +38,9 @@ class Command(BaseCommand):
                 # Usamos os.system o subprocess
                 import subprocess
                 result = subprocess.run(cmd, shell=True, env=env, check=True)
-                self.stdout.write(self.style.SUCCESS(f"✅ Backup creado exitosamente: {filepath}"))
+                self.stdout.write(self.style.SUCCESS(f" Backup creado exitosamente: {filepath}"))
             except subprocess.CalledProcessError as e:
-                self.stdout.write(self.style.ERROR(f"❌ Error al crear backup de Postgres: {e}"))
+                self.stdout.write(self.style.ERROR(f" Error al crear backup de Postgres: {e}"))
                 self.stdout.write("Asegúrate de que 'pg_dump' está instalado y en el PATH del sistema.")
 
         elif 'sqlite3' in engine:
@@ -49,9 +49,9 @@ class Command(BaseCommand):
             import shutil
             try:
                 shutil.copy2(db_name, os.path.join(backup_dir, filename))
-                self.stdout.write(self.style.SUCCESS(f"✅ Backup de SQLite creado: {filename}"))
+                self.stdout.write(self.style.SUCCESS(f" Backup de SQLite creado: {filename}"))
             except Exception as e:
-                self.stdout.write(self.style.ERROR(f"❌ Error al copiar SQLite: {e}"))
+                self.stdout.write(self.style.ERROR(f" Error al copiar SQLite: {e}"))
         
         else:
             # Fallback a dumpdata de Django (JSON) - Funciona para cualquier DB
@@ -59,4 +59,4 @@ class Command(BaseCommand):
             filepath = os.path.join(backup_dir, filename)
             with open(filepath, 'w', encoding='utf-8') as f:
                 call_command('dumpdata', stdout=f)
-            self.stdout.write(self.style.SUCCESS(f"✅ Data dump (JSON) creado: {filepath}"))
+            self.stdout.write(self.style.SUCCESS(f" Data dump (JSON) creado: {filepath}"))

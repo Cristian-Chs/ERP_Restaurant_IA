@@ -200,7 +200,7 @@ def create_documentation():
     doc.add_paragraph()
     
     # Recipe (NUEVO)
-    doc.add_heading('Modelo: Recipe (Receta) ⭐ NUEVO', 3)
+    doc.add_heading('Modelo: Recipe (Receta)  NUEVO', 3)
     doc.add_paragraph(
         'Define la composición de un producto: qué ingredientes lleva y en qué cantidad. '
         'Permite el cálculo dinámico de costos cuando cambian los precios de ingredientes.'
@@ -228,7 +228,7 @@ def create_documentation():
     doc.add_paragraph()
     
     # InventoryMovement (NUEVO)
-    doc.add_heading('Modelo: InventoryMovement (Movimiento de Inventario) ⭐ NUEVO', 3)
+    doc.add_heading('Modelo: InventoryMovement (Movimiento de Inventario)  NUEVO', 3)
     doc.add_paragraph(
         'Registra todos los movimientos de inventario (compras, uso, ajustes, desperdicios). '
         'Permite análisis histórico con Pandas para proyección de compras futuras.'
@@ -368,7 +368,7 @@ def create_documentation():
     
     doc.add_paragraph()
     
-    doc.add_heading('Endpoints de Analytics (NUEVO) ⭐', 2)
+    doc.add_heading('Endpoints de Analytics (NUEVO) ', 2)
     
     analytics_endpoints = [
         ('POST', '/api/analytics/recalculate-costs/', 'Recalcula costos de productos basándose en recetas'),
@@ -424,10 +424,10 @@ def create_documentation():
     )
     
     bcg_categories = {
-        '⭐ Estrellas': 'Alta venta + Alto margen → Mantener y promocionar',
-        '🐴 Caballos de Batalla': 'Alta venta + Bajo margen → Subir precio ligeramente',
-        '❓ Incógnitas': 'Baja venta + Alto margen → Hacer publicidad',
-        '🐶 Perros': 'Baja venta + Bajo margen → Considerar eliminar del menú'
+        ' Estrellas': 'Alta venta + Alto margen → Mantener y promocionar',
+        ' Caballos de Batalla': 'Alta venta + Bajo margen → Subir precio ligeramente',
+        ' Incógnitas': 'Baja venta + Alto margen → Hacer publicidad',
+        ' Perros': 'Baja venta + Bajo margen → Considerar eliminar del menú'
     }
     
     for category, action in bcg_categories.items():
@@ -656,7 +656,7 @@ def create_documentation():
     # === GUARDAR DOCUMENTO ===
     output_path = os.path.join(os.path.dirname(__file__), '..', 'Documentacion_Sistema_4Sabores.docx')
     doc.save(output_path)
-    print(f'✅ Documentación generada exitosamente: {output_path}')
+    print(f' Documentación generada exitosamente: {output_path}')
     return output_path
 
 if __name__ == '__main__':

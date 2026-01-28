@@ -68,7 +68,7 @@ class DynamicCostRecalculationView(APIView):
         if avg_inflation > 5:
             alerts.append({
                 'type': 'warning',
-                'message': f'⚠️ Tus costos subieron un {avg_inflation:.1f}% en promedio. Considera ajustar precios.'
+                'message': f' Tus costos subieron un {avg_inflation:.1f}% en promedio. Considera ajustar precios.'
             })
         
         # Productos con margen bajo
@@ -76,7 +76,7 @@ class DynamicCostRecalculationView(APIView):
         if low_margin_products:
             alerts.append({
                 'type': 'danger',
-                'message': f'🚨 {len(low_margin_products)} productos tienen margen menor al 20%. Revisa precios urgentemente.'
+                'message': f' {len(low_margin_products)} productos tienen margen menor al 20%. Revisa precios urgentemente.'
             })
         
         return Response({
@@ -177,19 +177,19 @@ class BCGMatrixView(APIView):
         if len(result['stars']) > 0:
             recommendations.append({
                 'type': 'success',
-                'message': f'⭐ Tienes {len(result["stars"])} productos estrella. ¡Mantenlos en el menú y promociónalos!'
+                'message': f' Tienes {len(result["stars"])} productos estrella. ¡Mantenlos en el menú y promociónalos!'
             })
         
         if len(result['horses']) > 0:
             recommendations.append({
                 'type': 'warning',
-                'message': f'🐴 {len(result["horses"])} productos se venden mucho pero dan poco margen. Considera subir ligeramente el precio.'
+                'message': f' {len(result["horses"])} productos se venden mucho pero dan poco margen. Considera subir ligeramente el precio.'
             })
         
         if len(result['dogs']) > 0:
             recommendations.append({
                 'type': 'danger',
-                'message': f'🐶 {len(result["dogs"])} productos no se venden y dan poco margen. Considera eliminarlos del menú.'
+                'message': f' {len(result["dogs"])} productos no se venden y dan poco margen. Considera eliminarlos del menú.'
             })
         
         return Response({

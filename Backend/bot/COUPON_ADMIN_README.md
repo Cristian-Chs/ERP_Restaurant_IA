@@ -1,4 +1,4 @@
-# 🎟️ Panel de Administración de Cupones
+#  Panel de Administración de Cupones
 
 ## Acceso
 
@@ -17,15 +17,15 @@ Gestión completa del sistema incluyendo:
 - Cupones Canjeados
 - Puntos de Fidelidad
 
-### 2. Panel Dedicado de Cupones 🆕
+### 2. Panel Dedicado de Cupones 
 
 **URL**: `http://localhost:8000/admin/coupons/`
 
 Panel especializado para gestión de promociones que incluye:
 
-- 🎟️ **Cupones**: Crear y gestionar cupones de descuento
-- 💰 **Cupones Canjeados**: Historial de canjes
-- 💎 **Puntos de Fidelidad**: Gestión de puntos de usuarios
+-  **Cupones**: Crear y gestionar cupones de descuento
+-  **Cupones Canjeados**: Historial de canjes
+-  **Puntos de Fidelidad**: Gestión de puntos de usuarios
 
 ## Características del Panel de Cupones
 
@@ -34,20 +34,20 @@ Panel especializado para gestión de promociones que incluye:
 #### Cupones
 
 - **Código**: Identificador único del cupón
-- **Descuento**: Muestra visual del descuento (💵 $5 o 📊 10%)
+- **Descuento**: Muestra visual del descuento ( $5 o  10%)
 - **Tipo**: Fijo o Porcentaje
 - **Costo en Puntos**: Puntos necesarios para canjear
-- **Estado**: ✅ Activo / ❌ Inactivo
+- **Estado**:  Activo /  Inactivo
 - **Uso**: Indicador visual con semáforo
   - 🟢 Menos del 75% usado
   - 🟡 75-99% usado
-  - 🔴 100% usado o agotado
+  -  100% usado o agotado
 
 #### Cupones Canjeados
 
-- **Cupón**: 🎟️ Código del cupón usado
+- **Cupón**:  Código del cupón usado
 - **Usuario**: Telegram ID
-- **Descuento Aplicado**: 💰 Monto del descuento
+- **Descuento Aplicado**:  Monto del descuento
 - **Fecha de Canje**: Cuándo se usó
 - **Orden**: Link directo a la orden asociada
 
@@ -55,15 +55,15 @@ Panel especializado para gestión de promociones que incluye:
 
 Selecciona uno o más cupones y aplica acciones en lote:
 
-1. **✅ Activar cupones seleccionados**
+1. ** Activar cupones seleccionados**
 
    - Activa cupones desactivados
 
-2. **❌ Desactivar cupones seleccionados**
+2. ** Desactivar cupones seleccionados**
 
    - Desactiva cupones temporalmente
 
-3. **🔄 Reiniciar contador de usos**
+3. ** Reiniciar contador de usos**
    - Resetea el contador de usos a 0
    - Útil para reutilizar cupones
 
@@ -78,7 +78,7 @@ Selecciona uno o más cupones y aplica acciones en lote:
 
 El formulario está organizado en secciones:
 
-#### 📋 Información del Cupón
+####  Información del Cupón
 
 - **Código**: Ej: PROMO2026, VERANO2026
 - **Tipo de Descuento**: Fijo ($) o Porcentaje (%)
@@ -93,7 +93,7 @@ El formulario está organizado en secciones:
 - **Usos Máximos**: 0 = ilimitado
 - **Usos Actuales**: Solo lectura
 
-#### 🎯 Restricciones
+####  Restricciones
 
 - **Monto Mínimo del Pedido**: Ej: $10.00
 

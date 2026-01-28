@@ -22,7 +22,7 @@ html, body {
   padding: 0;
   font-family: 'ZTNature', sans-serif;
   background-image: url('../assets/images/FondoMenu.png');
-  background-size: 100% 100%; /* ✅ Fondo más contenido */
+  background-size: 100% 100%; /*  Fondo más contenido */
   background-position: center;
   background-repeat: no-repeat;
 }

@@ -15,7 +15,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # --- Seguridad ---
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 if not SECRET_KEY:
-    raise ValueError("❌ DJANGO_SECRET_KEY no configurado en variables de entorno")
+    raise ValueError(" DJANGO_SECRET_KEY no configurado en variables de entorno")
 
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
@@ -27,14 +27,14 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # --- Aplicaciones instaladas ---
 INSTALLED_APPS = [
-    'daphne', # 🆕 Debe ir antes de staticfiles
+    'daphne', #  Debe ir antes de staticfiles
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'channels', # 🆕
+    'channels', # 
 
     # Apps de terceros
     'corsheaders',
@@ -51,7 +51,7 @@ INSTALLED_APPS = [
 # --- Middleware ---
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # 🆕 Static files for Render
+    'whitenoise.middleware.WhiteNoiseMiddleware',  #  Static files for Render
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',   # importante para frontend
     'django.middleware.common.CommonMiddleware',
@@ -64,7 +64,7 @@ MIDDLEWARE = [
 # --- URLs y WSGI/ASGI ---
 ROOT_URLCONF = 'backend.urls'
 WSGI_APPLICATION = 'backend.wsgi.application'
-ASGI_APPLICATION = 'backend.asgi.application' # 🆕
+ASGI_APPLICATION = 'backend.asgi.application' # 
 
 # --- Channel Layers (En memoria para desarrollo) ---
 CHANNEL_LAYERS = {
@@ -108,6 +108,10 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 STATICFILES_DIRS = [
     BASE_DIR / '../reactproject/dist', # VITE build output
 ]
+
+# --- Archivos de medios (uploads) ---
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

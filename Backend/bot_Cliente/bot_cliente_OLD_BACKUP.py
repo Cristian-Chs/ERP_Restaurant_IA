@@ -1,7 +1,7 @@
 import sys, os
 
 
-# 👇 Añade la carpeta que contiene el directorio 'ml' al PYTHONPATH.
+#  Añade la carpeta que contiene el directorio 'ml' al PYTHONPATH.
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(ROOT_DIR)
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "backend.settings")
@@ -9,14 +9,14 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "backend.settings")
 import django
 django.setup()
 
-# 👇 Resto de tus imports
+#  Resto de tus imports
 import logging
 import requests
 import pytz
 import asyncio
 import datetime
 import aiohttp
-from groq import Groq  # ✅ Nueva integración
+from groq import Groq  #  Nueva integración
 
 from telegram import (
     Update,
@@ -57,7 +57,7 @@ from bot.factura import InvoiceGenerator
 
 
 # ----------------------------------------------------
-# ⚙️ Configuración
+#  Configuración
 # ----------------------------------------------------
 ORDERS_URL = "http://127.0.0.1:8000/api/bot/orders/"
 GUSTOS_URL = "http://127.0.0.1:8000/api/bot/gustos/"
@@ -70,17 +70,17 @@ PRODUCTOS_URL = "http://127.0.0.1:8000/api/bot/productos/"
 RECOMENDACION_URL = "http://127.0.0.1:8000/api/bot/recomendacion/"
 CURRENCY_RATES_URL = "http://127.0.0.1:8000/api/currency/rates/"
 
-# 🆕 Configuración Groq
+#  Configuración Groq
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "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")
 groq_client = Groq(api_key=GROQ_API_KEY)
 
-# 🆕 Session URLs
+#  Session URLs
 SESSION_URL = "http://127.0.0.1:8000/api/bot/session/"
 SESSION_UPDATE_URL = "http://127.0.0.1:8000/api/bot/session/update/"
 SESSION_RESET_URL = "http://127.0.0.1:8000/api/bot/session/reset/"
 
 # ----------------------------------------------------
-# 🧠 SESSION HELPERS
+#  SESSION HELPERS
 # ----------------------------------------------------
 def get_session(telegram_id):
     try:
@@ -127,7 +127,7 @@ ADMIN_CHAT_ID = 5719602467  # Admin que aprueba/rechaza pagos
 logging.basicConfig(level=logging.INFO)
 
 # ----------------------------------------------------
-# 🗂️ Función para guardar orden en Django
+#  Función para guardar orden en Django
 # ----------------------------------------------------
 def save_order(telegram_id, item):
     data = {"telegram_id": telegram_id, "item": item, "status": "pendiente"}
@@ -139,10 +139,10 @@ def save_order(telegram_id, item):
         return False
 
 # ----------------------------------------------------
-# 🧹 Limpieza de texto
+#  Limpieza de texto
 # ----------------------------------------------------
 # ----------------------------------------------------
-# 🧹 Limpieza de texto y Extracción de Cantidad
+#  Limpieza de texto y Extracción de Cantidad
 # ----------------------------------------------------
 def extraer_cantidad_y_producto(texto: str) -> tuple[int | None, str]:
     texto = texto.strip()
@@ -250,10 +250,10 @@ def clean_order_text(text: str) -> str:
     return cleaned_text
 
 # ----------------------------------------------------
-# ✅ OCR PARA LEER COMPROBANTES DE PAGO
+#  OCR PARA LEER COMPROBANTES DE PAGO
 # ----------------------------------------------------
 # ----------------------------------------------------
-# ✅ OCR PARA LEER COMPROBANTES DE PAGO
+#  OCR PARA LEER COMPROBANTES DE PAGO
 # ----------------------------------------------------
 import re
 
@@ -332,12 +332,12 @@ async def extraer_datos_comprobante(file_path: str) -> dict:
 
 
 # ----------------------------------------------------
-# 📝 Formatear pedido
+#  Formatear pedido
 # ----------------------------------------------------
 
 
 # ----------------------------------------------------
-# ✅ MENÚ COMPLETO (desde base de datos)
+#  MENÚ COMPLETO (desde base de datos)
 # ----------------------------------------------------
 async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
@@ -350,7 +350,7 @@ async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if not productos:
         await update.message.reply_text(
-            "⚠️ No hay productos disponibles en este momento.",
+            " No hay productos disponibles en este momento.",
             parse_mode="Markdown"
         )
         return
@@ -370,14 +370,14 @@ async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
             categorias[categoria].append(producto)
     
     # Construir mensaje
-    mensaje = "🍽️*Los Cuatros Sabores de Paraguaná\n\nMENÚ DEL RESTAURANTE*\n\n"
+    mensaje = "*Los Cuatros Sabores de Paraguaná\n\nMENÚ DEL RESTAURANTE*\n\n"
     # Emojis por categoría
     emojis = {
-        'promociones': '🎉',
-        'entradas': '🥗',
-        'principales': '🍖',
-        'postres': '🍰',
-        'bebidas': '🥤'
+        'promociones': '',
+        'entradas': '',
+        'principales': '',
+        'postres': '',
+        'bebidas': ''
     }
     
     # Nombres de categorías
@@ -393,7 +393,7 @@ async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         items = categorias[categoria_key]
         
         if items:
-            emoji = emojis.get(categoria_key, '📌')
+            emoji = emojis.get(categoria_key, '')
             nombre_categoria = nombres_categorias.get(categoria_key, categoria_key.upper())
             
             mensaje += f"{emoji} *{nombre_categoria}*\n"
@@ -402,7 +402,7 @@ async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 precio = f"${float(producto.price):.2f}"
                 mensaje += f"  • {producto.name} - {precio}\n"
                 
-                # ✅ Obtener ingredientes del producto
+                #  Obtener ingredientes del producto
                 ingredientes = await sync_to_async(list)(
                     producto.ingredientes.all().values_list('nombre', flat=True)
                 )
@@ -413,14 +413,14 @@ async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             mensaje += "\n"
     
-    mensaje += "💬 Para pedir, escribe:\n"
+    mensaje += " Para pedir, escribe:\n"
     mensaje += "_'Quiero una hamburguesa sin cebolla'_\n"
     mensaje += "_'Dame una pizza con bacon'_"
     
     await update.message.reply_text(mensaje, parse_mode="Markdown")
 
 # ----------------------------------------------------
-# ✅ INTERPRETAR PEDIDO CON MODIFICACIONES
+#  INTERPRETAR PEDIDO CON MODIFICACIONES
 # ----------------------------------------------------
 
 async def interpretar_pedido(texto_usuario: str):
@@ -467,7 +467,7 @@ async def interpretar_pedido(texto_usuario: str):
 
 
 # ----------------------------------------------------
-# ✅ MENÚ PERSONALIZADO (gustos desde BD)
+#  MENÚ PERSONALIZADO (gustos desde BD)
 # ----------------------------------------------------
 async def menu_personalizado(update: Update, context: ContextTypes.DEFAULT_TYPE):
     telegram_id = update.effective_user.id
@@ -481,24 +481,24 @@ async def menu_personalizado(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     if not gustos:
         await update.message.reply_text(
-            f"⚠️ {nombre}, aún no tengo tus gustos registrados.\n"
+            f" {nombre}, aún no tengo tus gustos registrados.\n"
             "Puedes configurarlos enviando: *Me gusta [plato]*",
             parse_mode="Markdown"
         )
         return
 
-    texto_menu = "⭐ *Tu menú personalizado basado en tus gustos:*\n\n"
+    texto_menu = " *Tu menú personalizado basado en tus gustos:*\n\n"
     for plato in gustos:
         texto_menu += f"• {plato}\n"
 
     await update.message.reply_text(texto_menu, parse_mode="Markdown")
 
 # ----------------------------------------------------
-# ✅ SOPORTE
+#  SOPORTE
 # ----------------------------------------------------
 async def soporte(update: Update, context: ContextTypes.DEFAULT_TYPE):
     texto = (
-        "📞 *Soporte al Cliente*\n\n"
+        " *Soporte al Cliente*\n\n"
         "Si necesitas ayuda, contáctanos:\n"
         "• Teléfono: +58 269 34 567 890\n"
         "• Email: soporte@restaurante.com\n"
@@ -514,23 +514,23 @@ async def soporte(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(texto, parse_mode="Markdown")
 
 # ----------------------------------------------------
-# ✅ START + TECLADO INFERIOR    (Arreglar botones)
+#  START + TECLADO INFERIOR    (Arreglar botones)
 # ----------------------------------------------------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     nombre = update.effective_user.first_name
 
-    # ✅ Mensaje de Bienvenida "Mesero"
+    #  Mensaje de Bienvenida "Mesero"
     texto_bienvenida = (
-        f"¡Hola {nombre}! 👋\n"
+        f"¡Hola {nombre}! \n"
         f"Soy tu mesero virtual en *4 Sabores*.\n\n"
         f"Selecciona una opción para comenzar:"
     )
 
-    # ✅ Botones principales
+    #  Botones principales
     keyboard = [
-        [InlineKeyboardButton("🍔 Hacer un pedido", callback_data="ayuda_pedido")],
-        [InlineKeyboardButton("📦 Consultar mi pedido", callback_data="estado_pedido")],
-        [InlineKeyboardButton("📞 Hablar con soporte", callback_data="soporte")]
+        [InlineKeyboardButton(" Hacer un pedido", callback_data="ayuda_pedido")],
+        [InlineKeyboardButton(" Consultar mi pedido", callback_data="estado_pedido")],
+        [InlineKeyboardButton(" Hablar con soporte", callback_data="soporte")]
     ]
 
     await update.message.reply_text(
@@ -540,13 +540,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 # ----------------------------------------------------
-# ✅ OBTENER INGREDIENTES DE UN PRODUCTO
+#  OBTENER INGREDIENTES DE UN PRODUCTO
 # ----------------------------------------------------
 
 async def obtener_ingredientes_producto(producto_base: str) -> list[str]:
     ingredientes_finales = []
 
-    # ✅ 1. Ingredientes del plato desde el backend
+    #  1. Ingredientes del plato desde el backend
     try:
         r = requests.get(f"{PRODUCTOS_URL}?detalle={producto_base}", timeout=5)
         data = r.json()
@@ -565,7 +565,7 @@ async def obtener_ingredientes_producto(producto_base: str) -> list[str]:
         else:
             ingredientes_finales.append(str(ing).lower())
 
-    # ✅ 2. Ingredientes globales extra desde Django ORM (async-safe)
+    #  2. Ingredientes globales extra desde Django ORM (async-safe)
     try:
         # Usar sync_to_async para llamadas al ORM desde contexto asíncrono
         extras = await sync_to_async(list)(
@@ -582,7 +582,7 @@ async def obtener_ingredientes_producto(producto_base: str) -> list[str]:
     return ingredientes_finales
 
 # ----------------------------------------------------
-# ✅ FUZZY MATCHING DE INGREDIENTES
+#  FUZZY MATCHING DE INGREDIENTES
 # ----------------------------------------------------
 
 def fuzzy_match_ingrediente(texto: str, ingredientes_menu: list[str], threshold=70):
@@ -613,7 +613,7 @@ def fuzzy_match_ingrediente(texto: str, ingredientes_menu: list[str], threshold=
 
 
 # ----------------------------------------------------
-# ✅ RECOMENDACIÓN POR SIMILITUD SEMÁNTICA (EMBEDDINGS)
+#  RECOMENDACIÓN POR SIMILITUD SEMÁNTICA (EMBEDDINGS)
 # ----------------------------------------------------
 async def recomendacion_similar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     telegram_id = update.effective_user.id
@@ -623,12 +623,12 @@ async def recomendacion_similar(update: Update, context: ContextTypes.DEFAULT_TY
         async with aiohttp.ClientSession() as session:
             async with session.get(f"{SIMILAR_URL}{telegram_id}/", timeout=5) as r:
                 if r.status != 200:
-                    await update.message.reply_text("⚠️ No pude obtener recomendaciones en este momento.")
+                    await update.message.reply_text(" No pude obtener recomendaciones en este momento.")
                     return
                 data = await r.json()
     except Exception as e:
         print(f"Error en recomendacion_similar: {e}")
-        await update.message.reply_text("⚠️ No pude obtener recomendaciones similares.")
+        await update.message.reply_text(" No pude obtener recomendaciones similares.")
         return
 
     similares = data.get("similares", [])
@@ -636,16 +636,16 @@ async def recomendacion_similar(update: Update, context: ContextTypes.DEFAULT_TY
 
     if not similares:
         await update.message.reply_text(
-            f"⚠️ {nombre}, aún no tengo suficientes datos para recomendar platos similares.\n"
-            "Califica algunos platos con ⭐ para mejorar tus recomendaciones."
+            f" {nombre}, aún no tengo suficientes datos para recomendar platos similares.\n"
+            "Califica algunos platos con  para mejorar tus recomendaciones."
         )
         return
 
-    texto = f"🔍 *Platos similares a:* _{plato_base}_\n\n"
+    texto = f" *Platos similares a:* _{plato_base}_\n\n"
     keyboard = []
 
     for plato in similares:
-        # ✅ Aplicar memoria personalizada
+        #  Aplicar memoria personalizada
         plato_personalizado = await aplicar_memoria_personalizada(telegram_id, plato)
 
         # Se eliminó la validación 'producto_es_valido' que causaba error
@@ -658,7 +658,7 @@ async def recomendacion_similar(update: Update, context: ContextTypes.DEFAULT_TY
             )
         ])
 
-    keyboard.append([InlineKeyboardButton("🚫 No gracias", callback_data="rechazar_recomendacion")])
+    keyboard.append([InlineKeyboardButton(" No gracias", callback_data="rechazar_recomendacion")])
 
     await update.message.reply_text(
         texto,
@@ -667,21 +667,21 @@ async def recomendacion_similar(update: Update, context: ContextTypes.DEFAULT_TY
     )
 
 # ----------------------------------------------------
-# ✅ SISTEMA DE RECOMENDACIÓN HÍBRIDO
+#  SISTEMA DE RECOMENDACIÓN HÍBRIDO
 # ----------------------------------------------------
 
 async def recomendacion_hibrida(update: Update, context: ContextTypes.DEFAULT_TYPE):
     telegram_id = update.effective_user.id
     nombre = update.effective_user.first_name
 
-    # ✅ Consultar endpoint con ID en la URL
+    #  Consultar endpoint con ID en la URL
     try:
         # Aseguramos que la URL termine en / para concatenar el ID
         base_url = HIBRIDA_URL if HIBRIDA_URL.endswith("/") else f"{HIBRIDA_URL}/"
         r = requests.get(f"{base_url}{telegram_id}/", timeout=5)
         
         if r.status_code != 200:
-            await update.message.reply_text("⚠️ No pude obtener recomendaciones en este momento.")
+            await update.message.reply_text(" No pude obtener recomendaciones en este momento.")
             return
             
         data = r.json()
@@ -689,24 +689,24 @@ async def recomendacion_hibrida(update: Update, context: ContextTypes.DEFAULT_TY
         
     except Exception as e:
         print(f"Error recomendacion hibrida: {e}")
-        await update.message.reply_text("⚠️ Error de conexión.")
+        await update.message.reply_text(" Error de conexión.")
         return
 
     if not recomendaciones:
-        await update.message.reply_text(f"🤷‍♂️ {nombre}, aún no tengo suficientes datos para recomendarte algo.")
+        await update.message.reply_text(f"‍ {nombre}, aún no tengo suficientes datos para recomendarte algo.")
         return
 
-    # ✅ Construir mensaje
-    texto = f"🍽️ *Recomendaciones para ti, {nombre}*\n\n"
+    #  Construir mensaje
+    texto = f" *Recomendaciones para ti, {nombre}*\n\n"
     
     # Podemos inferir el contexto según las fuentes, pero simplifiquemos el mensaje
     fuentes = data.get("fuentes", {})
     personal = fuentes.get("personal", [])
     
     if personal:
-       texto += "💖 *Porque te encantan:*\n"
+       texto += " *Porque te encantan:*\n"
     else:
-       texto += "🔥 *Tendencias del momento:*\n"
+       texto += " *Tendencias del momento:*\n"
        
     keyboard = []
     for plato in recomendaciones:
@@ -715,7 +715,7 @@ async def recomendacion_hibrida(update: Update, context: ContextTypes.DEFAULT_TY
             InlineKeyboardButton(f"Pedir {plato}", callback_data=f"pedido:{plato}")
         ])
         
-    texto += "\n_Selecciona uno para pedirlo 👇_"
+    texto += "\n_Selecciona uno para pedirlo _"
 
     await update.message.reply_text(
         texto,
@@ -724,7 +724,7 @@ async def recomendacion_hibrida(update: Update, context: ContextTypes.DEFAULT_TY
     )
 
 # ----------------------------------------------------
-# ✅ RECOMENDACIONES 
+#  RECOMENDACIONES 
 #----------------------------------------------------
 
 async def recomendaciones(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -733,19 +733,19 @@ async def recomendaciones(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     plato = clean_order_text(texto)
 
-    # ✅ Aplicar memoria personalizada con ORM seguro
+    #  Aplicar memoria personalizada con ORM seguro
     plato_personalizado = await aplicar_memoria_personalizada(telegram_id, plato)
 
-    # ✅ Obtener recomendación del backend
+    #  Obtener recomendación del backend
     r = requests.post(RECOMENDACION_URL, json={"plato": plato_personalizado})
     data = r.json()
 
     recomendacion = data.get("recomendacion", plato_personalizado)
 
-    await update.message.reply_text(f"✅ Te recomiendo: {recomendacion}")
+    await update.message.reply_text(f" Te recomiendo: {recomendacion}")
 
 # ----------------------------------------------------
-# ✅ EXTRAER INGREDIENTES REMOVIDOS
+#  EXTRAER INGREDIENTES REMOVIDOS
 # ----------------------------------------------------
 
 
@@ -771,7 +771,7 @@ def extraer_ingredientes_removidos(texto: str, ingredientes_menu: list[str]) -> 
 
 
 # ----------------------------------------------------
-# ✅ EXTRAER INGREDIENTES AGREGADOS
+#  EXTRAER INGREDIENTES AGREGADOS
 # ----------------------------------------------------
 
 INGREDIENTES_AGREGADOS_KEYWORDS = [
@@ -797,7 +797,7 @@ def extraer_ingredientes_agregados(texto: str, ingredientes_menu: list[str]) -> 
 #   
 
 # ----------------------------------------------------
-# ✅ MANEJAR CALLBACK DE RATING
+#  MANEJAR CALLBACK DE RATING
 # ----------------------------------------------------
 
 async def handle_rating_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -807,7 +807,7 @@ async def handle_rating_callback(update: Update, context: ContextTypes.DEFAULT_T
     try:
         _, plato, estrellas = query.data.split(":")
     except:
-        await query.edit_message_text("⚠️ Error al procesar la calificación.")
+        await query.edit_message_text(" Error al procesar la calificación.")
         return
 
     telegram_id = query.from_user.id
@@ -820,17 +820,17 @@ async def handle_rating_callback(update: Update, context: ContextTypes.DEFAULT_T
 
     try:
         requests.post(RATING_URL, json=payload, timeout=5)
-        await query.edit_message_text(f"✅ Gracias por tu calificación: {plato} — {estrellas} ⭐")
+        await query.edit_message_text(f" Gracias por tu calificación: {plato} — {estrellas} ")
     except Exception as e:
-        await query.edit_message_text("⚠️ No pude guardar tu rating.")
+        await query.edit_message_text(" No pude guardar tu rating.")
 
 # ----------------------------------------------------
-# ✅ GUARDAR RATING ⭐
+#  GUARDAR RATING 
 # ----------------------------------------------------
 async def guardar_rating(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.strip()
 
-    if not text.startswith("⭐"):
+    if not text.startswith(""):
         return
 
     try:
@@ -838,7 +838,7 @@ async def guardar_rating(update: Update, context: ContextTypes.DEFAULT_TYPE):
         rating = int(partes[1])
         plato = partes[2]
     except:
-        await update.message.reply_text("Formato inválido. Usa: ⭐ 5 Nombre del plato")
+        await update.message.reply_text("Formato inválido. Usa:  5 Nombre del plato")
         return
 
     if rating < 1 or rating > 5:
@@ -851,12 +851,12 @@ async def guardar_rating(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
         requests.post(RATING_URL, json=data, timeout=5)
-        await update.message.reply_text(f"✅ Rating guardado: {plato} — {rating} ⭐")
+        await update.message.reply_text(f" Rating guardado: {plato} — {rating} ")
     except:
-        await update.message.reply_text("⚠️ No pude guardar tu rating.")
+        await update.message.reply_text(" No pude guardar tu rating.")
 
 # ----------------------------------------------------
-# ✅ CONSTRUIR PEDIDO FINAL CON MODIFICACIONES
+#  CONSTRUIR PEDIDO FINAL CON MODIFICACIONES
 # ----------------------------------------------------
 def construir_pedido_final(producto, removidos, agregados):
     pedido = producto
@@ -871,10 +871,10 @@ def construir_pedido_final(producto, removidos, agregados):
 
 
 # ----------------------------------------------------
-# ✅ LÓGICA DE MENSAJES DEL USUARIO
+#  LÓGICA DE MENSAJES DEL USUARIO
 # ----------------------------------------------------
 # ----------------------------------------------------
-# 🤖 STATE MACHINE DISPATCHER
+#  STATE MACHINE DISPATCHER
 # ----------------------------------------------------
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     telegram_id = update.effective_user.id
@@ -904,16 +904,16 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         file_id = context.user_data.get("current_photo_id")
         
         if not order_id: 
-            await update.message.reply_text("⚠️ Error de sesión. Por favor contacta soporte.")
+            await update.message.reply_text(" Error de sesión. Por favor contacta soporte.")
             return
 
         address = texto
         
         # Explicit Feedback to avoid confusion
         await update.message.reply_text(
-            f"📍 Dirección **'{address}'** guardada para el pedido **#{order_id}**.\n\n"
-            "✅ ¡Datos completados! Estamos verificando tu pago.\n"
-            "⚠️ _(Si tu mensaje anterior era un nuevo pedido, por favor envíalo de nuevo ahora)._",
+            f" Dirección **'{address}'** guardada para el pedido **#{order_id}**.\n\n"
+            " ¡Datos completados! Estamos verificando tu pago.\n"
+            " _(Si tu mensaje anterior era un nuevo pedido, por favor envíalo de nuevo ahora)._",
             parse_mode="Markdown"
         )
         
@@ -944,11 +944,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # 0.3 Check for Coupon Code Input
     if context.user_data.get("waiting_coupon_code"):
-        # ✅ FIX: Si el usuario escribe una intención de pedido ("quiero...", "dame..."), salimos del modo cupón
+        #  FIX: Si el usuario escribe una intención de pedido ("quiero...", "dame..."), salimos del modo cupón
         intent_words = ["quiero", "dame", "me gustaría", "pedir", "ordenar", "quisiera", "hamburguesa", "pizza", "menú", "menu"]
         if any(word in texto.lower() for word in intent_words):
              context.user_data["waiting_coupon_code"] = False
-             await update.message.reply_text("🔄 Cancelando ingreso de cupón para procesar tu solicitud...")
+             await update.message.reply_text(" Cancelando ingreso de cupón para procesar tu solicitud...")
              # Dejamos que el flujo continúe hacia handle_state_idle
         else:
              await handle_coupon_validation(update, context, texto)
@@ -973,7 +973,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await handle_state_idle(update, context, texto)
 
 # ----------------------------------------------------
-# 🧩 STATE HANDLERS
+#  STATE HANDLERS
 # ----------------------------------------------------
 
 async def handle_state_idle(update: Update, context: ContextTypes.DEFAULT_TYPE, texto: str):
@@ -992,20 +992,20 @@ async def handle_state_idle(update: Update, context: ContextTypes.DEFAULT_TYPE, 
         negaciones = ["no", "nada", "nada mas", "nada más", "nop", "nel", "fin", "listo"]
         if texto.lower() in negaciones:
              await update.message.reply_text(
-                 "✅ Entendido. Si ya terminaste, puedes consultar tu pedido o pedir la cuenta con los botones de abajo. 👇",
+                 " Entendido. Si ya terminaste, puedes consultar tu pedido o pedir la cuenta con los botones de abajo. ",
                  reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("📦 Ver mi Pedido", callback_data="estado_pedido")],
-                    [InlineKeyboardButton("🍔 Volver al Menú", callback_data="ayuda_pedido")]
+                    [InlineKeyboardButton(" Ver mi Pedido", callback_data="estado_pedido")],
+                    [InlineKeyboardButton(" Volver al Menú", callback_data="ayuda_pedido")]
                  ])
              )
              return
 
         # If text is too short or weird, try NLP intent or generic reply
         if len(texto) < 3:
-             await update.message.reply_text("👋 Hola. Para pedir, escribe el nombre del plato. Ej: 'Pizza'")
+             await update.message.reply_text(" Hola. Para pedir, escribe el nombre del plato. Ej: 'Pizza'")
              return
 
-        # 🆕 FALLBACK INTELIGENTE CON IA (Sustituye respuesta genérica)
+        #  FALLBACK INTELIGENTE CON IA (Sustituye respuesta genérica)
         respuesta_ia = await chatbot_groq_servidor(texto, telegram_id)
         await update.message.reply_text(respuesta_ia)
         return
@@ -1023,17 +1023,17 @@ async def handle_state_idle(update: Update, context: ContextTypes.DEFAULT_TYPE, 
         price = p.get('precio') or p.get('price')
         price = p.get('precio') or p.get('price')
         
-        btn_text = f"🍽️ {prod_name} (${price})"
+        btn_text = f" {prod_name} (${price})"
         # Use NAME as ID because backend doesn't return ID in detail view
         keyboard.append([InlineKeyboardButton(btn_text, callback_data=f"sel_prod:{prod_name}")])
 
     await update.message.reply_text(
-        f"🔎 Encontré estas opciones para '{texto}':\nSelecciona una 👇",
+        f" Encontré estas opciones para '{texto}':\nSelecciona una ",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
 # ----------------------------------------------------
-# 🤖 CHATBOT IA (GROQ FALLBACK)
+#  CHATBOT IA (GROQ FALLBACK)
 # ----------------------------------------------------
 async def chatbot_groq_servidor(pregunta_usuario: str, telegram_id: int):
     """
@@ -1064,7 +1064,7 @@ MENÚ ACTUAL DISPONIBLE:
 {", ".join(productos_lista) if productos_lista else "Consultar /menu"}
 
 INSTRUCCIONES:
-1. Responde de forma breve (máximo 3 líneas) y usa emojis 😊🍔
+1. Responde de forma breve (máximo 3 líneas) y usa emojis 
 2. Si preguntan por un plato que está en el menú, anímalos a pedirlo escribiendo el nombre.
 3. Si preguntan por algo que no sabes, sugiere contactar al soporte humano (/soporte).
 4. Mantén siempre un tono servicial y alegre.
@@ -1085,7 +1085,7 @@ INSTRUCCIONES:
         return completion.choices[0].message.content.strip()
     except Exception as e:
         logging.error(f"Error en chatbot_groq: {e}")
-        return "🤔 Mmm, no estoy seguro de eso. ¿Te gustaría ver el /menu o hablar con /soporte?"
+        return " Mmm, no estoy seguro de eso. ¿Te gustaría ver el /menu o hablar con /soporte?"
 
 async def handle_state_quantity(update: Update, context: ContextTypes.DEFAULT_TYPE, texto: str, session: dict):
     """
@@ -1096,7 +1096,7 @@ async def handle_state_quantity(update: Update, context: ContextTypes.DEFAULT_TY
         qty = int(texto)
         if qty < 1: throw_error
     except:
-        await update.message.reply_text("🔢 Por favor escribe un número válido (Ej: 1, 2).")
+        await update.message.reply_text(" Por favor escribe un número válido (Ej: 1, 2).")
         return
 
     # Proceed to Extras
@@ -1119,12 +1119,12 @@ async def handle_state_extras_text(update: Update, context: ContextTypes.DEFAULT
     
     update_session(session['telegram_id'], temp_data=temp_data)
     
-    await update.message.reply_text(f"📝 Anotado: '{texto}'.\n¿Algo más? Usa los botones o escribe otra nota.", 
+    await update.message.reply_text(f" Anotado: '{texto}'.\n¿Algo más? Usa los botones o escribe otra nota.", 
                                     reply_markup=teclado_extras(temp_data))
 
 
 # ----------------------------------------------------
-# 🛠️ HELPER: Buscar Productos (Backend)
+#  HELPER: Buscar Productos (Backend)
 # ----------------------------------------------------
 async def buscar_productos_backend(query: str):
     try:
@@ -1168,10 +1168,10 @@ async def buscar_productos_backend(query: str):
         return []
 
 # ----------------------------------------------------
-# 🔘 BUTTON LOGIC (CALLBACKS)
+#  BUTTON LOGIC (CALLBACKS)
 # ----------------------------------------------------
 # ----------------------------------------------------
-# 🔘 BUTTON LOGIC (CALLBACKS) - STATE MACHINE
+#  BUTTON LOGIC (CALLBACKS) - STATE MACHINE
 # ----------------------------------------------------
 async def handle_state_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -1199,7 +1199,7 @@ async def handle_state_callbacks(update: Update, context: ContextTypes.DEFAULT_T
             [InlineKeyboardButton("4", callback_data="set_qty:4"), InlineKeyboardButton("5", callback_data="set_qty:5")],
         ]
         await query.edit_message_text(
-            f"👌 Has elegido *{prod_name}*.\n¿Cuántos quieres?",
+            f" Has elegido *{prod_name}*.\n¿Cuántos quieres?",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
@@ -1271,7 +1271,7 @@ async def handle_state_callbacks(update: Update, context: ContextTypes.DEFAULT_T
         # Reset Session
         reset_session(telegram_id)
         
-        # ✅ Check user points for discount suggestion
+        #  Check user points for discount suggestion
         from bot.models import LoyaltyPoints
         loyalty = await sync_to_async(
             lambda: LoyaltyPoints.objects.filter(telegram_id=telegram_id).first()
@@ -1283,25 +1283,25 @@ async def handle_state_callbacks(update: Update, context: ContextTypes.DEFAULT_T
         # Add discount buttons if user has points or wants to use coupon
         discount_row = []
         if loyalty and loyalty.puntos >= 50:
-            discount_row.append(InlineKeyboardButton("💎 Usar 50 Puntos ($5 Off)", callback_data=f"apply_points:50:{pedido_key}"))
+            discount_row.append(InlineKeyboardButton(" Usar 50 Puntos ($5 Off)", callback_data=f"apply_points:50:{pedido_key}"))
         
-        discount_row.append(InlineKeyboardButton("🎟️ Ingresar Cupón", callback_data=f"enter_coupon:{pedido_key}"))
+        discount_row.append(InlineKeyboardButton(" Ingresar Cupón", callback_data=f"enter_coupon:{pedido_key}"))
         
         if discount_row:
             keyboard.append(discount_row)
         
         # Payment button
         keyboard.append([
-            InlineKeyboardButton(f"💸 Pagar ${price:.2f}", callback_data=f"proceder_pago:{pedido_key}")
+            InlineKeyboardButton(f" Pagar ${price:.2f}", callback_data=f"proceder_pago:{pedido_key}")
         ])
         
         # Build message with points info
-        mensaje = f"✅ *Pedido Configurado*\n\n{final_str}\n\nTotal: ${price:.2f}"
+        mensaje = f" *Pedido Configurado*\n\n{final_str}\n\nTotal: ${price:.2f}"
         
         if loyalty and loyalty.puntos > 0:
-            mensaje += f"\n\n💰 Tienes {loyalty.puntos} puntos disponibles"
+            mensaje += f"\n\n Tienes {loyalty.puntos} puntos disponibles"
             if loyalty.puntos >= 50:
-                mensaje += "\n💡 _¡Puedes usar 50 puntos para obtener $5 de descuento!_"
+                mensaje += "\n _¡Puedes usar 50 puntos para obtener $5 de descuento!_"
         
         await query.edit_message_text(
             mensaje,
@@ -1331,7 +1331,7 @@ async def avanzar_a_extras(update: Update, context, prod_id, qty, session):
     # but that function was async and complex.
     # Let's mock some common extras or just offer "Sin Cebolla", "Sin Salsas", "Extra Queso".
     
-    msg = f"👌 {qty} x {prod_name}.\n\n¿Deseas personalizar algo?"
+    msg = f" {qty} x {prod_name}.\n\n¿Deseas personalizar algo?"
     
     reply_markup = teclado_extras(temp_data)
     
@@ -1345,32 +1345,32 @@ def teclado_extras(temp_data):
     selected = temp_data.get("extras", [])
     prod_name = temp_data.get("product_name", "").lower()
     
-    # 🥤 Logic for Drinks
+    #  Logic for Drinks
     drinks_keywords = ["agua", "refresco", "polar", "maltin", "gaseosa", "coca", "pepsi", "jugo", "bebida", "cerveza", "té", "cafe", "nestea", "lata"]
     is_drink = any(k in prod_name for k in drinks_keywords)
     
     if is_drink:
         options = ["Con Hielo", "Sin Hielo", "Con Limón", "Temperatura Ambiente"]
     else:
-        # 🍔 Food options (default)
+        #  Food options (default)
         options = ["Sin Cebolla", "Sin Tomate", "Sin Salsas", "Extra Queso", "Para Llevar"]
     
     keyboard = []
     row = []
     for opt in options:
         # Checkmark if selected
-        txt = f"✅ {opt}" if opt in selected else opt
+        txt = f" {opt}" if opt in selected else opt
         row.append(InlineKeyboardButton(txt, callback_data=f"toggle_extra:{opt}"))
         if len(row) == 2:
             keyboard.append(row)
             row = []
     if row: keyboard.append(row)
     
-    keyboard.append([InlineKeyboardButton("✅ CONFIRMAR PEDIDO", callback_data="confirm_order")])
+    keyboard.append([InlineKeyboardButton(" CONFIRMAR PEDIDO", callback_data="confirm_order")])
     return InlineKeyboardMarkup(keyboard)
 
 # ----------------------------------------------------
-# ✅ CONFIRMAR PEDIDO (con memoria de ingredientes)
+#  CONFIRMAR PEDIDO (con memoria de ingredientes)
 # ----------------------------------------------------
 
 async def handle_confirmacion(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1387,14 +1387,14 @@ async def handle_confirmacion(update: Update, context: ContextTypes.DEFAULT_TYPE
     data = context.user_data.pop(pedido_key, None)
     
     if data is None:
-        await query.edit_message_text("⚠️ Error: No se encontró la información del pedido.")
+        await query.edit_message_text(" Error: No se encontró la información del pedido.")
         return
 
     pedido_final = data["pedido_final"]
     file_id = data.get("payment_receipt_file_id")
     payment_data = data.get("payment_data")
 
-    # ✅ Guardar pedido FINAL en la base de datos
+    #  Guardar pedido FINAL en la base de datos
     try:
         order_data = {
             "telegram_id": telegram_id,
@@ -1409,33 +1409,33 @@ async def handle_confirmacion(update: Update, context: ContextTypes.DEFAULT_TYPE
         if response.status_code in (200, 201):
             order_id = response.json().get("id")
             
-            # ✅ Notificar al cliente
+            #  Notificar al cliente
             await query.edit_message_text(
-                text=f"✅ *¡Pedido Enviado!*\\n\\n"
+                text=f" *¡Pedido Enviado!*\\n\\n"
                      f"Tu pedido de **{pedido_final}** ha sido registrado.\\n"
                      f"⏳ Estamos verificando tu comprobante. Te avisaremos pronto.",
                 parse_mode="Markdown"
             )
 
-            # ✅ Notificar al administrador para aprobación
+            #  Notificar al administrador para aprobación
             datos_ocr = ""
             if payment_data and "error" not in payment_data:
-                datos_ocr = "\\n📊 *Datos Extraídos:*\\n"
+                datos_ocr = "\\n *Datos Extraídos:*\\n"
                 for k, v in payment_data.items():
                     datos_ocr += f"• {k.replace('_',' ').title()}: {v}\\n"
 
             keyboard = [
                 [
-                    InlineKeyboardButton("✅ Aprobar Pago", callback_data=f"aprobar_pago:{order_id}"),
-                    InlineKeyboardButton("❌ Rechazar Pago", callback_data=f"rechazar_pago:{order_id}")
+                    InlineKeyboardButton(" Aprobar Pago", callback_data=f"aprobar_pago:{order_id}"),
+                    InlineKeyboardButton(" Rechazar Pago", callback_data=f"rechazar_pago:{order_id}")
                 ]
             ]
             
             mensaje_admin = (
-                f"💳 *NUEVO PEDIDO POR VERIFICAR*\\n\\n"
-                f"👤 Cliente: {nombre} (ID: {telegram_id})\\n"
-                f"🍽️ Pedido: {pedido_final}\\n"
-                f"🆔 Order ID: {order_id}\\n"
+                f" *NUEVO PEDIDO POR VERIFICAR*\\n\\n"
+                f" Cliente: {nombre} (ID: {telegram_id})\\n"
+                f" Pedido: {pedido_final}\\n"
+                f" Order ID: {order_id}\\n"
                 f"{datos_ocr}n"
                 f"⏰ {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}"
             )
@@ -1449,7 +1449,7 @@ async def handle_confirmacion(update: Update, context: ContextTypes.DEFAULT_TYPE
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
 
-            # ✅ Guardar memoria personalizada opcionalmente
+            #  Guardar memoria personalizada opcionalmente
             try:
                 payload_mem = {
                     "telegram_id": telegram_id,
@@ -1462,15 +1462,15 @@ async def handle_confirmacion(update: Update, context: ContextTypes.DEFAULT_TYPE
             except: pass
 
         else:
-            await query.edit_message_text(text="⚠️ No pude registrar tu pedido en el servidor. Intenta de nuevo.")
+            await query.edit_message_text(text=" No pude registrar tu pedido en el servidor. Intenta de nuevo.")
     except Exception as e:
         logging.error(f"Error finalizando orden: {e}")
-        await query.edit_message_text(text="⚠️ Hubo un error procesando tu confirmación.")
+        await query.edit_message_text(text=" Hubo un error procesando tu confirmación.")
 
 
 
 # ----------------------------------------------------
-# ✅ GUARDAR PEDIDO PERSONALIZADO EN BACKEND
+#  GUARDAR PEDIDO PERSONALIZADO EN BACKEND
 # ----------------------------------------------------
 
 async def recordar_pedido_personalizado(telegram_id, plato):
@@ -1491,10 +1491,10 @@ async def recordar_pedido_personalizado(telegram_id, plato):
 
 
 # ----------------------------------------------------
-# ✅ APLICAR MEMORIA PERSONALIZADA AL PEDIDO
+#  APLICAR MEMORIA PERSONALIZADA AL PEDIDO
 # ----------------------------------------------------
 async def aplicar_memoria_personalizada(telegram_id, plato):
-    # ✅ Ejecutar ORM en modo seguro
+    #  Ejecutar ORM en modo seguro
     ultimo = await sync_to_async(
         lambda: PedidoPersonalizado.objects.filter(
             telegram_id=telegram_id,
@@ -1511,7 +1511,7 @@ async def aplicar_memoria_personalizada(telegram_id, plato):
     return construir_pedido_final(plato, removidos, agregados)
 
 # ----------------------------------------------------
-# ✅ MANEJADOR CENTRAL DE CALLBACKS
+#  MANEJADOR CENTRAL DE CALLBACKS
 # ----------------------------------------------------
 
 async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1531,25 +1531,25 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         return
 
     # ----------------------------------------------------
-    # ✅ 1. Proceder al pago (Mostrar info bancaria)
+    #  1. Proceder al pago (Mostrar info bancaria)
     # ----------------------------------------------------
     if query.data.startswith("proceder_pago:"):
         await handle_proceder_pago(update, context)
         return
 
     # ----------------------------------------------------
-    # ✅ 1.5 Manejar Callback de Rating
+    #  1.5 Manejar Callback de Rating
     # ----------------------------------------------------
     if query.data.startswith("rating:"):
         await handle_rating_callback(update, context)
         return
 
     # ----------------------------------------------------
-    # ✅ 1.6 Botones del Menú Principal (/start)
+    #  1.6 Botones del Menú Principal (/start)
     # ----------------------------------------------------
     if query.data == "ayuda_pedido":
         await query.edit_message_text(
-            "🍔 *Cómo hacer un pedido*\n\n"
+            " *Cómo hacer un pedido*\n\n"
             "Es muy fácil, solo escríbeme lo que quieres. Ejemplos:\n"
             "• _'Quiero una hamburguesa con queso'_\n"
             "• _'Dame una pizza y una coca cola'_\n"
@@ -1563,8 +1563,8 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         # Simulación o enlace a historial
         telegram_id = query.from_user.id
         await query.edit_message_text(
-            f"📦 para ver tus pedidos recientes escribe /historial\n"
-            f"Si acabas de pedir, tu orden está siendo procesada en cocina. 👨‍🍳"
+            f" para ver tus pedidos recientes escribe /historial\n"
+            f"Si acabas de pedir, tu orden está siendo procesada en cocina. ‍"
         )
         return
 
@@ -1573,44 +1573,44 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         return
 
     # ----------------------------------------------------
-    # ✅ 2. Confirmar pedido (Guardar en DB)
+    #  2. Confirmar pedido (Guardar en DB)
     # ----------------------------------------------------
     if query.data.startswith("confirmar:"):
         await handle_confirmacion(update, context)
         return
 
     # ----------------------------------------------------
-    # ✅ 2. Cancelar pedido
+    #  2. Cancelar pedido
     # ----------------------------------------------------
     if query.data == "cancelar":
-        await query.edit_message_text("❌ Pedido cancelado.")
+        await query.edit_message_text(" Pedido cancelado.")
         return
 
     # ----------------------------------------------------
-    # ✅ 3. Registrar pedido desde recomendaciones
+    #  3. Registrar pedido desde recomendaciones
     # ----------------------------------------------------
     if query.data.startswith("pedido:"):
         plato = query.data.replace("pedido:", "").strip()
 
         if save_order(telegram_id, plato):
             await query.edit_message_text(
-                text=f"📝 {nombre}, tu pedido fue registrado: {plato}. Estado: pendiente."
+                text=f" {nombre}, tu pedido fue registrado: {plato}. Estado: pendiente."
             )
         else:
             await query.edit_message_text(
-                text=f"⚠️ {nombre}, no se pudo registrar el pedido recomendado."
+                text=f" {nombre}, no se pudo registrar el pedido recomendado."
             )
         return
 
     # ----------------------------------------------------
-    # ✅ 4. Rechazar recomendación
+    #  4. Rechazar recomendación
     # ----------------------------------------------------
     if query.data == "rechazar_recomendacion":
-        await query.edit_message_text("👌 Entendido. No se agregaron recomendaciones adicionales.")
+        await query.edit_message_text(" Entendido. No se agregaron recomendaciones adicionales.")
         return
 
     # ----------------------------------------------------
-    # ✅ 5. Guardar gusto permanente (FASE 7)
+    #  5. Guardar gusto permanente (FASE 7)
     # ----------------------------------------------------
     if query.data.startswith("guardar_gusto:"):
         _, ingrediente, gusto = query.data.split(":")
@@ -1627,33 +1627,33 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         await sync_to_async(pref.save)()
 
         await query.edit_message_text(
-            f"✅ Perfecto {nombre}, lo recordaré para todos tus pedidos."
+            f" Perfecto {nombre}, lo recordaré para todos tus pedidos."
         )
         return
 
     # ----------------------------------------------------
-    # ✅ 6. Rechazar gusto permanente
+    #  6. Rechazar gusto permanente
     # ----------------------------------------------------
     if query.data == "rechazar_gusto":
-        await query.edit_message_text("👌 Entendido, no lo guardaré.")
+        await query.edit_message_text(" Entendido, no lo guardaré.")
         return
 
     # ----------------------------------------------------
-    # ✅ 6.5 Aplicar Puntos de Fidelidad
+    #  6.5 Aplicar Puntos de Fidelidad
     # ----------------------------------------------------
     if query.data.startswith("apply_points:"):
         await handle_apply_points(update, context)
         return
     
     # ----------------------------------------------------
-    # ✅ 6.6 Ingresar Cupón
+    #  6.6 Ingresar Cupón
     # ----------------------------------------------------
     if query.data.startswith("enter_coupon:"):
         await handle_enter_coupon(update, context)
         return
 
     # ----------------------------------------------------
-    # ✅ 7. Aprobar/Rechazar Pago (ADMIN)
+    #  7. Aprobar/Rechazar Pago (ADMIN)
     # ----------------------------------------------------
     if query.data.startswith("aprobar_pago:"):
         await handle_payment_approval(update, context)
@@ -1664,27 +1664,27 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         return
 
     # ----------------------------------------------------
-    # ✅ 8. Dejar comentario
+    #  8. Dejar comentario
     # ----------------------------------------------------
     if query.data == "dejar_comentario":
         await query.edit_message_text(
-            "📝 ¡Gracias por tu disposición! Por favor, deja tu comentario en el siguiente enlace:\n\n"
+            " ¡Gracias por tu disposición! Por favor, deja tu comentario en el siguiente enlace:\n\n"
             "https://docs.google.com/forms/d/1AEZDZYcEI2081kemNSIcoIaBKWNh88oqhRsLfcfcWr0/edit"
         )
         return
 
     # ----------------------------------------------------
-    # ✅ 8. No dejar comentario
+    #  8. No dejar comentario
     # ----------------------------------------------------
     if query.data == "no_comentario":
         await query.edit_message_text(
-            f"👌 ¡Perfecto {nombre}! Gracias por tu pedido. ¡Que lo disfrutes! 🍽️"
+            f" ¡Perfecto {nombre}! Gracias por tu pedido. ¡Que lo disfrutes! "
         )
         return
 
 
 # ----------------------------------------------------
-# ✅ APLICAR PUNTOS DE FIDELIDAD
+#  APLICAR PUNTOS DE FIDELIDAD
 # ----------------------------------------------------
 async def handle_apply_points(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
@@ -1704,7 +1704,7 @@ async def handle_apply_points(update: Update, context: ContextTypes.DEFAULT_TYPE
     # Get order data
     data = context.user_data.get(pedido_key)
     if not data:
-        await query.edit_message_text("⚠️ Error: Sesión expirada.")
+        await query.edit_message_text(" Error: Sesión expirada.")
         return
     
     # Get user loyalty points
@@ -1714,14 +1714,14 @@ async def handle_apply_points(update: Update, context: ContextTypes.DEFAULT_TYPE
     )()
     
     if not loyalty or loyalty.puntos < points_to_use:
-        await query.answer("❌ No tienes suficientes puntos.", show_alert=True)
+        await query.answer(" No tienes suficientes puntos.", show_alert=True)
         return
     
     # Redeem points
     discount = await sync_to_async(loyalty.redeem_points)(points_to_use)
     
     if discount is None:
-        await query.answer("❌ Error al canjear puntos.", show_alert=True)
+        await query.answer(" Error al canjear puntos.", show_alert=True)
         return
     
     # Update price
@@ -1735,17 +1735,17 @@ async def handle_apply_points(update: Update, context: ContextTypes.DEFAULT_TYPE
     
     # Update message
     mensaje = (
-        f"✅ *¡Descuento Aplicado!*\n\n"
+        f" *¡Descuento Aplicado!*\n\n"
         f"{data['pedido_final']}\n\n"
         f"Precio Original: ${precio_original:.2f}\n"
         f"Descuento (Puntos): -${discount:.2f}\n"
         f"*Total a Pagar: ${nuevo_precio:.2f}*\n\n"
-        f"💰 Puntos restantes: {loyalty.puntos}"
+        f" Puntos restantes: {loyalty.puntos}"
     )
     
     keyboard = [
         [
-            InlineKeyboardButton(f"💸 Pagar ${nuevo_precio:.2f}", callback_data=f"proceder_pago:{pedido_key}")
+            InlineKeyboardButton(f" Pagar ${nuevo_precio:.2f}", callback_data=f"proceder_pago:{pedido_key}")
         ]
     ]
     
@@ -1757,7 +1757,7 @@ async def handle_apply_points(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 
 # ----------------------------------------------------
-# ✅ INGRESAR CUPÓN
+#  INGRESAR CUPÓN
 # ----------------------------------------------------
 async def handle_enter_coupon(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
@@ -1776,7 +1776,7 @@ async def handle_enter_coupon(update: Update, context: ContextTypes.DEFAULT_TYPE
     context.user_data["coupon_pedido_key"] = pedido_key
     
     await query.edit_message_text(
-        "🎟️ *Ingresa tu código de cupón*\n\n"
+        " *Ingresa tu código de cupón*\n\n"
         "Escribe el código del cupón que deseas usar.\n"
         "Ejemplo: PROMO2026\n\n"
         "_Escribe /cancelar para volver._",
@@ -1785,7 +1785,7 @@ async def handle_enter_coupon(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 
 # ----------------------------------------------------
-# ✅ VALIDAR Y APLICAR CUPÓN
+#  VALIDAR Y APLICAR CUPÓN
 # ----------------------------------------------------
 async def handle_coupon_validation(update: Update, context: ContextTypes.DEFAULT_TYPE, coupon_code: str):
     """
@@ -1798,7 +1798,7 @@ async def handle_coupon_validation(update: Update, context: ContextTypes.DEFAULT
     data = context.user_data.get(pedido_key)
     
     if not data:
-        await update.message.reply_text("⚠️ Error: Sesión expirada.")
+        await update.message.reply_text(" Error: Sesión expirada.")
         return
     
     # Search for coupon
@@ -1810,7 +1810,7 @@ async def handle_coupon_validation(update: Update, context: ContextTypes.DEFAULT
     
     if not coupon:
         await update.message.reply_text(
-            f"❌ El cupón '{coupon_code}' no existe.\n\n"
+            f" El cupón '{coupon_code}' no existe.\n\n"
             "Verifica el código e intenta de nuevo."
         )
         return
@@ -1819,7 +1819,7 @@ async def handle_coupon_validation(update: Update, context: ContextTypes.DEFAULT
     is_valid = await sync_to_async(coupon.is_valid)()
     if not is_valid:
         await update.message.reply_text(
-            f"❌ El cupón '{coupon_code}' no está disponible o ha expirado."
+            f" El cupón '{coupon_code}' no está disponible o ha expirado."
         )
         return
     
@@ -1833,7 +1833,7 @@ async def handle_coupon_validation(update: Update, context: ContextTypes.DEFAULT
     
     if already_used:
         await update.message.reply_text(
-            f"❌ Ya has usado el cupón '{coupon_code}' anteriormente."
+            f" Ya has usado el cupón '{coupon_code}' anteriormente."
         )
         return
     
@@ -1843,7 +1843,7 @@ async def handle_coupon_validation(update: Update, context: ContextTypes.DEFAULT
     
     if discount == 0:
         await update.message.reply_text(
-            f"❌ El cupón '{coupon_code}' no es aplicable a este pedido.\n"
+            f" El cupón '{coupon_code}' no es aplicable a este pedido.\n"
             f"Monto mínimo requerido: ${coupon.min_order_amount:.2f}"
         )
         return
@@ -1869,7 +1869,7 @@ async def handle_coupon_validation(update: Update, context: ContextTypes.DEFAULT
     
     # Send confirmation
     mensaje = (
-        f"✅ *¡Cupón Aplicado!*\n\n"
+        f" *¡Cupón Aplicado!*\n\n"
         f"{data['pedido_final']}\n\n"
         f"Precio Original: ${precio_original:.2f}\n"
         f"Descuento ({coupon_code}): -${discount:.2f}\n"
@@ -1878,7 +1878,7 @@ async def handle_coupon_validation(update: Update, context: ContextTypes.DEFAULT
     
     keyboard = [
         [
-            InlineKeyboardButton(f"💸 Pagar ${nuevo_precio:.2f}", callback_data=f"proceder_pago:{pedido_key}")
+            InlineKeyboardButton(f" Pagar ${nuevo_precio:.2f}", callback_data=f"proceder_pago:{pedido_key}")
         ]
     ]
     
@@ -1890,7 +1890,7 @@ async def handle_coupon_validation(update: Update, context: ContextTypes.DEFAULT
 
 
 # ----------------------------------------------------
-# ✅ EXTRAER PRODUCTO BASE CON RAPIDFUZZ
+#  EXTRAER PRODUCTO BASE CON RAPIDFUZZ
 #----------------------------------------------------
 
 def extraer_producto_base(texto_usuario: str) -> str | None:
@@ -1910,7 +1910,7 @@ def extraer_producto_base(texto_usuario: str) -> str | None:
         return None
 
     if not productos:
-        print("⚠️ No hay productos en la base de datos")
+        print(" No hay productos en la base de datos")
         return None
 
     texto = texto_usuario.lower()
@@ -1926,7 +1926,7 @@ def extraer_producto_base(texto_usuario: str) -> str | None:
         
         # Manejar caso donde no hay coincidencias
         if result is None:
-            print("❌ No se encontró ninguna coincidencia")
+            print(" No se encontró ninguna coincidencia")
             print("========================================\n")
             return None
         
@@ -1941,11 +1941,11 @@ def extraer_producto_base(texto_usuario: str) -> str | None:
 
     # Umbral mínimo para aceptar (70 funciona muy bien)
     if score >= 70:
-        print(f"✅ Producto detectado: '{mejor_match}'")
+        print(f" Producto detectado: '{mejor_match}'")
         print("========================================\n")
         return mejor_match
     else:
-        print(f"❌ Score {score} es menor que el umbral 70")
+        print(f" Score {score} es menor que el umbral 70")
         print("========================================\n")
 
     return None
@@ -1954,10 +1954,10 @@ def extraer_producto_base(texto_usuario: str) -> str | None:
 
 
 # ----------------------------------------------------
-# ✅ MOSTRAR INFORMACIÓN DE PAGO
+#  MOSTRAR INFORMACIÓN DE PAGO
 # ----------------------------------------------------
 # ----------------------------------------------------
-# 🚚 LOGISTICS & PAYMENT FLOW
+#  LOGISTICS & PAYMENT FLOW
 # ----------------------------------------------------
 
 async def handle_proceder_pago(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1971,13 +1971,13 @@ async def handle_proceder_pago(update: Update, context: ContextTypes.DEFAULT_TYP
     context.user_data["current_pedido_key"] = pedido_key
     
     keyboard = [
-        [InlineKeyboardButton("🛵 Delivery", callback_data="sel_serv:DELIVERY")],
-        [InlineKeyboardButton("🥡 Para Llevar (Pick Up)", callback_data="sel_serv:PICKUP")],
-        [InlineKeyboardButton("🍽️ Comer Aquí", callback_data="sel_serv:HERE")]
+        [InlineKeyboardButton(" Delivery", callback_data="sel_serv:DELIVERY")],
+        [InlineKeyboardButton(" Para Llevar (Pick Up)", callback_data="sel_serv:PICKUP")],
+        [InlineKeyboardButton(" Comer Aquí", callback_data="sel_serv:HERE")]
     ]
     
     await query.edit_message_text(
-        text="📍 *¿Cómo deseas recibir tu pedido?*",
+        text=" *¿Cómo deseas recibir tu pedido?*",
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
@@ -1989,7 +1989,7 @@ async def handle_service_selection(update: Update, context: ContextTypes.DEFAULT
     # Update context data
     pedido_key = context.user_data.get("current_pedido_key", "pedido_carrito")
     if pedido_key not in context.user_data:
-        await query.edit_message_text("⚠️ Error: Sesión expirada.")
+        await query.edit_message_text(" Error: Sesión expirada.")
         return
 
     context.user_data[pedido_key]["service_type"] = service_type
@@ -2016,7 +2016,7 @@ async def show_payment_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = context.user_data.get(pedido_key)
     
     if not data:
-        msg = "⚠️ Error: No se encontró la información del pedido."
+        msg = " Error: No se encontró la información del pedido."
         if query: await query.edit_message_text(msg)
         else: await update.message.reply_text(msg)
         return
@@ -2058,7 +2058,7 @@ async def show_payment_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 else:
                     error_text = await resp.text()
                     logging.error(f"Error backend post: {resp.status} - {error_text}")
-                    msg = "⚠️ Error al crear la orden en el servidor."
+                    msg = " Error al crear la orden en el servidor."
                     if query: await query.edit_message_text(msg)
                     else: await update.message.reply_text(msg)
                     return
@@ -2071,7 +2071,7 @@ async def show_payment_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     monto_bs = data.get("precio", 0.0) * exchange_rate
 
     mensaje_pago = (
-        f"💳 *Información de Pago* ({raw_service})\n"
+        f" *Información de Pago* ({raw_service})\n"
         f"Pedido: **{data['pedido_final']}**\n\n"
         f"• Banco: BANCO BANESCO (0134)\n"
         f"• Titular: Restaurante Los Cuatros Sabores\n"
@@ -2080,13 +2080,13 @@ async def show_payment_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"• Monto: $**{data['precio']:.2f}**\n"
         f"• *Equivalente:* Bs. **{monto_bs:,.2f}**\n"
         f"• *(Tasa: 1$ = {exchange_rate:.2f} Bs.)*\n\n"
-        f"📸 *Siguiente paso:* Envía la **FOTO** del comprobante aquí."
+        f" *Siguiente paso:* Envía la **FOTO** del comprobante aquí."
     )
     
-    # ✅ Conditional Cancel Button for HERE service
+    #  Conditional Cancel Button for HERE service
     reply_markup = None
     if raw_service == 'HERE':
-        reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancelar", callback_data="cancelar")]])
+        reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton(" Cancelar", callback_data="cancelar")]])
 
     if query:
         await query.edit_message_text(text=mensaje_pago, parse_mode="Markdown", reply_markup=reply_markup)
@@ -2098,7 +2098,7 @@ async def show_payment_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # ----------------------------------------------------
-# ✅ MANEJAR COMPROBANTE DE PAGO (FOTO)
+#  MANEJAR COMPROBANTE DE PAGO (FOTO)
 # ----------------------------------------------------
 async def handle_payment_receipt(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
@@ -2116,7 +2116,7 @@ async def handle_payment_receipt(update: Update, context: ContextTypes.DEFAULT_T
     if not order_id or not pedido_item:
         logging.warning(f"ESTADO PERDIDO: Usuario {telegram_id} mandó foto pero no hay order_id en user_data. Datos actuales: {context.user_data}")
         await update.message.reply_text(
-            "⚠️ *Lo siento, parece que mi memoria se reinició...*\n\n"
+            " *Lo siento, parece que mi memoria se reinició...*\n\n"
             "No encontré un pedido pendiente vinculado a esta foto. "
             "Por favor, intenta de nuevo pegando tu resumen del pedido o usando el /menu.",
             parse_mode="Markdown"
@@ -2130,7 +2130,7 @@ async def handle_payment_receipt(update: Update, context: ContextTypes.DEFAULT_T
     elif update.message.document and update.message.document.mime_type.startswith("image/"):
         file_id = update.message.document.file_id
     else:
-        await update.message.reply_text("⚠️ Por favor envía una foto clara del comprobante de pago.")
+        await update.message.reply_text(" Por favor envía una foto clara del comprobante de pago.")
         return
     
     try:
@@ -2140,7 +2140,7 @@ async def handle_payment_receipt(update: Update, context: ContextTypes.DEFAULT_T
         await file.download_to_drive(file_path)
         
         # Extraer datos del comprobante con OCR
-        await update.message.reply_text("🔍 Analizando tu comprobante con IA...")
+        await update.message.reply_text(" Analizando tu comprobante con IA...")
         payment_data = await extraer_datos_comprobante(file_path)
         
         # Actualizar la orden en el backend (PATCH)
@@ -2174,14 +2174,14 @@ async def handle_payment_receipt(update: Update, context: ContextTypes.DEFAULT_T
                             context.user_data["temp_telegram_id"] = telegram_id
 
                             await update.message.reply_text(
-                                f"✅ Comprobante recibido, {nombre}.\n\n"
-                                "📍 *Ahora, por favor comparte tu ubicación o escribe la dirección de entrega:*"
+                                f" Comprobante recibido, {nombre}.\n\n"
+                                " *Ahora, por favor comparte tu ubicación o escribe la dirección de entrega:*"
                             )
                             
                             # Send Location Button
-                            keyboard_loc = [[KeyboardButton("📍 Enviar mi Ubicación", request_location=True)]]
+                            keyboard_loc = [[KeyboardButton(" Enviar mi Ubicación", request_location=True)]]
                             await update.message.reply_text(
-                                "👇 Usa el botón o escribe:",
+                                " Usa el botón o escribe:",
                                 reply_markup=ReplyKeyboardMarkup(keyboard_loc, one_time_keyboard=True, resize_keyboard=True)
                             )
                             # Remove temp file but DO NOT notify admin yet
@@ -2190,7 +2190,7 @@ async def handle_payment_receipt(update: Update, context: ContextTypes.DEFAULT_T
                         
                         # Case: PickUp/Here -> Notify Admin Immediately
                         await update.message.reply_text(
-                            f"✅ {nombre}, hemos recibido tu comprobonte.\n\n"
+                            f" {nombre}, hemos recibido tu comprobonte.\n\n"
                             f"⏳ Estamos verificando tu pago. Te notificaremos pronto."
                         )
 
@@ -2202,39 +2202,39 @@ async def handle_payment_receipt(update: Update, context: ContextTypes.DEFAULT_T
                     else:
                         error_text = await resp.text()
                         logging.error(f"Error Actualizando Orden: {resp.status} - {error_text}")
-                        await update.message.reply_text("⚠️ Error al procesar tu comprobante en el servidor.")
+                        await update.message.reply_text(" Error al procesar tu comprobante en el servidor.")
             except Exception as e:
                 logging.error(f"Error de conexión PATCH: {e}")
-                await update.message.reply_text("⚠️ Error de conexión al procesar el pago.")
+                await update.message.reply_text(" Error de conexión al procesar el pago.")
                 
     except Exception as e:
         logging.error(f"Error procesando comprobante: {e}")
-        await update.message.reply_text("⚠️ Hubo un error inesperado al procesar tu comprobante.")
+        await update.message.reply_text(" Hubo un error inesperado al procesar tu comprobante.")
 
 
 async def notify_admin_new_order(context, order_id, telegram_id, nombre, pedido_item, precio, payment_data, file_id, location_info=None):
     # Preparar datos extraídos
     datos_extraidos = ""
     if payment_data and "error" not in payment_data:
-        datos_extraidos = "\n📊 *Datos Extraídos:* \n"
+        datos_extraidos = "\n *Datos Extraídos:* \n"
         for key, value in payment_data.items():
             key_es = key.replace("_", " ").title()
             datos_extraidos += f"• {key_es}: {value}\n"
     
-    loc_str = f"📍 Ubicación: {location_info}\n" if location_info else ""
+    loc_str = f" Ubicación: {location_info}\n" if location_info else ""
 
     # Calcular monto en Bs para el admin
     exchange_rate = get_exchange_rate()
     monto_bs = float(precio) * exchange_rate
 
     mensaje_admin = (
-        f"💳 *NUEVO COMPROBANTE DE PAGO*\n\n"
-        f"👤 Cliente: {nombre} (ID: {telegram_id})\n"
-        f"🍽️ Pedido: {pedido_item}\n"
-        f"🆔 Order ID: {order_id}\n"
-        f"💰 Precio: ${precio}\n"
-        f"🇻🇪 Equivalente: Bs. {monto_bs:,.2f}\n"
-        f"📊 Tasa: {exchange_rate:.2f}\n"
+        f" *NUEVO COMPROBANTE DE PAGO*\n\n"
+        f" Cliente: {nombre} (ID: {telegram_id})\n"
+        f" Pedido: {pedido_item}\n"
+        f" Order ID: {order_id}\n"
+        f" Precio: ${precio}\n"
+        f" Equivalente: Bs. {monto_bs:,.2f}\n"
+        f" Tasa: {exchange_rate:.2f}\n"
         f"{loc_str}"
         f"{datos_extraidos}\n"
         f"⏰ {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}"
@@ -2242,8 +2242,8 @@ async def notify_admin_new_order(context, order_id, telegram_id, nombre, pedido_
     
     keyboard = [
         [
-            InlineKeyboardButton("✅ Aprobar Pago", callback_data=f"aprobar_pago:{order_id}"),
-            InlineKeyboardButton("❌ Rechazar Pago", callback_data=f"rechazar_pago:{order_id}")
+            InlineKeyboardButton(" Aprobar Pago", callback_data=f"aprobar_pago:{order_id}"),
+            InlineKeyboardButton(" Rechazar Pago", callback_data=f"rechazar_pago:{order_id}")
         ]
     ]
 
@@ -2257,7 +2257,7 @@ async def notify_admin_new_order(context, order_id, telegram_id, nombre, pedido_
 
 
 # ----------------------------------------------------
-# ✅ APROBAR PAGO (ADMIN)
+#  APROBAR PAGO (ADMIN)
 # ----------------------------------------------------
 async def handle_payment_approval(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
@@ -2272,7 +2272,7 @@ async def handle_payment_approval(update: Update, context: ContextTypes.DEFAULT_
         # Obtener información de la orden
         response = requests.get(f"{ORDERS_URL}{order_id}/", timeout=5)
         if response.status_code != 200:
-            await query.edit_message_caption(caption="⚠️ No se pudo encontrar la orden.")
+            await query.edit_message_caption(caption=" No se pudo encontrar la orden.")
             return
         
         order_data = response.json()
@@ -2293,7 +2293,7 @@ async def handle_payment_approval(update: Update, context: ContextTypes.DEFAULT_
         
         if patch_resp.status_code not in (200, 204):
             logging.error(f"[ERROR] No se pudo actualizar el estado de la orden {order_id}: {patch_resp.status_code} - {patch_resp.text}")
-            await query.edit_message_caption(caption="⚠️ Error al actualizar el estado en el servidor.")
+            await query.edit_message_caption(caption=" Error al actualizar el estado en el servidor.")
             return
 
         
@@ -2301,17 +2301,17 @@ async def handle_payment_approval(update: Update, context: ContextTypes.DEFAULT_
         await context.bot.send_message(
             chat_id=telegram_id,
             text=(
-                f"✅ *¡Pago Aprobado!*\n\n"
+                f" *¡Pago Aprobado!*\n\n"
                 f"Tu pago ha sido verificado exitosamente.\n"
                 f"Tu pedido está siendo preparado:\n\n"
-                f"🍽️ {pedido_item}\n\n"
-                f"💰 Precio: ${order_data.get('precio')}\n"
+                f" {pedido_item}\n\n"
+                f" Precio: ${order_data.get('precio')}\n"
                 f"Te notificaremos cuando esté listo."
             ),
             parse_mode="Markdown"
         )
         
-        # 🆕 Generar y enviar Factura Fiscal
+        #  Generar y enviar Factura Fiscal
         try:
             # Re-convert dict to object-like or modify generator to accept dict/json
             # Use Django ORM via sync_to_async to fetch full object for generator
@@ -2326,7 +2326,7 @@ async def handle_payment_approval(update: Update, context: ContextTypes.DEFAULT_
                 await context.bot.send_photo(
                     chat_id=telegram_id,
                     photo=open(invoice_path, 'rb'),
-                    caption="🧾 *Aquí tienes tu Factura Fiscal digital.*",
+                    caption=" *Aquí tienes tu Factura Fiscal digital.*",
                     parse_mode="Markdown"
                 )
         except Exception as e:
@@ -2334,28 +2334,28 @@ async def handle_payment_approval(update: Update, context: ContextTypes.DEFAULT_
         
         # Notificar al chef
         mensaje_chef = (
-            f"👨‍🍳 *NUEVO PEDIDO CONFIRMADO*\n\n"
-            f"✅ Pago verificado\n"
-            f"🍽️ {pedido_item}\n\n"
-            f"📲 Cliente ID: {telegram_id}\n"
-            f"🕒 Hora: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}"
+            f"‍ *NUEVO PEDIDO CONFIRMADO*\n\n"
+            f" Pago verificado\n"
+            f" {pedido_item}\n\n"
+            f" Cliente ID: {telegram_id}\n"
+            f" Hora: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}"
         )
         
         await context.bot.send_message(chat_id=CHEF_CHAT_ID, text=mensaje_chef, parse_mode="Markdown")
         
         # Actualizar mensaje del admin
         await query.edit_message_caption(
-            caption=f"{query.message.caption}\n\n✅ *PAGO APROBADO* por {query.from_user.first_name}",
+            caption=f"{query.message.caption}\n\n *PAGO APROBADO* por {query.from_user.first_name}",
             parse_mode="Markdown"
         )
         
     except Exception as e:
         logging.error(f"Error aprobando pago: {e}")
-        await query.edit_message_caption(caption="⚠️ Error al aprobar el pago.")
+        await query.edit_message_caption(caption=" Error al aprobar el pago.")
 
 
 # ----------------------------------------------------
-# ✅ RECHAZAR PAGO (ADMIN)
+#  RECHAZAR PAGO (ADMIN)
 # ----------------------------------------------------
 async def handle_payment_rejection(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
@@ -2370,7 +2370,7 @@ async def handle_payment_rejection(update: Update, context: ContextTypes.DEFAULT
         # Obtener información de la orden
         response = requests.get(f"{ORDERS_URL}{order_id}/", timeout=5)
         if response.status_code != 200:
-            await query.edit_message_caption(caption="⚠️ No se pudo encontrar la orden.")
+            await query.edit_message_caption(caption=" No se pudo encontrar la orden.")
             return
         
         order_data = response.json()
@@ -2391,7 +2391,7 @@ async def handle_payment_rejection(update: Update, context: ContextTypes.DEFAULT
         await context.bot.send_message(
             chat_id=telegram_id,
             text=(
-                f"❌ *Pago Rechazado*\n\n"
+                f" *Pago Rechazado*\n\n"
                 f"Lo sentimos, tu comprobante de pago no pudo ser verificado.\n\n"
                 f"Por favor, verifica la información y envía un nuevo comprobante válido.\n"
                 f"Si tienes dudas, contacta a /soporte \n\n"
@@ -2402,17 +2402,17 @@ async def handle_payment_rejection(update: Update, context: ContextTypes.DEFAULT
         
         # Actualizar mensaje del admin
         await query.edit_message_caption(
-            caption=f"{query.message.caption}\n\n❌ *PAGO RECHAZADO* por {query.from_user.first_name}",
+            caption=f"{query.message.caption}\n\n *PAGO RECHAZADO* por {query.from_user.first_name}",
             parse_mode="Markdown"
         )
         
     except Exception as e:
         logging.error(f"Error rechazando pago: {e}")
-        await query.edit_message_caption(caption="⚠️ Error al rechazar el pago.")
+        await query.edit_message_caption(caption=" Error al rechazar el pago.")
 
 
 # ----------------------------------------------------
-# ✅ DIJKSTRA & UBICACIÓN
+#  DIJKSTRA & UBICACIÓN
 # ----------------------------------------------------
 
 def run_dijkstra_ai(lat, lon):
@@ -2448,10 +2448,10 @@ async def handle_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
     tiempo = route_info.get("time", "N/A")
 
     await update.message.reply_text(
-        f"✅ Ubicación recibida: {lat}, {lon}\n\n"
-        f"🛣️ *Ruta Calculada (OSM):*\n"
-        f"📏 Distancia: {distancia}\n"
-        f"⏱️ Tiempo est.: {tiempo}\n\n"
+        f" Ubicación recibida: {lat}, {lon}\n\n"
+        f" *Ruta Calculada (OSM):*\n"
+        f" Distancia: {distancia}\n"
+        f"⏱ Tiempo est.: {tiempo}\n\n"
         "Estamos procediendo con tu envío."
     )
     
@@ -2481,16 +2481,16 @@ async def handle_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
             context.user_data.get("current_photo_id"),
             location_info=address_str
         )
-         await update.message.reply_text("✅ ¡Datos completados! Hemos notificado al administrador.")
+         await update.message.reply_text(" ¡Datos completados! Hemos notificado al administrador.")
 
     # ------------------------------------------------------------------
-    # ✅ 1. LATE LOCATION (POST PAYMENT) - DELIVERY FLOW
+    #  1. LATE LOCATION (POST PAYMENT) - DELIVERY FLOW
     # ------------------------------------------------------------------
     if context.user_data.get("waiting_address_late"):
         context.user_data["waiting_address_late"] = False
         
         # Simulate AI Calculation (Just for UX, as user likes it)
-        msg = await update.message.reply_text("⚡ _IA Analizando Rutas (Dijkstra)..._", parse_mode="Markdown")
+        msg = await update.message.reply_text(" _IA Analizando Rutas (Dijkstra)..._", parse_mode="Markdown")
         await asyncio.sleep(1.5)
 
         order_id = context.user_data.get("current_order_id")
@@ -2521,11 +2521,11 @@ async def handle_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Show Route Info (UX) AND STOP
         route = run_dijkstra_ai(lat, lon)
         resumen_ruta = (
-            f"✅ *Ruta Optimizada Encontrada*\n"
-            f"⏱️ Tiempo estimado: {route['time']}\n"
-            f"🛣️ Distancia: {route['distance']}\n"
-            f"📍 Camino: {' ➔ '.join(route['path'])}\n\n"
-            f"✅ *¡Datos completados! Estamos verificando tu pago.*"
+            f" *Ruta Optimizada Encontrada*\n"
+            f"⏱ Tiempo estimado: {route['time']}\n"
+            f" Distancia: {route['distance']}\n"
+            f" Camino: {'  '.join(route['path'])}\n\n"
+            f" *¡Datos completados! Estamos verificando tu pago.*"
         )
         await msg.edit_text(resumen_ruta, parse_mode="Markdown")
         return # <--- CRITICAL: STOP HERE
@@ -2535,11 +2535,11 @@ async def handle_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = context.user_data.get(pedido_key)
     
     if not data:
-        await update.message.reply_text("⚠️ No encontré un pedido pendiente para esta ubicación.")
+        await update.message.reply_text(" No encontré un pedido pendiente para esta ubicación.")
         return
 
     # Ejecutar "IA Dijkstra"
-    await update.message.reply_text("⚡ _IA Analizando Rutas (Dijkstra)..._", parse_mode="Markdown")
+    await update.message.reply_text(" _IA Analizando Rutas (Dijkstra)..._", parse_mode="Markdown")
     await asyncio.sleep(1.5)
     
     route = run_dijkstra_ai(lat, lon)
@@ -2552,13 +2552,13 @@ async def handle_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
     precio_total = data["precio"]
     
     resumen_ruta = (
-        f"✅ *Ruta Optimizada Encontrada*\n"
-        f"⏱️ Tiempo estimado: {route['time']}\n"
-        f"🛣️ Distancia: {route['distance']}\n"
-        f"📍 Camino: {' ➔ '.join(route['path'])}\n\n"
-        f"🛒 *Resumen del Pedido:*\n"
-        f"👉 {pedido_final}\n\n"
-        f"💰 *Total: ${precio_total:.2f}*"
+        f" *Ruta Optimizada Encontrada*\n"
+        f"⏱ Tiempo estimado: {route['time']}\n"
+        f" Distancia: {route['distance']}\n"
+        f" Camino: {'  '.join(route['path'])}\n\n"
+        f" *Resumen del Pedido:*\n"
+        f" {pedido_final}\n\n"
+        f" *Total: ${precio_total:.2f}*"
     )
 
     await update.message.reply_text(resumen_ruta, parse_mode="Markdown")
@@ -2568,7 +2568,7 @@ async def handle_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # ----------------------------------------------------
-# 🚀 MAIN
+#  MAIN
 # ----------------------------------------------------
 def main():
     print("Bot Cliente corriendo y atendiendo órdenes...")
@@ -2581,7 +2581,7 @@ def main():
 
     
 
-    # ✅ Comandos principales
+    #  Comandos principales
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("menu", menu))
     app.add_handler(CommandHandler("menu_personalizado", menu_personalizado))
@@ -2590,13 +2590,13 @@ def main():
     app.add_handler(CommandHandler("recomendacion_hibrida", recomendacion_hibrida))
     app.add_handler(CommandHandler("soporte", soporte))
     
-    # ✅ Rating con emoji (mantener para compatibilidad)
-    app.add_handler(MessageHandler(filters.Regex("^⭐"), guardar_rating))
+    #  Rating con emoji (mantener para compatibilidad)
+    app.add_handler(MessageHandler(filters.Regex("^"), guardar_rating))
     
-    # ✅ Handler para comprobantes de pago (fotos y documentos)
+    #  Handler para comprobantes de pago (fotos y documentos)
     app.add_handler(MessageHandler(filters.PHOTO | filters.Document.IMAGE, handle_payment_receipt))
 
-    # ✅ Handler para ubicación (Dijkstra)
+    #  Handler para ubicación (Dijkstra)
     app.add_handler(MessageHandler(filters.LOCATION, handle_location))
 
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))

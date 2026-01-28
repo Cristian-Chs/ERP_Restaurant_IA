@@ -175,7 +175,7 @@ class InvoiceGenerator:
             
         full_path = os.path.join(output_path, filename)
         img.save(full_path)
-        print(f"✅ Factura generada: {full_path}")
+        print(f" Factura generada: {full_path}")
         return full_path
 
     def _draw_centered_text(self, draw, text, width, y, font):

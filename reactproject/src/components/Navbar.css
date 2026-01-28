@@ -1,5 +1,5 @@
 .global-navbar {
-    position: absolute; /* ✅ Cambiado de sticky a absolute para que no siga el scroll */
+    position: absolute; /*  Cambiado de sticky a absolute para que no siga el scroll */
     top: 0;
     width: 100%;
     z-index: 1000;

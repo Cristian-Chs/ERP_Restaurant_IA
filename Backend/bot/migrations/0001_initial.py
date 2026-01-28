@@ -57,7 +57,7 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('telegram_id', models.BigIntegerField()),
                 ('plato', models.CharField(max_length=255)),
-                ('estrellas', models.IntegerField(choices=[(1, '1 ⭐'), (2, '2 ⭐'), (3, '3 ⭐'), (4, '4 ⭐'), (5, '5 ⭐')])),
+                ('estrellas', models.IntegerField(choices=[(1, '1 '), (2, '2 '), (3, '3 '), (4, '4 '), (5, '5 ')])),
                 ('fecha', models.DateTimeField(auto_now_add=True)),
             ],
         ),

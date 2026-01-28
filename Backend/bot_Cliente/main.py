@@ -31,9 +31,10 @@ from bot_Cliente.config import BOT_TOKEN_CLIENTE
 from bot_Cliente.handlers.commands import start, menu, menu_personalizado, soporte
 
 # TODO: Importar otros handlers cuando estén listos
-# from .handlers.messages import handle_message
-# from .handlers.callbacks import handle_callback_query
-# from .services.recommendation_service import recomendacion_similar, recomendacion_hibrida
+from bot_Cliente.handlers.messages import handle_message
+from bot_Cliente.handlers.callbacks import handle_callback_query
+from bot_Cliente.handlers.payments import handle_payment_receipt
+from bot_Cliente.services.recommendation_service import recomendacion_similar
 
 
 logging.basicConfig(level=logging.INFO)
@@ -64,19 +65,19 @@ def main():
     
     # TODO: Descomentar cuando se migren estos handlers
     # app.add_handler(CommandHandler("recomendacion", recomendaciones))
-    # app.add_handler(CommandHandler("recomendacion_similar", recomendacion_similar))
+    app.add_handler(CommandHandler("recomendacion_similar", recomendacion_similar))
     # app.add_handler(CommandHandler("recomendacion_hibrida", recomendacion_hibrida))
     
     # Handlers de mensajes
     # TODO: Descomentar cuando se migren
-    # app.add_handler(MessageHandler(filters.Regex("^⭐"), guardar_rating))
-    # app.add_handler(MessageHandler(filters.PHOTO | filters.Document.IMAGE, handle_payment_receipt))
+    # app.add_handler(MessageHandler(filters.Regex("^"), guardar_rating))
+    app.add_handler(MessageHandler(filters.PHOTO | filters.Document.IMAGE, handle_payment_receipt))
     # app.add_handler(MessageHandler(filters.LOCATION, handle_location))
-    # app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     
     # Callbacks
-    # TODO: Descomentar cuando se migre
-    # app.add_handler(CallbackQueryHandler(handle_callback_query))
+    app.add_handler(CallbackQueryHandler(handle_callback_query))
 
     # Iniciar bot
     app.run_polling()

@@ -82,10 +82,10 @@ const Navbar = () => {
                                         </>
                                     )}
                                     <Link to="/profile" className="dropdown-item">
-                                        👤 Editar Perfil
+                                         Editar Perfil
                                     </Link>
                                     <button onClick={handleLogout} className="dropdown-item logout">
-                                        🚪 Cerrar Sesión
+                                         Cerrar Sesión
                                     </button>
                                 </motion.div>
                             )}

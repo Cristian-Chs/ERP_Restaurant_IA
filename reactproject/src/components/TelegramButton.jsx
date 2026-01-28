@@ -4,7 +4,7 @@ import { FaTelegramPlane } from 'react-icons/fa';
 
 function TelegramButton() {
   // ----------------------------------------------------
-  // ⚙️ Configuración de Telegram
+  //  Configuración de Telegram
   // ----------------------------------------------------
   // Nombre del bot SIN el @
   const telegramUsername = 'Sabores4_bot';
@@ -14,7 +14,7 @@ function TelegramButton() {
 
   // Mensaje prellenado con saludo y opciones
   const prefilledMessage = encodeURIComponent(
-    `¡Hola ${nombreUsuario}! 👋\nSelecciona una opción:\n\n1️⃣ Hacer un pedido\n2️⃣ Consultar estado de mi pedido\n3️⃣ Hablar con soporte`
+    `¡Hola ${nombreUsuario}! \nSelecciona una opción:\n\n1⃣ Hacer un pedido\n2⃣ Consultar estado de mi pedido\n3⃣ Hablar con soporte`
   );
 
   // Enlace directo al bot con mensaje prellenado

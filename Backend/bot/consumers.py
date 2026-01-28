@@ -45,7 +45,7 @@ class MetricsConsumer(AsyncWebsocketConsumer):
             qty=Count('id')
         ).order_by('-qty')[:3]
 
-        # ✅ 4. Últimos Ratings con Sentimiento
+        #  4. Últimos Ratings con Sentimiento
         latest_ratings = list(
             Rating.objects.all().order_by('-fecha')[:10].values(
                 'plato', 'estrellas', 'comentario', 'sentimiento'

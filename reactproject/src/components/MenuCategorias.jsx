@@ -14,9 +14,9 @@ export default function MenuCategorias({ active, onSelect }) {
       {categorias.map((cat) => (
         <motion.button
           key={cat}
-            // 🚨 SOLUCIÓN 1: Normalizar la comparación a minúsculas
+            //  SOLUCIÓN 1: Normalizar la comparación a minúsculas
           className={`categoria-btn ${active.toLowerCase() === cat.toLowerCase() ? 'active' : ''}`}
-            // 🚨 SOLUCIÓN 2: Asegurar que el estado SÓLO guarde minúsculas
+            //  SOLUCIÓN 2: Asegurar que el estado SÓLO guarde minúsculas
           onClick={() => onSelect(cat.toLowerCase())} 
           whileTap={{ scale: 0.95 }}
           whileHover={{ scale: 1.05 }}

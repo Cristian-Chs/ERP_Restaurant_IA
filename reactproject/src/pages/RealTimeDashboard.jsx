@@ -135,7 +135,7 @@ const RealTimeDashboard = () => {
       <div className="sentiment-section" style={{ marginTop: '30px' }}>
         <div className="chart-box full-width">
           <div className="chart-header">
-            <h3>🎭 El Muro de los Sentimientos</h3>
+            <h3> El Muro de los Sentimientos</h3>
             <p className="subtitle">Opiniones analizadas en tiempo real por la IA</p>
           </div>
           <div className="sentiment-wall" style={{ maxHeight: '300px', overflowY: 'auto' }}>
@@ -149,7 +149,7 @@ const RealTimeDashboard = () => {
                   transition={{ delay: idx * 0.1 }}
                 >
                   <div className="bubble-header">
-                    <span className="stars">{"⭐".repeat(rate.estrellas)}</span>
+                    <span className="stars">{"".repeat(rate.estrellas)}</span>
                     <span className="plato">{rate.plato}</span>
                     <span className="sentiment-icon">
                       {rate.sentimiento === 'Positivo' && <Smile size={16} />}
@@ -170,7 +170,7 @@ const RealTimeDashboard = () => {
       <div className="forecast-section" style={{ marginTop: '30px' }}>
         <div className="chart-box full-width">
           <div className="chart-header">
-            <h3>📈 Proyección de Carga de Trabajo (Próximas Horas)</h3>
+            <h3> Proyección de Carga de Trabajo (Próximas Horas)</h3>
             <p className="subtitle">Basado en Inteligencia Artificial (Facebook Prophet)</p>
           </div>
           <div style={{ width: '100%', height: 250 }}>

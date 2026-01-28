@@ -9,15 +9,15 @@ import API from '../api/axios';
 // Asegúrate de crear e importar Carrito.css para los estilos
 import './Carrito.css'; 
 
-// 🛑 CONFIGURACIÓN: Reemplaza con tus datos reales
+//  CONFIGURACIÓN: Reemplaza con tus datos reales
 const TELEGRAM_USERNAME = 'Sabores4_bot'; 
 const CURRENCY_SYMBOL = '$';
 
 const PAYMENT_METHODS = [
-    { id: 'pagomovil', name: 'Pago Móvil', icon: '📱', desc: 'Transferencia instantánea nacional', color: '#ff4b2b' },
-    { id: 'zelle', name: 'Zelle', icon: '🏦', desc: 'Pagos en divisas USA', color: '#6a1b9a' },
-    { id: 'efectivo', name: 'Efectivo', icon: '💵', desc: 'Pago al recibir el pedido', color: '#2e7d32' },
-    { id: 'transferencia', name: 'Transferencia', icon: '💳', desc: 'Banesco, Provincial o Mercantil', color: '#1565c0' }
+    { id: 'pagomovil', name: 'Pago Móvil', icon: '', desc: 'Transferencia instantánea nacional', color: '#ff4b2b' },
+    { id: 'zelle', name: 'Zelle', icon: '', desc: 'Pagos en divisas USA', color: '#6a1b9a' },
+    { id: 'efectivo', name: 'Efectivo', icon: '', desc: 'Pago al recibir el pedido', color: '#2e7d32' },
+    { id: 'transferencia', name: 'Transferencia', icon: '', desc: 'Banesco, Provincial o Mercantil', color: '#1565c0' }
 ];
 
 const SUPPORTED_LOCATIONS = [
@@ -36,7 +36,7 @@ const SUPPORTED_LOCATIONS = [
     "El Cayude"
 ];
 
-// ⚠️ REEMPLAZA ESTO CON TU API KEY REAL DE GOOGLE MAPS ⚠️
+//  REEMPLAZA ESTO CON TU API KEY REAL DE GOOGLE MAPS 
 // Debe tener habilitadas las APIs: "Maps JavaScript API" y "Places API"
 const GOOGLE_MAPS_API_KEY = "TU_GOOGLE_MAPS_API_KEY_AQUI"; 
 
@@ -89,7 +89,7 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
                         const lat = place.geometry.location.lat();
                         const lng = place.geometry.location.lng();
                         
-                        console.log("📍 Lugar seleccionado:", address, lat, lng);
+                        console.log(" Lugar seleccionado:", address, lat, lng);
                         setLocation(address); // Save full address
                         
                         // Optional: Save coordinates separately if needed
@@ -253,7 +253,7 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
                     setLastOrderId(response.data.id);
                 }
                 
-                // ✅ TRIGGER POLLING IF EATING HERE
+                //  TRIGGER POLLING IF EATING HERE
                 if (serviceType === 'HERE' && response.data && response.data.id) {
                     startTracking(response.data.id);
                 }
@@ -279,15 +279,15 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
                 exit={{ opacity: 0 }}
             >
                 <motion.div 
-                    className={`status-card ${type.toLowerCase()}`}
+                    className={`status-card status-theme-${type.toLowerCase()}`}
                     initial={{ scale: 0.5, y: 20 }}
                     animate={{ scale: 1, y: 0 }}
                     transition={{ type: "spring", damping: 15 }}
                 >
-                    <div className="status-icon">
-                        {type === 'SUCCESS' ? '✅' : '❌'}
+                    <div className="status-icon-container">
+                        {type === 'SUCCESS' ? '' : ''}
                     </div>
-                    <h2>{type === 'SUCCESS' ? '¡Pedido Recibido!' : 'Error en el Pedido'}</h2>
+                    <h2 className="status-heading">{type === 'SUCCESS' ? '¡Pedido Recibido!' : 'Error en el Pedido'}</h2>
                     
                     <div className="status-message">
                         {type === 'SUCCESS' ? (
@@ -331,7 +331,7 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
                                         className="main-action-btn" 
                                         style={{marginTop: '20px'}}
                                     >
-                                        Volver al Menú 🏠
+                                        Volver al Menú 
                                     </button>
                                 </>
                             )
@@ -418,7 +418,7 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
                             </div>
                             {couponError && (
                                 <p style={{ color: '#ff4d4d', fontSize: '0.85rem', marginTop: '0.5rem', marginBottom: 0 }}>
-                                    ❌ {couponError}
+                                     {couponError}
                                 </p>
                             )}
                         </div>
@@ -443,7 +443,7 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
                     </div>
 
                     {isProofRequired && !paymentProof && (
-                        <p className="mandatory-proof-hint">⚠️ Por favor, sube el comprobante para continuar</p>
+                        <p className="mandatory-proof-hint"> Por favor, sube el comprobante para continuar</p>
                     )}
 
                     <button 
@@ -468,7 +468,7 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
             </AnimatePresence>
 
             <div className="checkout-header">
-                {/* 👈 Ahora la flecha maneja los pasos internos */}
+                {/*  Ahora la flecha maneja los pasos internos */}
                 <button onClick={handleBack} className="decorative-back-button">
                     <svg height="16" width="16" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 1024 1024">
                         <path d="M874.690416 495.52477c0 11.2973-9.168824 20.466124-20.466124 20.466124l-604.773963 0 188.083679 188.083679c7.992021 7.992021 7.992021 20.947078 0 28.939099-4.001127 3.990894-9.240455 5.996574-14.46955 5.996574-5.239328 0-10.478655-1.995447-14.479783-5.996574l-223.00912-223.00912c-3.837398-3.837398-5.996574-9.046027-5.996574-14.46955 0-5.433756 2.159176-10.632151 5.996574-14.46955l223.019353-223.029586c7.992021-7.992021 20.957311-7.992021 28.949332 0 7.992021 8.002254 7.992021 20.957311 0 28.949332l-188.073446 188.073446 604.753497 0C865.521592 475.058646 874.690416 484.217237 874.690416 495.52477z"></path>
@@ -498,7 +498,7 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
                                                 <h4>{item.name}</h4>
                                                 <div className="item-controls">
                                                     <span>Cant: {item.cantidad}</span>
-                                                    <button onClick={() => eliminarDelCarrito(item.id)} className="remove-item-btn">✕</button>
+                                                    <button onClick={() => eliminarDelCarrito(item.id)} className="remove-item-btn"></button>
                                                 </div>
                                             </div>
                                             <div className="item-price">
@@ -520,7 +520,7 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
                                     className={`service-card ${serviceType === 'HERE' ? 'active' : ''}`}
                                     onClick={() => setServiceType('HERE')}
                                 >
-                                    <div className="service-icon">🍽️</div>
+                                    <div className="service-icon"></div>
                                     <h3>Comer aquí</h3>
                                     <p>Disfruta de nuestros sabores en el restaurante.</p>
                                 </div>
@@ -528,7 +528,7 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
                                     className={`service-card ${serviceType === 'TOGO' ? 'active' : ''}`}
                                     onClick={() => setServiceType('TOGO')}
                                 >
-                                    <div className="service-icon">🛍️</div>
+                                    <div className="service-icon"></div>
                                     <h3>Para llevar</h3>
                                     <p>Lo preparamos para que lo disfrutes donde quieras.</p>
                                 </div>
@@ -544,7 +544,7 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
                                     className={`service-card ${deliveryMode === 'PICKUP' ? 'active' : ''}`}
                                     onClick={() => setDeliveryMode('PICKUP')}
                                 >
-                                    <div className="service-icon">🏪</div>
+                                    <div className="service-icon"></div>
                                     <h3>Pick up</h3>
                                     <p>Tú vienes por el pedido al local.</p>
                                 </div>
@@ -552,7 +552,7 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
                                     className={`service-card ${deliveryMode === 'DELIVERY' ? 'active' : ''}`}
                                     onClick={() => setDeliveryMode('DELIVERY')}
                                 >
-                                    <div className="service-icon">🛵</div>
+                                    <div className="service-icon"></div>
                                     <h3>Delivery</h3>
                                     <p>Te lo llevamos a la puerta de tu casa.</p>
                                 </div>
@@ -564,7 +564,7 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
                         <div className="step-container">
                             <h2 className="step-title">¿Dónde entregamos?</h2>
                             <div className="location-selection-card">
-                                <div className="location-icon">📍</div>
+                                <div className="location-icon"></div>
                                 <p>Ingresa tu dirección exacta para calcular el delivery.</p>
                                 
                                 <button 
@@ -582,8 +582,8 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
                                     }}
                                 >
                                     {location && location.includes(',') && !isNaN(parseFloat(location.split(',')[0])) 
-                                        ? '✅ Ubicación GPS Lista' 
-                                        : '🌐 Usar GPS Actual'}
+                                        ? ' Ubicación GPS Lista' 
+                                        : ' Usar GPS Actual'}
                                 </button>
 
                                 <div className="manual-location" style={{ marginTop: '1.5rem', position: 'relative' }}>
@@ -638,7 +638,7 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
                                                     onMouseEnter={(e) => e.target.style.background = '#1f6feb'}
                                                     onMouseLeave={(e) => e.target.style.background = 'transparent'}
                                                 >
-                                                    📍 {loc}
+                                                     {loc}
                                                 </li>
                                             ))}
                                         </ul>
@@ -656,8 +656,8 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
                                     <motion.div className="route-result-card" initial={{scale:0.9, opacity:0}} animate={{scale:1, opacity:1}}>
                                         <div className="route-badge">Ruta Estimada</div>
                                         <div className="route-stats">
-                                            <span>⏱️ {optimalRoute.time}</span>
-                                            <span>🛣️ {optimalRoute.distance}</span>
+                                            <span>⏱ {optimalRoute.time}</span>
+                                            <span> {optimalRoute.distance}</span>
                                         </div>
                                     </motion.div>
                                 )}
@@ -712,7 +712,7 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
                                                 }
                                             }} 
                                         />
-                                        {paymentProof ? '✅ Captura Lista' : '📁 Seleccionar Imagen'}
+                                        {paymentProof ? ' Captura Lista' : ' Seleccionar Imagen'}
                                     </label>
                                     
                                     {paymentProof && (
@@ -722,7 +722,7 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
                                             animate={{ opacity: 1, scale: 1 }}
                                         >
                                             <img src={URL.createObjectURL(paymentProof)} alt="Preview" />
-                                            <button onClick={() => setPaymentProof(null)} className="remove-proof">✕</button>
+                                            <button onClick={() => setPaymentProof(null)} className="remove-proof"></button>
                                         </motion.div>
                                     )}
                                 </div>

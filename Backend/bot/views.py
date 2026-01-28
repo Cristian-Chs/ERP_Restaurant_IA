@@ -28,12 +28,12 @@ class OrderViewSet(viewsets.ModelViewSet):
         # Guardar la orden
         order = serializer.save()
         
-        # ✅ Si el pedido trae una imagen de comprobante (subida desde Web)
+        #  Si el pedido trae una imagen de comprobante (subida desde Web)
         if order.payment_proof:
             order.payment_status = 'payment_submitted'
             order.save()
 
-            # 🛡️ VERIFICACIÓN DE SEGURIDAD (FASE 8)
+            #  VERIFICACIÓN DE SEGURIDAD (FASE 8)
             from .security import verify_payment_authenticity
             security_results = verify_payment_authenticity(order, order.payment_proof.path)
             
@@ -42,7 +42,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                 order.status = 'fraude_sospecha'
                 order.payment_data = {"fraud_error": f"Duplicado de orden #{security_results['duplicate_order_id']}"}
                 order.save()
-                print(f"⚠️ FRAUDE DETECTADO: El comprobante ya fue usado en orden #{security_results['duplicate_order_id']}")
+                print(f" FRAUDE DETECTADO: El comprobante ya fue usado en orden #{security_results['duplicate_order_id']}")
             
             # Notificar al Administrador/Chef inmediatamente
             try:
@@ -52,14 +52,14 @@ class OrderViewSet(viewsets.ModelViewSet):
             except Exception as e:
                 print(f"Error notificando pedido web: {e}")
         
-        # ⚠️ Lógica antigua para otros casos (si aplica)
+        #  Lógica antigua para otros casos (si aplica)
         elif order.service_type != 'HERE' and order.status not in ['pendiente', 'esperando_pago']:
             try:
                 notificar_nuevo_pedido_externo(order)
             except Exception as e:
                 print(f"Error notificando pedido externo: {e}")
 
-        # ✅ GENERACIÓN INSTANTÁNEA PARA PEDIDOS LOCALES (HERE)
+        #  GENERACIÓN INSTANTÁNEA PARA PEDIDOS LOCALES (HERE)
         if order.service_type == 'HERE':
             try:
                 from bot.factura import InvoiceGenerator
@@ -67,9 +67,9 @@ class OrderViewSet(viewsets.ModelViewSet):
                 invoice_path = generator.generate(order)
                 order.invoice_path = invoice_path
                 order.save()
-                print(f"✅ Factura local generada: {invoice_path}")
+                print(f" Factura local generada: {invoice_path}")
             except Exception as e:
-                print(f"⚠️ Error generando factura local: {e}")
+                print(f" Error generando factura local: {e}")
 
 
 # ------------------------------
@@ -173,7 +173,7 @@ def api_cocina_orders(request):
     """
     # Obtenemos todos los que no estén entregados/listos/rechazados aún
     pedidos = Order.objects.filter(
-        status__in=["pendiente", "esperando_pago"]
+        status__in=["pendiente", "esperando_pago", "fraude_sospecha"]
     ).order_by("fecha")
     
     data = [
@@ -185,16 +185,69 @@ def api_cocina_orders(request):
             "fecha": p.fecha.isoformat(),
             "status": p.status,
             "payment_status": p.payment_status,
-            "service_type": p.service_type, # Devolvemos el código (HERE/TOGO)
+            "service_type": p.service_type,
             "service_type_display": p.get_service_type_display(),
             "delivery_mode": p.get_delivery_mode_display() if p.delivery_mode else "N/A",
             "location": p.location or "N/A",
             "payment_proof": p.payment_proof.url if p.payment_proof else None,
             "currency": p.currency,
-            "exchange_rate": float(p.exchange_rate)
+            "exchange_rate": float(p.exchange_rate),
+            "payment_data": p.payment_data
         }
         for p in pedidos
     ]
+    return JsonResponse(data, safe=False)
+
+
+@csrf_exempt
+def api_cocina_payments_all(request):
+    """
+    Devuelve ABSOLUTAMENTE TODOS los pagos realizados para el historial de caja.
+    Incluye análisis de fraude OCR.
+    """
+    # Obtenemos órdenes que tienen algún tipo de actividad de pago
+    pedidos = Order.objects.exclude(payment_status='pending_payment').order_by("-fecha")
+    
+    data = []
+    for p in pedidos:
+        # Lógica de detección de estafa básica para el frontend
+        is_suspicious = False
+        fraud_reason = ""
+        
+        if p.status == 'fraude_sospecha':
+            is_suspicious = True
+            fraud_reason = p.payment_data.get("fraud_error", "Detección de duplicado")
+        
+        # Si el monto en OCR no coincide con el precio del pedido (si OCR existe)
+        if p.payment_data and "monto" in p.payment_data:
+             try:
+                 # Limpiar y convertir montos
+                 import re
+                 ocr_monto_str = str(p.payment_data.get("monto", "0")).replace(".", "").replace(",", ".")
+                 ocr_monto = float(re.search(r'[\d\.]+', ocr_monto_str).group())
+                 
+                 diff = abs(ocr_monto - float(p.precio))
+                 if diff > 0.05: # Tolerancia de centavos
+                     is_suspicious = True
+                     fraud_reason = f"Monto OCR (${ocr_monto}) no coincide con precio (${p.precio})"
+             except:
+                 pass
+
+        data.append({
+            "id": p.id,
+            "telegram_id": p.telegram_id,
+            "item": p.item,
+            "precio": float(p.precio),
+            "fecha": p.fecha.isoformat(),
+            "status": p.status,
+            "payment_status": p.payment_status,
+            "payment_proof": p.payment_proof.url if p.payment_proof else None,
+            "currency": p.currency,
+            "is_suspicious": is_suspicious,
+            "fraud_reason": fraud_reason,
+            "payment_data": p.payment_data
+        })
+        
     return JsonResponse(data, safe=False)
 
 @csrf_exempt
@@ -211,7 +264,7 @@ def api_cocina_approve_payment(request, order_id):
         order.payment_status = 'payment_approved'
         order.status = 'pendiente' # Aseguramos que pase a cocina
         
-        # ✅ GENERAR FACTURA
+        #  GENERAR FACTURA
         try:
             from bot.factura import InvoiceGenerator
             generator = InvoiceGenerator()
@@ -219,9 +272,9 @@ def api_cocina_approve_payment(request, order_id):
             
             # Guardar ruta de factura en el pedido
             order.invoice_path = invoice_path
-            print(f"✅ Factura generada: {invoice_path}")
+            print(f" Factura generada: {invoice_path}")
         except Exception as e:
-            print(f"⚠️ Error generando factura: {e}")
+            print(f" Error generando factura: {e}")
             invoice_path = None
         
         order.save()
@@ -329,7 +382,7 @@ def recomendacion_similar_view(request, telegram_id):
         from ml.embeddings import recomendar_similares
     except ImportError:
         return JsonResponse({"similares": [], "error": "ML module missing"})
-    # ✅ Obtener último plato del usuario
+    #  Obtener último plato del usuario
     ultimo = Rating.objects.filter(telegram_id=telegram_id).order_by("-id").first()
 
     if not ultimo:
@@ -337,10 +390,10 @@ def recomendacion_similar_view(request, telegram_id):
 
     plato_objetivo = ultimo.plato
 
-    # ✅ Obtener todos los platos del menú (campo correcto: name)
+    #  Obtener todos los platos del menú (campo correcto: name)
     platos = list(Product.objects.values_list("name", flat=True))
 
-    # ✅ Calcular similares
+    #  Calcular similares
     try:
         similares = recomendar_similares(plato_objetivo, platos, top_n=5)
     except Exception as e:
@@ -355,7 +408,7 @@ def recomendacion_similar_view(request, telegram_id):
 
 
 def recomendacion_hibrida_view(request, telegram_id):
-    # ✅ 1. Top Personal (Lo que más pide el usuario)
+    #  1. Top Personal (Lo que más pide el usuario)
     top_personal = list(
         Order.objects.filter(telegram_id=telegram_id)
         .values("item")
@@ -364,7 +417,7 @@ def recomendacion_hibrida_view(request, telegram_id):
         .values_list("item", flat=True)[:3]  # Top 3 personales
     )
 
-    # ✅ 2. Top Global (Más populares en general)
+    #  2. Top Global (Más populares en general)
     top_global = list(
         Order.objects.values("item")
         .annotate(total=Count("id"))
@@ -372,7 +425,7 @@ def recomendacion_hibrida_view(request, telegram_id):
         .values_list("item", flat=True)[:3]  # Top 3 globales
     )
 
-    # ✅ 3. Top Rated (Mejor calificados)
+    #  3. Top Rated (Mejor calificados)
     top_rated = list(
         Rating.objects.values("plato")
         .annotate(avg_stars=models.Avg("estrellas")) # Necesitamos importar Avg si no está
@@ -380,7 +433,7 @@ def recomendacion_hibrida_view(request, telegram_id):
         .values_list("plato", flat=True)[:3]
     )
 
-    # ✅ 4. Mezcla Inteligente
+    #  4. Mezcla Inteligente
     recomendacion_final = []
 
     # Si es cliente habitual (tiene historial), priorizamos sus gustos
@@ -447,7 +500,7 @@ def guardar_pedido_personalizado(request):
 
 
 # ----------------------------------------------------
-# ✅ SESSION API (STATE MACHINE)
+#  SESSION API (STATE MACHINE)
 # ----------------------------------------------------
 from .models import TelegramSession
 
@@ -523,7 +576,7 @@ def get_loyalty_points(request, telegram_id):
 
 
 # ----------------------------------------------------
-# ✅ COUPON MANAGEMENT API
+#  COUPON MANAGEMENT API
 # ----------------------------------------------------
 from .models import Coupon, RedeemedCoupon
 from rest_framework.decorators import api_view, permission_classes
@@ -562,7 +615,7 @@ def coupon_list_create(request):
     elif request.method == 'POST':
         data = request.data
         try:
-            # ✅ Parse dates explicitly to handle "YYYY-MM-DD" from frontend
+            #  Parse dates explicitly to handle "YYYY-MM-DD" from frontend
             valid_from = data.get('valid_from')
             valid_until = data.get('valid_until')
 
@@ -631,7 +684,7 @@ def coupon_detail(request, coupon_id):
             coupon.points_cost = data.get('points_cost', coupon.points_cost)
             coupon.is_active = data.get('is_active', coupon.is_active)
             
-            # ✅ Handle dates update
+            #  Handle dates update
             updated_valid_from = data.get('valid_from', coupon.valid_from)
             updated_valid_until = data.get('valid_until', coupon.valid_until)
 
@@ -717,7 +770,7 @@ def validate_coupon(request):
 
 
 # ------------------------------
-# ✅ ROUTE CALCULATION API
+#  ROUTE CALCULATION API
 # ------------------------------
 from bot_Cliente.dijkstra import PathFinder
 import os

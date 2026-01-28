@@ -5,7 +5,7 @@ from django.conf import settings
 from bot.models import Order
 
 # ----------------------------------------------------
-# 🔄 Cargar modelo ML entrenado (si existe)
+#  Cargar modelo ML entrenado (si existe)
 # ----------------------------------------------------
 def cargar_modelo():
     modelo_path = os.path.join(settings.BASE_DIR, "recomendacion", "modelo_recomendacion.pkl")
@@ -15,7 +15,7 @@ def cargar_modelo():
         return pickle.load(f)
 
 # ----------------------------------------------------
-# 📊 Recomendación por popularidad (fallback)
+#  Recomendación por popularidad (fallback)
 # ----------------------------------------------------
 def recomendar_popularidad(top_n=5):
     pedidos = Order.objects.all()
@@ -23,7 +23,7 @@ def recomendar_popularidad(top_n=5):
     return [plato for plato, _ in conteo.most_common(top_n)]
 
 # ----------------------------------------------------
-# 👥 Recomendación por similitud entre clientes
+#  Recomendación por similitud entre clientes
 # ----------------------------------------------------
 def recomendar_por_cliente(telegram_id, top_n=5):
     pedidos_cliente = Order.objects.filter(telegram_id=telegram_id)
@@ -43,7 +43,7 @@ def recomendar_por_cliente(telegram_id, top_n=5):
     return [plato for plato, _ in similares.most_common(top_n)]
 
 # ----------------------------------------------------
-# 🤖 Recomendación usando modelo ML (si está disponible)
+#  Recomendación usando modelo ML (si está disponible)
 # ----------------------------------------------------
 def recomendar_ml(telegram_id, top_n=5):
     modelo = cargar_modelo()

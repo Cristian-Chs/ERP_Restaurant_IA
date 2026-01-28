@@ -73,7 +73,7 @@ export default function CouponSection() {
         min_order_amount: 0
       });
       fetchCoupons();
-      alert('✅ Cupón guardado exitosamente');
+      alert(' Cupón guardado exitosamente');
     } catch (err) {
       console.error('Error saving coupon:', err);
       alert('Error al guardar cupón: ' + (err.response?.data?.error || 'Error desconocido'));
@@ -85,7 +85,7 @@ export default function CouponSection() {
       try {
         await API.delete(`/bot/coupons/${id}/`);
         fetchCoupons();
-        alert('✅ Cupón eliminado');
+        alert(' Cupón eliminado');
       } catch (err) {
         console.error('Error deleting coupon:', err);
         alert('Error al eliminar cupón');
@@ -116,7 +116,7 @@ export default function CouponSection() {
   return (
     <div className="admin-section">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h1 className="section-title">🎟️ Gestión de Cupones</h1>
+        <h1 className="section-title"> Gestión de Cupones</h1>
         <button 
           className="btn-primary" 
           onClick={() => { 
@@ -170,7 +170,7 @@ export default function CouponSection() {
                 </td>
                 <td>
                   {c.points_cost > 0 ? (
-                    <span style={{ color: '#f1bc00' }}>💎 {c.points_cost}</span>
+                    <span style={{ color: '#f1bc00' }}> {c.points_cost}</span>
                   ) : (
                     <span style={{ color: '#8b949e' }}>Manual</span>
                   )}
@@ -203,7 +203,7 @@ export default function CouponSection() {
                       fontWeight: 600
                     }}
                   >
-                    {c.is_active ? '✅ Activo' : '❌ Inactivo'}
+                    {c.is_active ? ' Activo' : ' Inactivo'}
                   </button>
                 </td>
                 <td>
@@ -288,7 +288,7 @@ export default function CouponSection() {
           <div className="admin-modal" style={{ maxWidth: '600px' }}>
             <div className="form-container">
               <h2 className="form-title">
-                {editingCoupon ? '✏️ Editar Cupón' : '✨ Nuevo Cupón'}
+                {editingCoupon ? ' Editar Cupón' : ' Nuevo Cupón'}
               </h2>
 
               <div className="form-group-inline">

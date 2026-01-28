@@ -13,8 +13,8 @@ canvas {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: #051f20; /* ✅ elimina el fondo negro */
-  z-index: 0; /* ✅ asegura que esté detrás del contenido */
+  background-color: #051f20; /*  elimina el fondo negro */
+  z-index: 0; /*  asegura que esté detrás del contenido */
 }
 
 

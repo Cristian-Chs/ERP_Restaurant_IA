@@ -13,7 +13,7 @@ django.setup()
 from bot.models import Order
 
 def run():
-    print("🚀 Generando datos de prueba para Tendencia ALTA...")
+    print(" Generando datos de prueba para Tendencia ALTA...")
     
     # Generar 5 pedidos con montos ascendentes en los últimos 5 días
     # Esto creará una pendiente positiva perfecta para el modelo de regresión
@@ -39,9 +39,9 @@ def run():
         order.fecha = fecha_simulada
         order.save()
         
-        print(f"✅ Pedido creado: {fecha_simulada.strftime('%Y-%m-%d')} - ${monto}")
+        print(f" Pedido creado: {fecha_simulada.strftime('%Y-%m-%d')} - ${monto}")
         
-    print("\n✨ Datos generados. La IA debería detectar ahora una tendencia al ALZA.")
+    print("\n Datos generados. La IA debería detectar ahora una tendencia al ALZA.")
 
 if __name__ == "__main__":
     run()

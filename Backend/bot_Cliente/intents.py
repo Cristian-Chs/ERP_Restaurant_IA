@@ -1,5 +1,5 @@
 # intents.py
-# 🧠 Cerebro del Mesero Digital
+#  Cerebro del Mesero Digital
 # Aquí puedes expandir las frases que el bot entiende y cómo responde.
 
 INTENTS = {
@@ -35,47 +35,47 @@ INTENTS = {
 
 RESPONSES = {
     "SALUDO": [
-        "¡Hola! 👋 Bienvenido a 4 Sabores. ¿Listo para comer algo delicioso?",
-        "¡Buenas! 👨‍🍳 La cocina está a tope hoy. ¿Qué se te antoja?",
+        "¡Hola!  Bienvenido a 4 Sabores. ¿Listo para comer algo delicioso?",
+        "¡Buenas! ‍ La cocina está a tope hoy. ¿Qué se te antoja?",
         "¡Hola! Soy tu mesero digital. ¿Te traigo la carta o buscas algo específico?",
         "¡Bienvenido! ¿Vienes por tu plato favorito o quieres probar algo nuevo?"
     ],
     "DESPEDIDA": [
-        "¡Hasta luego! 👋 Esperamos verte pronto.",
-        "¡Que tengas buen día! Aquí estaremos cuando te de hambre otra vez. 🍔",
+        "¡Hasta luego!  Esperamos verte pronto.",
+        "¡Que tengas buen día! Aquí estaremos cuando te de hambre otra vez. ",
         "¡Chao! Gracias por visitarnos."
     ],
     "HAMBRE": [
-        "¡Has llegado al lugar indicado! 😋 ¿Te provoca algo clásico o una especialidad?",
-        "¡No se diga más! Vamos a solucionar ese problema de inmediato. 🍔🍕",
-        "¡A la orden! 👨‍🍳 ¿Qué tipo de comida te apetece hoy?",
+        "¡Has llegado al lugar indicado!  ¿Te provoca algo clásico o una especialidad?",
+        "¡No se diga más! Vamos a solucionar ese problema de inmediato. ",
+        "¡A la orden! ‍ ¿Qué tipo de comida te apetece hoy?",
         "Aquí estamos para consentirte. Revisa el /menu o pídeme una sugerencia."
     ],
     "INDECISION": [
-        "Mmm... 🤔 Si buscas algo infalible, la **Hamburguesa 4 Sabores** nunca falla.",
-        "¿Te gustan las sorpresas? Nuestros clientes aman la **Pizza Especial**. 🍕",
+        "Mmm...  Si buscas algo infalible, la **Hamburguesa 4 Sabores** nunca falla.",
+        "¿Te gustan las sorpresas? Nuestros clientes aman la **Pizza Especial**. ",
         "¡Déjame pensar! Hoy el chef está recomendando mucho los **Tequeños**. ¿Te animas?",
-        "Si fuera tú, pediría una **Parrilla Mixta**. ¡Es una joya! 🥩",
-        "¡Me encanta la gente aventurera! 🤠 Si quieres probar algo nuevo, tienes que darle una oportunidad al **Pepito Gratinado**."
+        "Si fuera tú, pediría una **Parrilla Mixta**. ¡Es una joya! ",
+        "¡Me encanta la gente aventurera!  Si quieres probar algo nuevo, tienes que darle una oportunidad al **Pepito Gratinado**."
     ],
     "AGRADECIMIENTO": [
-        "¡Es un placer! 😊 Estamos para servirte.",
-        "¡De nada! 👨‍🍳 ¡Vuelve pronto!",
-        "¡A ti! Escribe si necesitas algo más. 🤜🤛"
+        "¡Es un placer!  Estamos para servirte.",
+        "¡De nada! ‍ ¡Vuelve pronto!",
+        "¡A ti! Escribe si necesitas algo más. "
     ],
     "AYUDA": [
-        "Tranquilo, es como hablar con un amigo: 🗣️\nSimplemente dime qué quieres comer, por ejemplo: _'Quiero una hamburguesa con queso'_.",
+        "Tranquilo, es como hablar con un amigo: \nSimplemente dime qué quieres comer, por ejemplo: _'Quiero una hamburguesa con queso'_.",
         "Estoy aquí para ayudarte. Puedes escribir lo que te provoque o usar el comando /menu.",
-        "¡Relájate! 🧘‍♂️ Escribe 'Tengo hambre' y te guiaré."
+        "¡Relájate! ‍ Escribe 'Tengo hambre' y te guiaré."
     ],
     "PAGO_MOVIL": [
-        "💸 **Datos de Pago Móvil**\n\n🏦 **Banco**: Banesco\n📞 **Teléfono**: 0414-1234567\n🆔 **C.I.**: 12.345.678\n\n📲 Al realizar el pago, envíame una *foto del comprobante* para validarlo.",
-        "Aquí tienes para transferir 👇\n\n🏦 **Banesco | Pago Móvil**\n📱 0414-1234567\n💳 V-12.345.678\n\n¡Espero tu comprobante! 📸"
+        " **Datos de Pago Móvil**\n\n **Banco**: Banesco\n **Teléfono**: 0414-1234567\n **C.I.**: 12.345.678\n\n Al realizar el pago, envíame una *foto del comprobante* para validarlo.",
+        "Aquí tienes para transferir \n\n **Banesco | Pago Móvil**\n 0414-1234567\n V-12.345.678\n\n¡Espero tu comprobante! "
     ],
     "DEFAULT": [
-        "🤔 Mmm, no estoy seguro de haberte entendido.",
-        "¡Vaya! Aún estoy aprendiendo humano. 😅 ¿Podrías decirlo de otra forma?",
-        "Disculpa, mi oído de robot falló. 🤖 ¿Me repites eso?",
-        "¿Podrías ser más específico? Quiero asegurarme de tomar bien tu nota. 📝"
+        " Mmm, no estoy seguro de haberte entendido.",
+        "¡Vaya! Aún estoy aprendiendo humano.  ¿Podrías decirlo de otra forma?",
+        "Disculpa, mi oído de robot falló.  ¿Me repites eso?",
+        "¿Podrías ser más específico? Quiero asegurarme de tomar bien tu nota. "
     ]
 }

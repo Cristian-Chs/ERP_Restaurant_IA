@@ -5,7 +5,7 @@ class CouponAdminSite(AdminSite):
     """
     Panel de administración dedicado para la gestión de cupones y promociones
     """
-    site_header = "🎟️ Panel de Cupones y Promociones"
+    site_header = " Panel de Cupones y Promociones"
     site_title = "Gestión de Cupones"
     index_title = "Administración de Cupones"
     

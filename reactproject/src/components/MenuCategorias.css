@@ -2,15 +2,15 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 1.5rem; /* ✅ Gap mucho mejor */
+  gap: 1.5rem; /*  Gap mucho mejor */
   margin-bottom: 2.5rem;
-  background: rgba(255, 255, 255, 0.15); /* ✅ Fondo sutil */
+  background: rgba(255, 255, 255, 0.15); /*  Fondo sutil */
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   padding: 0.5rem 1.5rem;
   border-radius: 50px;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  width: fit-content; /* ✅ Se ajusta al contenido */
+  width: fit-content; /*  Se ajusta al contenido */
   margin-left: auto;
   margin-right: auto;
   z-index: 1000;
@@ -20,7 +20,7 @@
   background: none;
   border: none;
   font-size: 1.1rem;
-  color: rgba(255, 255, 255, 0.6); /* ✅ Blanco tenue para inactivas */
+  color: rgba(255, 255, 255, 0.6); /*  Blanco tenue para inactivas */
   padding: 0.7rem 1.2rem;
   cursor: pointer;
   position: relative;
@@ -46,6 +46,6 @@
   transform: translateX(-50%);
   width: 30px;
   height: 3px;
-  background-color: #fff; /* ✅ Línea blanca */
+  background-color: #fff; /*  Línea blanca */
   border-radius: 2px;
 }

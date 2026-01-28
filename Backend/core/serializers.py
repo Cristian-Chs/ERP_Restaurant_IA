@@ -29,7 +29,7 @@ class ProductSerializer(serializers.ModelSerializer):
             'imagen', 'ingredientes', 'sabores', 'ingrediente_nombres', 'sabor_nombres'
         )
 
-# ✅ Nuevo: Serializers para RRHH
+#  Nuevo: Serializers para RRHH
 from .models import Employee, PayrollPayment, Recipe, InventoryMovement
 
 class EmployeeSerializer(serializers.ModelSerializer):
@@ -62,7 +62,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 
         return token
 
-# ✅ Serializers para Inventario y Recetas
+#  Serializers para Inventario y Recetas
 class RecipeSerializer(serializers.ModelSerializer):
     ingredient_name = serializers.StringRelatedField(source='ingredient', read_only=True)
     product_name = serializers.StringRelatedField(source='product', read_only=True)

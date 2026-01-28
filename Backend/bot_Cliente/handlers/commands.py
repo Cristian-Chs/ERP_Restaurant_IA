@@ -17,16 +17,17 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     nombre = update.effective_user.first_name
 
-    texto_bienvenida = (
-        f"¡Hola {nombre}! 👋\n"
-        f"Soy tu mesero virtual en *4 Sabores*.\n\n"
-        f"Selecciona una opción para comenzar:"
-    )
+    # Saludo proactivo basado en la hora y variaciones
+    from bot_Cliente.utils.proactive_messages import get_time_based_greeting, get_suggestive_question
+    
+    texto_bienvenida = get_time_based_greeting(nombre) + "\n\n"
+    texto_bienvenida += "Voy a ser tu mesero hoy. 🤵\n\n"
+    texto_bienvenida += "*Selecciona lo que quieras hacer:* 👇"
 
     keyboard = [
         [InlineKeyboardButton("🍔 Hacer un pedido", callback_data="ayuda_pedido")],
-        [InlineKeyboardButton("📦 Consultar mi pedido", callback_data="estado_pedido")],
-        [InlineKeyboardButton("📞 Hablar con soporte", callback_data="soporte")]
+        [InlineKeyboardButton("🧾 Consultar mi pedido", callback_data="estado_pedido")],
+        [InlineKeyboardButton("💬 Hablar con soporte", callback_data="soporte")]
     ]
 
     await update.message.reply_text(
@@ -45,9 +46,17 @@ async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         Product.objects.filter(is_active=True).prefetch_related('ingredientes').order_by('category', 'name')
     )
     
+    # Deteminar destinatario del mensaje (Comando o Callback)
+    if update.message:
+        message_target = update.message
+    elif update.callback_query:
+        message_target = update.callback_query.message
+    else:
+        return
+    
     if not productos:
-        await update.message.reply_text(
-            "⚠️ No hay productos disponibles en este momento.",
+        await message_target.reply_text(
+            " No hay productos disponibles en este momento.",
             parse_mode="Markdown"
         )
         return
@@ -67,15 +76,15 @@ async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
             categorias[categoria].append(producto)
     
     # Construir mensaje
-    mensaje = "🍽️*Los Cuatros Sabores de Paraguaná\n\nMENÚ DEL RESTAURANTE*\n\n"
+    mensaje = "*Los Cuatros Sabores de Paraguaná\n\nMENÚ DEL RESTAURANTE*\n\n"
     
     # Emojis y nombres por categoría
     emojis = {
-        'promociones': '🎉',
-        'entradas': '🥗',
-        'principales': '🍖',
-        'postres': '🍰',
-        'bebidas': '🥤'
+        'promociones': '',
+        'entradas': '',
+        'principales': '',
+        'postres': '',
+        'bebidas': ''
     }
     
     nombres_categorias = {
@@ -90,7 +99,7 @@ async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         items = categorias[categoria_key]
         
         if items:
-            emoji = emojis.get(categoria_key, '📌')
+            emoji = emojis.get(categoria_key, '')
             nombre_categoria = nombres_categorias.get(categoria_key, categoria_key.upper())
             
             mensaje += f"{emoji} *{nombre_categoria}*\n"
@@ -110,11 +119,18 @@ async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             mensaje += "\n"
     
-    mensaje += "💬 Para pedir, escribe:\n"
+    from bot_Cliente.utils.proactive_messages import get_random_message, MENU_FOLLOWUPS
+
+    mensaje += "📝 *¿Qué tal? ¿Viste algo que te guste?*\n\n"
+    mensaje += "Para pedir, solo escríbeme:\n"
     mensaje += "_'Quiero una hamburguesa sin cebolla'_\n"
-    mensaje += "_'Dame una pizza con bacon'_"
+    mensaje += "_'Dame una pizza con bacon'_\n\n"
     
-    await update.message.reply_text(mensaje, parse_mode="Markdown")
+    # Pregunta proactiva al final
+    pregunta = get_random_message(MENU_FOLLOWUPS)
+    mensaje += f"*{pregunta}*"
+
+    await message_target.reply_text(mensaje, parse_mode="Markdown")
 
 
 async def menu_personalizado(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -130,19 +146,29 @@ async def menu_personalizado(update: Update, context: ContextTypes.DEFAULT_TYPE)
     except:
         gustos = []
 
+    # Deteminar destinatario del mensaje (Comando o Callback)
+    if update.message:
+        message_target = update.message
+    elif update.callback_query:
+        message_target = update.callback_query.message
+    else:
+        return
+
     if not gustos:
-        await update.message.reply_text(
-            f"⚠️ {nombre}, aún no tengo tus gustos registrados.\n"
+        await message_target.reply_text(
+            f" {nombre}, aún no tengo tus gustos registrados.\n"
             "Puedes configurarlos enviando: *Me gusta [plato]*",
             parse_mode="Markdown"
         )
         return
 
-    texto_menu = "⭐ *Tu menú personalizado basado en tus gustos:*\n\n"
+    texto_menu = "🍽️ *Tu menú personalizado (cosas que te encantan):*\n\n"
     for plato in gustos:
         texto_menu += f"• {plato}\n"
+    
+    texto_menu += "\n*¿Te provoca alguno de estos ahora?* 😋"
 
-    await update.message.reply_text(texto_menu, parse_mode="Markdown")
+    await message_target.reply_text(texto_menu, parse_mode="Markdown")
 
 
 async def soporte(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -150,7 +176,7 @@ async def soporte(update: Update, context: ContextTypes.DEFAULT_TYPE):
     Comando /soporte - Información de contacto para soporte.
     """
     texto = (
-        "📞 *Soporte al Cliente*\n\n"
+        " *Soporte al Cliente*\n\n"
         "Si necesitas ayuda, contáctanos:\n"
         "• Teléfono: +58 269 34 567 890\n"
         "• Email: soporte@restaurante.com\n"
@@ -159,8 +185,8 @@ async def soporte(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if update.callback_query:
         # Si viene de un botón
-        await update.callback_query.message.reply_text(texto, parse_mode="Markdown")
+        await update.callback_query.message.reply_text(texto + "\n¿En qué te puedo ayudar específicamente? 🤔", parse_mode="Markdown")
         await update.callback_query.answer()
     else:
         # Si viene de comando /soporte
-        await update.message.reply_text(texto, parse_mode="Markdown")
+        await update.message.reply_text(texto + "\n¿Tienes alguna duda con tu pedido? Estoy aquí. 👂", parse_mode="Markdown")

@@ -4,7 +4,7 @@ const TelegramLogin = ({ onAuth }) => {
   const containerRef = useRef(null);
 
   useEffect(() => {
-    // 💡 Definir el callback globalmente para que el widget de Telegram lo encuentre
+    //  Definir el callback globalmente para que el widget de Telegram lo encuentre
     window.onTelegramAuth = (user) => {
       onAuth(user);
     };

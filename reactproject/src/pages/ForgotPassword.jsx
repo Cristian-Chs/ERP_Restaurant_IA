@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosPublic from '../api/axiosPublic'; 
-import './Register.css'; // ✅ Usar el mismo CSS de Registro
+import './Register.css'; //  Usar el mismo CSS de Registro
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -21,7 +21,7 @@ export default function ForgotPassword() {
     }
 
     try {
-      // ✅ Llamar al nuevo endpoint de verificación directa
+      //  Llamar al nuevo endpoint de verificación directa
       const res = await axiosPublic.get(`/auth/check-recovery?email=${email}`); 
       
       if (res.data.exists) {

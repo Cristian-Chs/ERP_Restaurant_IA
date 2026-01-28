@@ -1,15 +1,15 @@
 # Instrucciones para Probar el Chatbot Híbrido con Groq
 
-## 🚀 Por qué Groq es Mejor que Gemini
+##  Por qué Groq es Mejor que Gemini
 
 | Característica      | Gemini  | Groq               |
 | ------------------- | ------- | ------------------ |
-| Requests gratis/día | ~50     | **14,400** ⭐      |
-| Velocidad           | 1-3 seg | **0.3-0.8 seg** ⚡ |
+| Requests gratis/día | ~50     | **14,400**       |
+| Velocidad           | 1-3 seg | **0.3-0.8 seg**  |
 | Límite por minuto   | 2-15    | **30**             |
 | Estabilidad         | Media   | **Alta**           |
 
-## 📝 Pasos para Ejecutar
+##  Pasos para Ejecutar
 
 ### 1. Obtener API Key de Groq (GRATIS)
 
@@ -46,7 +46,7 @@ cd Backend
 - **Modo 1 (Interactivo)**: Escribe tus propias preguntas
 - **Modo 2 (Automático)**: Ejecuta 14 preguntas de prueba predefinidas
 
-## 🎯 Ventajas de Groq
+##  Ventajas de Groq
 
 1. **Cuota Generosa**: 14,400 requests gratis por día (vs. 50 de Gemini)
 2. **Ultra Rápido**: Respuestas en 0.3-0.8 segundos (vs. 1-3 seg de Gemini)
@@ -54,14 +54,14 @@ cd Backend
 4. **API Simple**: Compatible con OpenAI (fácil de usar)
 5. **Sin Problemas de Cuota**: Casi imposible agotar el límite en pruebas
 
-## 📊 Modelos Disponibles en Groq
+##  Modelos Disponibles en Groq
 
-- `llama-3.3-70b-versatile` ⭐ (Recomendado - balance perfecto)
+- `llama-3.3-70b-versatile`  (Recomendado - balance perfecto)
 - `llama-3.1-70b-versatile` (Alternativa)
 - `mixtral-8x7b-32768` (Más rápido, menos preciso)
 - `gemma2-9b-it` (Muy rápido, menos potente)
 
-## 💡 Ejemplos de Uso
+##  Ejemplos de Uso
 
 ### Preguntas que usa INTENTS (instantáneo)
 
@@ -76,7 +76,7 @@ cd Backend
 - "¿Cuánto cuesta una hamburguesa?"
 - "¿Cuánto costarían 3 pizzas para delivery?"
 
-## 🔧 Personalización
+##  Personalización
 
 Puedes modificar:
 
@@ -84,26 +84,26 @@ Puedes modificar:
 - **Temperature**: Ajustar creatividad (0.0 = preciso, 1.0 = creativo)
 - **Max tokens**: Limitar longitud de respuesta
 
-## 📈 Límites de Groq (Free Tier)
+##  Límites de Groq (Free Tier)
 
-- ✅ **14,400 requests por día**
-- ✅ **30 requests por minuto**
-- ✅ **6,000 tokens por minuto**
+-  **14,400 requests por día**
+-  **30 requests por minuto**
+-  **6,000 tokens por minuto**
 
-## ⚠️ Notas
+##  Notas
 
 1. El script mide el tiempo de respuesta de cada pregunta
 2. En modo automático, muestra estadísticas al final
 3. Groq es MUCHO más estable que Gemini para pruebas
 
-## 🎉 Resultado Esperado
+##  Resultado Esperado
 
 Con Groq deberías ver respuestas como:
 
 ```
-👤 Tú: ¿Cuál es el horario?
-🤖 Bot [Groq AI] (0.45s): ¡Hola! 👋 Estamos abiertos de Lunes a Domingo
-de 9:00 AM a 10:00 PM. ¿Te gustaría hacer un pedido? 😊
+ Tú: ¿Cuál es el horario?
+ Bot [Groq AI] (0.45s): ¡Hola!  Estamos abiertos de Lunes a Domingo
+de 9:00 AM a 10:00 PM. ¿Te gustaría hacer un pedido? 
 ```
 
 ¡Mucho más rápido y sin problemas de cuota!

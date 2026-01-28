@@ -8,7 +8,7 @@ for (const path in images) {
   // Extrae el nombre del archivo sin extensión (ej: 'sushi' de 'sushi.jpg')
   const filename = path.split('/').pop().split('.')[0];
   
-  // 🚨 CRÍTICO: Normalizar a minúsculas y quitar acentos para la clave
+  //  CRÍTICO: Normalizar a minúsculas y quitar acentos para la clave
   const normalizedName = filename.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   
   parsedImages[normalizedName] = images[path].default;

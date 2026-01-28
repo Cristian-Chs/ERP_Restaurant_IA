@@ -17,13 +17,13 @@ class LoyaltyPointsAdminForCoupons(admin.ModelAdmin):
     readonly_fields = ("ultima_actualizacion",)
     
     fieldsets = (
-        ('👤 Usuario', {
+        (' Usuario', {
             'fields': ('telegram_id',)
         }),
-        ('💎 Puntos y Nivel', {
+        (' Puntos y Nivel', {
             'fields': ('puntos', 'nivel', 'total_gastado')
         }),
-        ('📅 Información', {
+        (' Información', {
             'fields': ('ultima_actualizacion',)
         }),
     )

@@ -7,20 +7,20 @@ TELEGRAM_PHOTO_URL = "https://api.telegram.org/bot8537597604:AAFyajyokOXKShw5Zx9
 ADMIN_CHAT_ID = 5719602467
 
 def notificar_pedido_listo(telegram_id, plato):
-    # ✅ Primer mensaje: Pedido listo + calificación
+    #  Primer mensaje: Pedido listo + calificación
     mensaje = (
-        f"✅ Tu pedido está listo. \n *{plato}* \n\n"
+        f" Tu pedido está listo. \n *{plato}* \n\n"
         "¿Qué te pareció?\n"
         "Califícalo con una estrella:"
     )
 
     keyboard = [
         [
-            InlineKeyboardButton("⭐ 1", callback_data=f"rating:{plato}:1"),
-            InlineKeyboardButton("⭐ 2", callback_data=f"rating:{plato}:2"),
-            InlineKeyboardButton("⭐ 3", callback_data=f"rating:{plato}:3"),
-            InlineKeyboardButton("⭐ 4", callback_data=f"rating:{plato}:4"),
-            InlineKeyboardButton("⭐ 5", callback_data=f"rating:{plato}:5"),
+            InlineKeyboardButton(" 1", callback_data=f"rating:{plato}:1"),
+            InlineKeyboardButton(" 2", callback_data=f"rating:{plato}:2"),
+            InlineKeyboardButton(" 3", callback_data=f"rating:{plato}:3"),
+            InlineKeyboardButton(" 4", callback_data=f"rating:{plato}:4"),
+            InlineKeyboardButton(" 5", callback_data=f"rating:{plato}:5"),
         ]
     ]
 
@@ -35,11 +35,11 @@ def notificar_pedido_listo(telegram_id, plato):
 
     requests.post(TELEGRAM_API_URL, json=payload)
     
-    # ✅ Segundo mensaje: Pregunta sobre comentario
+    #  Segundo mensaje: Pregunta sobre comentario
     keyboard_comentario = [
         [
-            InlineKeyboardButton("📝 Sí, dejar comentario", callback_data="dejar_comentario"),
-            InlineKeyboardButton("❌ No, gracias", callback_data="no_comentario")
+            InlineKeyboardButton(" Sí, dejar comentario", callback_data="dejar_comentario"),
+            InlineKeyboardButton(" No, gracias", callback_data="no_comentario")
         ]
     ]
     
@@ -59,18 +59,18 @@ def notificar_nuevo_pedido_externo(order):
     Incluye la foto del comprobante si existe.
     """
     mensaje = (
-        f"🚨 *NUEVO PEDIDO EXTERNO*\n\n"
-        f"🆔 #ORDEN: {order.id}\n"
-        f"👤 Cliente: {order.telegram_id}\n"
-        f"🍽️ Detalle: {order.item}\n"
-        f"💰 Total: ${order.precio}\n"
-        f"📦 Modalidad: {order.get_delivery_mode_display() if order.delivery_mode else 'N/A'}\n"
-        f"📍 Ubicación: {order.location or 'N/A'}\n"
+        f" *NUEVO PEDIDO EXTERNO*\n\n"
+        f" #ORDEN: {order.id}\n"
+        f" Cliente: {order.telegram_id}\n"
+        f" Detalle: {order.item}\n"
+        f" Total: ${order.precio}\n"
+        f" Modalidad: {order.get_delivery_mode_display() if order.delivery_mode else 'N/A'}\n"
+        f" Ubicación: {order.location or 'N/A'}\n"
     )
 
     if order.status == 'fraude_sospecha':
-        mensaje = f"🚩 *POSIBLE FRAUDE DETECTADO*\n\n" + mensaje
-        mensaje += f"\n\n⚠️ *ALERTA*: El comprobante parece duplicado."
+        mensaje = f" *POSIBLE FRAUDE DETECTADO*\n\n" + mensaje
+        mensaje += f"\n\n *ALERTA*: El comprobante parece duplicado."
 
     if order.payment_proof:
         # Enviar como foto
@@ -95,7 +95,7 @@ def notificar_pago_aprobado(telegram_id, order_id, invoice_path=None):
     Notifica al cliente que su pago fue aprobado.
     Si se proporciona invoice_path, envía la factura como imagen.
     """
-    mensaje = f"✅ *¡Pago Aprobado!* (Orden #{order_id})\n\nTu pedido ha sido enviado a cocina y estará listo pronto. 😊🍽️"
+    mensaje = f" *¡Pago Aprobado!* (Orden #{order_id})\n\nTu pedido ha sido enviado a cocina y estará listo pronto. "
     
     if invoice_path:
         # Enviar factura como foto con caption
@@ -106,7 +106,7 @@ def notificar_pago_aprobado(telegram_id, order_id, invoice_path=None):
                     files = {'photo': photo_file}
                     payload = {
                         "chat_id": telegram_id,
-                        "caption": mensaje + "\n\n📄 *Tu Factura Fiscal*",
+                        "caption": mensaje + "\n\n *Tu Factura Fiscal*",
                         "parse_mode": "Markdown"
                     }
                     import requests
@@ -126,7 +126,7 @@ def notificar_pago_aprobado(telegram_id, order_id, invoice_path=None):
     requests.post(TELEGRAM_API_URL, json=payload)
 
 def notificar_pago_rechazado(telegram_id, order_id):
-    mensaje = f"❌ *Pago Rechazado* (Orden #{order_id})\n\nHubo un problema con tu comprobante. Por favor, contacta a soporte o intenta de nuevo con una captura legible. 👩‍🍳🆘"
+    mensaje = f" *Pago Rechazado* (Orden #{order_id})\n\nHubo un problema con tu comprobante. Por favor, contacta a soporte o intenta de nuevo con una captura legible. ‍"
     payload = {
         "chat_id": telegram_id,
         "text": mensaje,
@@ -136,9 +136,9 @@ def notificar_pago_rechazado(telegram_id, order_id):
 
 def notificar_puntos_ganados(telegram_id, puntos_ganados, total_puntos):
     mensaje = (
-        f"💎 *¡Has ganado {puntos_ganados} puntos!*\n\n"
+        f" *¡Has ganado {puntos_ganados} puntos!*\n\n"
         f"Tu saldo actual es de *{total_puntos} puntos*.\n"
-        f"¡Sigue acumulando para canjear por premios y descuentos! 🎁🛒"
+        f"¡Sigue acumulando para canjear por premios y descuentos! "
     )
     payload = {
         "chat_id": telegram_id,

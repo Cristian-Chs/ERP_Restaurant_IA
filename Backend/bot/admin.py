@@ -2,7 +2,7 @@ from django.contrib import admin
 from telegram import Bot
 from .models import Order, Rating, GustoCliente, Coupon, RedeemedCoupon
 
-# ⚙️ Configuración
+#  Configuración
 BOT_TOKEN_CLIENTE = "537597604:AAFyajyokOXKShw5Zx9UNh5likds4FUmUHU"
 CHEF_CHAT_ID = 1234567890
 ADMIN_CHAT_ID = 5719602467
@@ -12,17 +12,17 @@ def notificar_cliente(order):
     bot = Bot(token=BOT_TOKEN_CLIENTE)
     bot.send_message(
         chat_id=order.telegram_id,
-        text=f"🍽️ Tu pedido '{order.item}' está listo. ¡Buen provecho!"
+        text=f" Tu pedido '{order.item}' está listo. ¡Buen provecho!"
     )
 
 
 def notificar_chef(order):
     bot = Bot(token=BOT_TOKEN_CLIENTE)
     mensaje = (
-        f"👨‍🍳 Pedido LISTO:\n\n"
+        f"‍ Pedido LISTO:\n\n"
         f"{order.item}\n\n"
-        f"📲 Cliente: {order.telegram_id}\n"
-        f"🕒 Hora: {order.fecha.strftime('%d/%m/%Y %H:%M')}"
+        f" Cliente: {order.telegram_id}\n"
+        f" Hora: {order.fecha.strftime('%d/%m/%Y %H:%M')}"
     )
     bot.send_message(chat_id=CHEF_CHAT_ID, text=mensaje)
 
@@ -79,11 +79,11 @@ class OrderAdmin(admin.ModelAdmin):
         """Mostrar estado de pago con colores"""
         colors = {
             'pending_payment': '🟡',
-            'payment_submitted': '🔵',
+            'payment_submitted': '',
             'payment_approved': '🟢',
-            'payment_rejected': '🔴',
+            'payment_rejected': '',
         }
-        icon = colors.get(obj.payment_status, '⚪')
+        icon = colors.get(obj.payment_status, '')
         return f"{icon} {obj.get_payment_status_display()}"
     payment_status_display.short_description = "Estado de Pago"
     
@@ -118,7 +118,7 @@ class OrderAdmin(admin.ModelAdmin):
             order.save()
             count += 1
         self.message_user(request, f"{count} pago(s) aprobado(s).")
-    aprobar_pago_admin.short_description = "✅ Aprobar pagos seleccionados"
+    aprobar_pago_admin.short_description = " Aprobar pagos seleccionados"
     
     def rechazar_pago_admin(self, request, queryset):
         """Rechazar pagos desde el admin"""
@@ -132,7 +132,7 @@ class OrderAdmin(admin.ModelAdmin):
             order.save()
             count += 1
         self.message_user(request, f"{count} pago(s) rechazado(s).")
-    rechazar_pago_admin.short_description = "❌ Rechazar pagos seleccionados"
+    rechazar_pago_admin.short_description = " Rechazar pagos seleccionados"
 
 
 @admin.register(Rating)
@@ -165,16 +165,16 @@ class CouponAdmin(admin.ModelAdmin):
     actions = ["activate_coupons", "deactivate_coupons", "reset_usage"]
     
     fieldsets = (
-        ('📋 Información del Cupón', {
+        (' Información del Cupón', {
             'fields': ('code', 'discount_type', 'discount_amount', 'points_cost')
         }),
         ('⏰ Validez y Límites', {
             'fields': ('is_active', 'valid_from', 'valid_until', 'max_uses', 'current_uses')
         }),
-        ('🎯 Restricciones', {
+        (' Restricciones', {
             'fields': ('min_order_amount',)
         }),
-        ('📅 Información del Sistema', {
+        (' Información del Sistema', {
             'fields': ('fecha_creacion',),
             'classes': ('collapse',)
         }),
@@ -183,16 +183,16 @@ class CouponAdmin(admin.ModelAdmin):
     def discount_display(self, obj):
         """Muestra el descuento de forma visual"""
         if obj.discount_type == 'fixed':
-            return f"💵 ${obj.discount_amount}"
+            return f" ${obj.discount_amount}"
         else:
-            return f"📊 {obj.discount_amount}%"
+            return f" {obj.discount_amount}%"
     discount_display.short_description = "Descuento"
     
     def is_active_display(self, obj):
         """Muestra estado activo con íconos"""
         if obj.is_active:
-            return "✅ Activo"
-        return "❌ Inactivo"
+            return " Activo"
+        return " Inactivo"
     is_active_display.short_description = "Estado"
     
     def usage_display(self, obj):
@@ -202,7 +202,7 @@ class CouponAdmin(admin.ModelAdmin):
         
         percentage = (obj.current_uses / obj.max_uses * 100) if obj.max_uses > 0 else 0
         if percentage >= 100:
-            icon = "🔴"
+            icon = ""
         elif percentage >= 75:
             icon = "🟡"
         else:
@@ -215,19 +215,19 @@ class CouponAdmin(admin.ModelAdmin):
         """Activa los cupones seleccionados"""
         count = queryset.update(is_active=True)
         self.message_user(request, f"{count} cupón(es) activado(s).")
-    activate_coupons.short_description = "✅ Activar cupones seleccionados"
+    activate_coupons.short_description = " Activar cupones seleccionados"
     
     def deactivate_coupons(self, request, queryset):
         """Desactiva los cupones seleccionados"""
         count = queryset.update(is_active=False)
         self.message_user(request, f"{count} cupón(es) desactivado(s).")
-    deactivate_coupons.short_description = "❌ Desactivar cupones seleccionados"
+    deactivate_coupons.short_description = " Desactivar cupones seleccionados"
     
     def reset_usage(self, request, queryset):
         """Reinicia el contador de usos"""
         count = queryset.update(current_uses=0)
         self.message_user(request, f"Contador de usos reiniciado para {count} cupón(es).")
-    reset_usage.short_description = "🔄 Reiniciar contador de usos"
+    reset_usage.short_description = " Reiniciar contador de usos"
 
 
 @admin.register(RedeemedCoupon)
@@ -246,12 +246,12 @@ class RedeemedCouponAdmin(admin.ModelAdmin):
     
     def coupon_code_display(self, obj):
         """Muestra el código del cupón"""
-        return f"🎟️ {obj.coupon.code}"
+        return f" {obj.coupon.code}"
     coupon_code_display.short_description = "Cupón"
     
     def discount_display(self, obj):
         """Muestra el descuento aplicado"""
-        return f"💰 ${obj.discount_applied}"
+        return f" ${obj.discount_applied}"
     discount_display.short_description = "Descuento Aplicado"
     
     def order_link(self, obj):

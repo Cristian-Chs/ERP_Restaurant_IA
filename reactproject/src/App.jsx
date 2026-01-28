@@ -19,9 +19,9 @@ import TelegramButton from './components/TelegramButton';
 import KitchenPanel from './pages/KitchenPanel';
 import Profile from './pages/Profile';
 import ProtectedRoute from './components/ProtectedRoute';
-import RealTimeDashboard from './pages/RealTimeDashboard'; // 🆕
+import RealTimeDashboard from './pages/RealTimeDashboard'; // 
 
-// 🛑 LÓGICA DE CARRITO
+//  LÓGICA DE CARRITO
 function useCartLogic() {
   const [carrito, setCarrito] = useState([]);
   
@@ -54,7 +54,7 @@ function useCartLogic() {
   return { carrito, agregarAlCarrito, eliminarDelCarrito, vaciarCarrito, totalItems };
 }
 
-// 🛑 LÓGICA DE SEGUIMIENTO DE PEDIDO
+//  LÓGICA DE SEGUIMIENTO DE PEDIDO
 function useOrderTracking() {
   const [activeOrderId, setActiveOrderId] = useState(null);
   const [isOrderReady, setIsOrderReady] = useState(false);
@@ -114,7 +114,7 @@ const OrderReadyModal = ({ onClose }) => (
       textAlign: 'center', border: '2px solid #00ff88',
       animation: 'popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
     }}>
-      <div style={{fontSize: '60px', marginBottom: '20px'}}>👨‍🍳</div>
+      <div style={{fontSize: '60px', marginBottom: '20px'}}>‍</div>
       <h2 style={{fontSize: '2rem', color: '#fff', marginBottom: '10px'}}>¡Tu pedido está listo!</h2>
       <p style={{color: '#ccc', marginBottom: '30px', fontSize: '1.1rem'}}>
         Puedes pasar a retirarlo en barra. <br/> ¡Que lo disfrutes!
@@ -206,7 +206,7 @@ function CartButtonWrapper({ totalItems }) {
   return <CartButton totalItems={totalItems} />;
 }
 
-// ✅ Aquí está la función App completa
+//  Aquí está la función App completa
 function App() {
   const { carrito, agregarAlCarrito, eliminarDelCarrito, vaciarCarrito, totalItems } = useCartLogic();
   const { startTracking, stopTracking, isOrderReady } = useOrderTracking();
@@ -229,7 +229,7 @@ function App() {
 
 import Navbar from './components/Navbar';
 
-// ✅ Componente hijo que sí puede usar useLocation
+//  Componente hijo que sí puede usar useLocation
 function AppContent({ carrito, agregarAlCarrito, eliminarDelCarrito, vaciarCarrito, totalItems, startTracking, isOrderReady, stopTracking }) {
   const location = useLocation();
 

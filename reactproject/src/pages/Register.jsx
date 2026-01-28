@@ -53,15 +53,15 @@ export default function Register() {
         <div className="password-container">
           <input
             placeholder="Contraseña"
-            type={showPassword ? "text" : "password"} // 👈 alterna entre text y password
+            type={showPassword ? "text" : "password"} //  alterna entre text y password
             onChange={(e) => setPassword(e.target.value)}
           />
           <button
             type="button"
-            onClick={() => setShowPassword(!showPassword)} // 👈 toggle
+            onClick={() => setShowPassword(!showPassword)} //  toggle
             className="toggle-btn"
           >
-            {showPassword ? "🙈" : "👁️"}
+            {showPassword ? "" : ""}
           </button>
         </div>
 

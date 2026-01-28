@@ -14,7 +14,7 @@ import './AdminPanel.css';
 // Sub-componente para el formulario de producto
 const ProductForm = ({ newItem, setNewItem, ingredients, flavors, onSave, onCancel, isEditing }) => (
   <div className="form-container inline">
-    <h2 className="form-title">{isEditing ? '✏️ Editar Platillo' : '✨ Nuevo Platillo'}</h2>
+    <h2 className="form-title">{isEditing ? ' Editar Platillo' : ' Nuevo Platillo'}</h2>
     
     <div className="form-group-inline">
       <label>Nombre:</label>
@@ -271,7 +271,7 @@ export default function AdminPanel() {
       // Actualizar localmente o refetch
       const res = await API.get('/recipes-admin/');
       setRecipes(res.data);
-      alert("✅ Ingrediente agregado a la receta");
+      alert(" Ingrediente agregado a la receta");
     } catch (err) {
       console.error("Error saving recipe:", err);
       if (err.response?.status === 401) {
@@ -323,7 +323,7 @@ export default function AdminPanel() {
                     <td>{p.total_pedidos}</td>
                     <td>
                       <div className="rating-pill">
-                        {p.avg_stars} ★
+                        {p.avg_stars} 
                       </div>
                     </td>
                     <td>${parseFloat(p.recaudado).toFixed(2)}</td>
@@ -399,7 +399,7 @@ export default function AdminPanel() {
     <div className="admin-section">
       <h1 className="section-title">Panel de Control</h1>
 
-      {/* ✅ MODULO FINANCIERO (NUEVO) */}
+      {/*  MODULO FINANCIERO (NUEVO) */}
       {stats.financial_summary && (
         <div className="financial-module-container" style={{ marginBottom: '2rem', padding: '1.5rem', background: 'linear-gradient(135deg, #1f2428 0%, #161b22 100%)', borderRadius: '12px', border: '1px solid #30363d', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
@@ -506,7 +506,7 @@ export default function AdminPanel() {
         <div className="stat-card">
           <span className="stat-label">Predicción IA (Tendencia)</span>
           <span className="stat-value" style={{ color: prediction?.trend === 'up' ? '#238636' : '#da3633' }}>
-            {prediction?.trend === 'up' ? '📈 Alza' : '📉 Baja'}
+            {prediction?.trend === 'up' ? ' Alza' : ' Baja'}
           </span>
         </div>
       </div>
@@ -527,8 +527,8 @@ export default function AdminPanel() {
                       const dateStr = label ? new Date(label).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
                       return (
                         <div style={{ backgroundColor: '#161b22', border: '1px solid #30363d', padding: '12px', borderRadius: '8px', boxShadow: '0 8px 16px rgba(0,0,0,0.5)' }}>
-                          <p style={{ color: '#c9d1d9', margin: 0, fontSize: '0.85rem', marginBottom: '4px' }}>📅 {dateStr}</p>
-                          <p style={{ color: '#58a6ff', margin: 0, fontSize: '1rem', fontWeight: 'bold' }}>💰 Ventas: ${parseFloat(payload[0].value).toFixed(2)}</p>
+                          <p style={{ color: '#c9d1d9', margin: 0, fontSize: '0.85rem', marginBottom: '4px' }}> {dateStr}</p>
+                          <p style={{ color: '#58a6ff', margin: 0, fontSize: '1rem', fontWeight: 'bold' }}> Ventas: ${parseFloat(payload[0].value).toFixed(2)}</p>
                         </div>
                       );
                     }
@@ -617,7 +617,7 @@ export default function AdminPanel() {
                     <div className="tag-list mini">
                       {p.sabores?.map(id => {
                         const flav = flavors.find(f => f.id === id);
-                        return flav ? <span key={id} className="tag-mini-simple" style={{ color: '#888' }}>◦ {flav.nombre}</span> : null;
+                        return flav ? <span key={id} className="tag-mini-simple" style={{ color: '#888' }}> {flav.nombre}</span> : null;
                       })}
                     </div>
                   </td>
@@ -713,7 +713,7 @@ export default function AdminPanel() {
 
     return (
       <div className="admin-section">
-        <h1 className="section-title">📘 Recetario y Costos</h1>
+        <h1 className="section-title"> Recetario y Costos</h1>
         <p style={{ color: '#8b949e', marginBottom: '2rem' }}>
           Define la receta de cada plato para calcular su costo real automáticamente.
         </p>
@@ -954,7 +954,7 @@ export default function AdminPanel() {
       {showGenericModal && !genericItem.id && (
         <div className="admin-modal-overlay">
           <div className="admin-modal" style={{ maxWidth: '500px' }}>
-            <h2 className="form-title">✨ Nuevo {type === 'ingredients' ? 'Ingrediente' : 'Sabor'}</h2>
+            <h2 className="form-title"> Nuevo {type === 'ingredients' ? 'Ingrediente' : 'Sabor'}</h2>
             <div className="form-group-inline">
               <label>Nombre:</label>
               <input 

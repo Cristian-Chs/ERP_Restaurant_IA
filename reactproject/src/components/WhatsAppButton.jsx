@@ -17,7 +17,7 @@ function WhatsAppButton() {
       target="_blank" 
       rel="noopener noreferrer"
       style={{
-        // 🚨 Estilos Clave para el Posicionamiento Fijo
+        //  Estilos Clave para el Posicionamiento Fijo
         position: 'fixed', // Hace que el elemento se quede quieto en la ventana
         bottom: '20px',    // Distancia desde el borde inferior
         right: '20px',     // Distancia desde el borde derecho

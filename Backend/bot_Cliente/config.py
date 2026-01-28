@@ -14,7 +14,7 @@ load_dotenv()
 # ============================================================
 BOT_TOKEN_CLIENTE = os.getenv("BOT_TOKEN_CLIENTE")
 if not BOT_TOKEN_CLIENTE:
-    raise ValueError("❌ BOT_TOKEN_CLIENTE no configurado en variables de entorno")
+    raise ValueError(" BOT_TOKEN_CLIENTE no configurado en variables de entorno")
 
 CHEF_CHAT_ID = int(os.getenv("CHEF_CHAT_ID", "0"))
 ADMIN_CHAT_ID = int(os.getenv("ADMIN_CHAT_ID", "0"))
@@ -24,11 +24,11 @@ ADMIN_CHAT_ID = int(os.getenv("ADMIN_CHAT_ID", "0"))
 # ============================================================
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 if not GROQ_API_KEY:
-    raise ValueError("❌ GROQ_API_KEY no configurado en variables de entorno")
+    raise ValueError(" GROQ_API_KEY no configurado en variables de entorno")
 
 OCR_API_KEY = os.getenv("OCR_API_KEY")
 if not OCR_API_KEY:
-    raise ValueError("❌ OCR_API_KEY no configurado en variables de entorno")
+    raise ValueError(" OCR_API_KEY no configurado en variables de entorno")
 
 # ============================================================
 # BACKEND URLs
@@ -81,3 +81,4 @@ groq_client = Groq(api_key=GROQ_API_KEY)
 # DEFAULTS
 # ============================================================
 DEFAULT_EXCHANGE_RATE = 35.0  # Fallback para VES
+EXCHANGE_RATE_FIXED = 60.0    # Tasa fija para pagos

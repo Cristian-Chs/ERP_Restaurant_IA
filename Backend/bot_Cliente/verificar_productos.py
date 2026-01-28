@@ -22,7 +22,7 @@ if productos.exists():
     for p in productos:
         print(f"  - {p.name} (Categoría: {p.category}, Precio: ${p.price})")
 else:
-    print("  ⚠️ NO HAY PRODUCTOS EN LA BASE DE DATOS")
+    print("   NO HAY PRODUCTOS EN LA BASE DE DATOS")
     print("\n  Para agregar productos, puedes:")
     print("  1. Usar el panel de administración de Django")
     print("  2. Crear productos desde el frontend React")

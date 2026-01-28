@@ -66,7 +66,7 @@ def poblar_productos_paraguaneros():
     print("=" * 50)
     
     productos_data = [
-        # 🥗 ENTRADAS
+        #  ENTRADAS
         {
             "name": "Arepitas dulces con nata",
             "description": "Deliciosas arepitas dulces tradicionales servidas con nata fresca",
@@ -89,7 +89,7 @@ def poblar_productos_paraguaneros():
             "imagen": "tostones_guasacaca.jpg"
         },
         
-        # 🍲 SOPAS Y CREMAS
+        #  SOPAS Y CREMAS
         {
             "name": "Sopa de pescado fresco",
             "description": "Sopa tradicional preparada con pescado fresco del día y vegetales",
@@ -112,7 +112,7 @@ def poblar_productos_paraguaneros():
             "imagen": "mondongo.jpg"
         },
         
-        # 🍖 PLATOS FUERTES
+        #  PLATOS FUERTES
         {
             "name": "Chivo en coco con arroz con coco",
             "description": "Exquisito chivo guisado en leche de coco, acompañado de arroz con coco",
@@ -142,7 +142,7 @@ def poblar_productos_paraguaneros():
             "imagen": "parrilla_mixta.jpg"
         },
         
-        # 🍹 BEBIDAS
+        #  BEBIDAS
         {
             "name": "Guarapita de frutas locales",
             "description": "Bebida tradicional paraguanera con frutas frescas de la región",
@@ -186,7 +186,7 @@ def poblar_productos_paraguaneros():
             "imagen": "refrescos.jpg"
         },
         
-        # 🍮 POSTRES
+        #  POSTRES
         {
             "name": "Dulce de leche cortada",
             "description": "Tradicional dulce de leche cortada casero",
@@ -228,18 +228,18 @@ def poblar_productos_paraguaneros():
         
         if created:
             productos_creados += 1
-            print(f"  ✅ Creado: {producto_info['name']} (${producto_info['price']}) - {producto_info['category']}")
+            print(f"   Creado: {producto_info['name']} (${producto_info['price']}) - {producto_info['category']}")
         else:
             productos_existentes += 1
-            print(f"  ℹ️  Ya existe: {producto_info['name']}")
+            print(f"  ℹ  Ya existe: {producto_info['name']}")
     
-    print(f"\n📊 RESUMEN:")
+    print(f"\n RESUMEN:")
     print(f"  - Productos creados: {productos_creados}")
     print(f"  - Productos ya existentes: {productos_existentes}")
     print(f"  - Total en la base de datos: {Product.objects.count()}")
     
     # Mostrar resumen por categoría
-    print(f"\n📋 PRODUCTOS POR CATEGORÍA:")
+    print(f"\n PRODUCTOS POR CATEGORÍA:")
     for categoria_code, categoria_nombre in CATEGORY_CHOICES:
         count = Product.objects.filter(category=categoria_code).count()
         print(f"  - {categoria_nombre.capitalize()}: {count} productos")

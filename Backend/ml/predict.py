@@ -16,13 +16,13 @@ from bot.models import Order
 def cargar_modelo() -> Dict[str, Any] | None:
     modelo_path = os.path.join(os.path.dirname(__file__), "modelo_recomendacion.pkl")
     if not os.path.exists(modelo_path):
-        print("⚠️ No se encontró el archivo modelo_recomendacion.pkl")
+        print(" No se encontró el archivo modelo_recomendacion.pkl")
         return None
     try:
         with open(modelo_path, "rb") as f:
             return pickle.load(f)
     except Exception as e:
-        print(f"⚠️ Error al cargar el modelo: {e}")
+        print(f" Error al cargar el modelo: {e}")
         return None
 
 def recomendar_popularidad(top_n: int = 5) -> List[str]:

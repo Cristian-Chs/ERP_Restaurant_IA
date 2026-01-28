@@ -20,7 +20,7 @@ def train_model():
     df = pd.DataFrame(list(orders))
 
     if df.empty:
-        print("⚠️ No hay pedidos en la base de datos. Entrenamiento cancelado.")
+        print(" No hay pedidos en la base de datos. Entrenamiento cancelado.")
         return
 
     # si tienes Rating, lo ideal es usarlo; por ahora, rating fijo
@@ -38,7 +38,7 @@ def train_model():
 
     num_items = user_item_matrix.shape[1]
     if num_items < 2:
-        print(f"⚠️ No hay suficientes platos únicos para entrenar (solo {num_items}).")
+        print(f" No hay suficientes platos únicos para entrenar (solo {num_items}).")
         return
 
     n_components = min(20, num_items - 1)
@@ -54,7 +54,7 @@ def train_model():
             "user_latent_matrix": user_latent_matrix,
         }, f)
 
-    print(f"✅ Modelo entrenado y guardado en {modelo_path}")
+    print(f" Modelo entrenado y guardado en {modelo_path}")
 
 if __name__ == "__main__":
     train_model()

@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 
-# ✅ Categorías sincronizadas con React
+#  Categorías sincronizadas con React
 CATEGORY_CHOICES = [
     ('promociones', 'promociones'),
     ('entradas', 'entradas'),
@@ -11,7 +11,7 @@ CATEGORY_CHOICES = [
 ]
 
 
-# ✅ Ingredientes
+#  Ingredientes
 class Ingredient(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
     disponible_como_extra = models.BooleanField(default=False)
@@ -27,7 +27,7 @@ class Ingredient(models.Model):
         return self.nombre
 
 
-# ✅ Sabores (Ej: Pollo, Cazón, Queso)
+#  Sabores (Ej: Pollo, Cazón, Queso)
 class Flavor(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
     is_active = models.BooleanField(default=True)
@@ -36,13 +36,13 @@ class Flavor(models.Model):
         return self.nombre
 
 
-# ✅ Producto unificado (React + Ingredientes)
+#  Producto unificado (React + Ingredientes)
 class Product(models.Model):
     # Campos del panel React
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    cost_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00) # ✅ Nuevo: Precio de Costo
+    cost_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00) #  Nuevo: Precio de Costo
     imagen = models.CharField(max_length=100, blank=True, null=True)
 
     # Categoría
@@ -67,7 +67,7 @@ class Product(models.Model):
     def __str__(self):
         return self.name
 
-# ✅ RRHH: Empleados
+#  RRHH: Empleados
 class Employee(models.Model):
     ROLE_CHOICES = [
         ('CHEF', 'Cocinero/Chef'),
@@ -87,7 +87,7 @@ class Employee(models.Model):
     def __str__(self):
         return f"{self.name} ({self.get_role_display()})"
 
-# ✅ RRHH: Pagos de Nómina
+#  RRHH: Pagos de Nómina
 class PayrollPayment(models.Model):
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="payments")
     amount = models.DecimalField(max_digits=10, decimal_places=2)
@@ -97,7 +97,7 @@ class PayrollPayment(models.Model):
     def __str__(self):
         return f"Pago {self.amount} a {self.employee.name} ({self.payment_date})"
 
-# ✅ INVENTARIO: Recetas (Relación Producto-Ingrediente con Cantidades)
+#  INVENTARIO: Recetas (Relación Producto-Ingrediente con Cantidades)
 class Recipe(models.Model):
     """
     Define la receta de un producto: qué ingredientes lleva y en qué cantidad.
@@ -120,7 +120,7 @@ class Recipe(models.Model):
         """Calcula el costo de este ingrediente en la receta"""
         return self.ingredient.cost * self.quantity
 
-# ✅ INVENTARIO: Movimientos de Inventario
+#  INVENTARIO: Movimientos de Inventario
 class InventoryMovement(models.Model):
     """
     Registra todos los movimientos de inventario (compras, uso, ajustes).
@@ -152,7 +152,7 @@ class InventoryMovement(models.Model):
         """Calcula el costo total de este movimiento"""
         return self.quantity * self.cost_per_unit
 
-# ✅ CONFIGURACIONES GLOBALES (Tasa de cambio, etc)
+#  CONFIGURACIONES GLOBALES (Tasa de cambio, etc)
 class GlobalSetting(models.Model):
     key = models.CharField(max_length=50, unique=True)
     value = models.CharField(max_length=255)

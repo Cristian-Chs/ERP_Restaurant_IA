@@ -1,7 +1,7 @@
 // PlatilloCard.jsx - MODIFICADO para incluir opciones de sabor
 
-import React, { useState } from 'react'; // 🚨 Importamos useState
-import PlatilloOpciones from './PlatilloOpciones'; // 🚨 Importamos el nuevo componente
+import React, { useState } from 'react'; //  Importamos useState
+import PlatilloOpciones from './PlatilloOpciones'; //  Importamos el nuevo componente
 import './PlatilloCard.css';
 
 export default function PlatilloCard(props) { 

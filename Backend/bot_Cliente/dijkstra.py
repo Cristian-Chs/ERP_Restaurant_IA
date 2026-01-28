@@ -73,12 +73,12 @@ class PathFinder:
 
     def load_map(self, map_path):
         if self.loaded: return
-        print(f"🗺️ Loading map from {map_path}...")
+        print(f" Loading map from {map_path}...")
         parser = xml.sax.make_parser()
         parser.setContentHandler(self.handler)
         parser.parse(map_path)
         self.loaded = True
-        print(f"✅ Map loaded! Nodes: {len(self.handler.nodes)}, Edges: {len(self.handler.edges)}")
+        print(f" Map loaded! Nodes: {len(self.handler.nodes)}, Edges: {len(self.handler.edges)}")
 
     def find_nearest_node(self, lat, lon):
         min_dist = float('inf')

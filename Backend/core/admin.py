@@ -21,7 +21,7 @@ class ProductAdmin(admin.ModelAdmin):
     list_filter = ("category", "is_active")
     filter_horizontal = ("ingredientes", "sabores")
 
-# ✅ RRHH
+#  RRHH
 @admin.register(Employee)
 class EmployeeAdmin(admin.ModelAdmin):
     list_display = ("name", "role", "salary_base", "is_active")
@@ -34,7 +34,7 @@ class PayrollPaymentAdmin(admin.ModelAdmin):
     search_fields = ("employee__name",)
     list_filter = ("payment_date",)
 
-# ✅ Inventario
+#  Inventario
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
     list_display = ("product", "ingredient", "quantity")

@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axiosPublic from '../api/axiosPublic'; 
-import './Register.css'; // ✅ Usar el mismo CSS de Registro
+import './Register.css'; //  Usar el mismo CSS de Registro
 
 export default function ResetPassword() {
   const { uid, token } = useParams(); 
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false); // 👈 Agregar toggle
+  const [showPassword, setShowPassword] = useState(false); //  Agregar toggle
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const navigate = useNavigate();
@@ -58,7 +58,7 @@ export default function ResetPassword() {
             onClick={() => setShowPassword(!showPassword)}
             className="toggle-btn"
           >
-            {showPassword ? "🙈" : "👁️"}
+            {showPassword ? "" : ""}
           </button>
         </div>
 

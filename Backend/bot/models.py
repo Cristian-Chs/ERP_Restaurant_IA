@@ -2,10 +2,10 @@ from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from .utils import notificar_pedido_listo
-from core.models import Product # 🆕 Importamos productos para análisis ML
+from core.models import Product #  Importamos productos para análisis ML
 
 
-# ✅ Modelo principal de pedidos
+#  Modelo principal de pedidos
 class Order(models.Model):
     PAYMENT_STATUS_CHOICES = [
         ('pending_payment', 'Esperando Pago'),
@@ -20,12 +20,12 @@ class Order(models.Model):
     status = models.CharField(max_length=50, default="pendiente")
     fecha = models.DateTimeField(auto_now_add=True)
     
-    # ✅ Nuevos campos de logística
+    #  Nuevos campos de logística
     service_type = models.CharField(max_length=20, choices=[('HERE', 'Eat Here'), ('TOGO', 'To Go')], default='HERE')
     delivery_mode = models.CharField(max_length=20, choices=[('PICKUP', 'Pick Up'), ('DELIVERY', 'Delivery')], blank=True, null=True)
     location = models.TextField(blank=True, null=True) # Dirección manual o coordenadas
     
-    # ✅ Campos de verificación de pago
+    #  Campos de verificación de pago
     payment_status = models.CharField(
         max_length=20, 
         choices=PAYMENT_STATUS_CHOICES, 
@@ -38,10 +38,10 @@ class Order(models.Model):
     payment_data = models.JSONField(blank=True, null=True)
     payment_hash = models.CharField(max_length=64, blank=True, null=True, db_index=True) # Hash perceptual para evitar duplicados
     
-    # ✅ Ruta de la factura generada
+    #  Ruta de la factura generada
     invoice_path = models.CharField(max_length=500, blank=True, null=True)
 
-    # ✅ Finanzas Multi-moneda
+    #  Finanzas Multi-moneda
     currency = models.CharField(max_length=5, default='USD')
     exchange_rate = models.DecimalField(max_digits=10, decimal_places=2, default=1.0)
 
@@ -49,20 +49,20 @@ class Order(models.Model):
         return f"{self.item} - Cliente {self.telegram_id}"
 
 
-# ✅ Rating de platos (para IA)
+#  Rating de platos (para IA)
 class Rating(models.Model):
     telegram_id = models.BigIntegerField()
     plato = models.CharField(max_length=255)
-    estrellas = models.IntegerField(choices=[(i, f"{i} ⭐") for i in range(1, 6)])
-    comentario = models.TextField(blank=True, null=True) # 🆕 Feedback textual
-    sentimiento = models.CharField(max_length=20, blank=True, null=True) # 🆕 Positivo, Neutral, Negativo
+    estrellas = models.IntegerField(choices=[(i, f"{i} ") for i in range(1, 6)])
+    comentario = models.TextField(blank=True, null=True) #  Feedback textual
+    sentimiento = models.CharField(max_length=20, blank=True, null=True) #  Positivo, Neutral, Negativo
     fecha = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.plato} - {self.estrellas}⭐ - {self.telegram_id}"
+        return f"{self.plato} - {self.estrellas} - {self.telegram_id}"
 
 
-# ✅ Gustos del cliente (para IA personalizada)
+#  Gustos del cliente (para IA personalizada)
 class GustoCliente(models.Model):
     telegram_id = models.BigIntegerField(unique=True)
     gustos = models.JSONField(default=list)  # Ej: ["pollo", "queso", "pasta"]
@@ -71,14 +71,14 @@ class GustoCliente(models.Model):
         return f"Gustos de {self.telegram_id}"
 
 
-# ✅ Notificación automática cuando un pedido cambia a "listo"
+#  Notificación automática cuando un pedido cambia a "listo"
 @receiver(post_save, sender=Order)
 def enviar_notificacion(sender, instance, **kwargs):
     if instance.status == "listo":
-        # 🔔 Notificar al cliente
+        #  Notificar al cliente
         notificar_pedido_listo(instance.telegram_id, instance.item)
         
-        # 💎 Agregar Puntos de Fidelización (Fase 9)
+        #  Agregar Puntos de Fidelización (Fase 9)
         loyalty, created = LoyaltyPoints.objects.get_or_create(telegram_id=instance.telegram_id)
         puntos_ganados = loyalty.agregar_puntos(instance.precio)
         
@@ -109,7 +109,7 @@ class PreferenciaIngrediente(models.Model):
 
 
 
-# ✅ Sesión de Telegram para Máquina de Estados
+#  Sesión de Telegram para Máquina de Estados
 class TelegramSession(models.Model):
     telegram_id = models.BigIntegerField(unique=True)
     state = models.CharField(max_length=50, default="IDLE")
@@ -121,7 +121,7 @@ class TelegramSession(models.Model):
         return f"Session {self.telegram_id} - {self.state}"
 
 
-# ✅ Modelo para detectar fraude por duplicados visuales
+#  Modelo para detectar fraude por duplicados visuales
 class PaymentHash(models.Model):
     hash_value = models.CharField(max_length=64, unique=True, db_index=True)
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='hashes')
@@ -131,7 +131,7 @@ class PaymentHash(models.Model):
         return f"Hash {self.hash_value[:10]}... (Orden {self.order_id})"
 
 
-# ✅ Sistema de Fidelización
+#  Sistema de Fidelización
 class LoyaltyPoints(models.Model):
     telegram_id = models.BigIntegerField(unique=True)
     puntos = models.IntegerField(default=0)
@@ -175,7 +175,7 @@ class LoyaltyPoints(models.Model):
         return None
 
 
-# ✅ Modelo para desglosar ítems de un pedido (Estructura para ML)
+#  Modelo para desglosar ítems de un pedido (Estructura para ML)
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items_detalle')
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='ventas')
@@ -187,7 +187,7 @@ class OrderItem(models.Model):
         return f"{self.cantidad}x {self.product.name} (Orden {self.order.id})"
 
 
-# ✅ Sistema de Cupones
+#  Sistema de Cupones
 class Coupon(models.Model):
     COUPON_TYPE_CHOICES = [
         ('fixed', 'Descuento Fijo'),

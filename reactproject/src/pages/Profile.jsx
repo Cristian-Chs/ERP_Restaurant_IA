@@ -110,7 +110,7 @@ export default function Profile() {
             onClick={() => setShowPassword(!showPassword)}
             className="toggle-btn"
           >
-            {showPassword ? "🙈" : "👁️"}
+            {showPassword ? "" : ""}
           </button>
         </div>
         <button onClick={handleChangePassword}>Actualizar Clave</button>

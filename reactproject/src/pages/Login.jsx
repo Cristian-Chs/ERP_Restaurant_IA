@@ -59,7 +59,7 @@ const handleLogin = async () => {
         
          // 2. Decodificar el token para obtener el payload (rol)
         const payload = JSON.parse(atob(accessToken.split('.')[1])); 
-        localStorage.setItem('rol', payload.rol); // 👈 Guardar rol para el Navbar
+        localStorage.setItem('rol', payload.rol); //  Guardar rol para el Navbar
         
          // 3. Redireccionar (Requiere configuración de CustomJWTSerializer en Django)
         if (payload.rol === 'admin') {

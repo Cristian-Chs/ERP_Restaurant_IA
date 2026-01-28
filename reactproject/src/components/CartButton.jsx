@@ -13,7 +13,7 @@ const CartButton = ({ totalItems }) => {
             onClick={() => navigate('/carrito')}
         >
             
-            <div className='icono'>🛒</div> 
+            <div className='icono'></div> 
             {/* Solo muestra el contador si hay ítems */}
             {totalItems > 0 && (
                 <span className="cart-item-count">{totalItems}</span>
