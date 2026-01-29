@@ -28,6 +28,49 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     telegram_id = update.effective_user.id
     
     # -------------------------------------------------------------
+    # 0. Manejo de ESTADOS (Dirección, Puntos, etc.)
+    # -------------------------------------------------------------
+    state = context.user_data.get("state")
+    
+    if state == "waiting_for_address":
+        context.user_data["location"] = texto_usuario
+        context.user_data["state"] = None
+        from bot_Cliente.handlers.callbacks import show_payment_info
+        await show_payment_info(update, context)
+        return
+
+    if state == "waiting_for_points":
+        try:
+            puntos = int(texto_usuario)
+            from bot.models import LoyaltyPoints
+            loyalty = LoyaltyPoints.objects.filter(telegram_id=telegram_id).first()
+            
+            if not loyalty or loyalty.puntos < puntos:
+                await update.message.reply_text(
+                    f"❌ No tienes suficientes puntos. Tu saldo actual es de *{loyalty.puntos if loyalty else 0}* puntos.",
+                    parse_mode="Markdown"
+                )
+                return
+            
+            if puntos < 25:
+                await update.message.reply_text("❌ El canje mínimo es de 25 puntos ($1).")
+                return
+
+            # Calcular descuento
+            discount = puntos / 25.0
+            context.user_data["points_to_redeem"] = puntos
+            context.user_data["discount_amount"] = discount
+            context.user_data["state"] = None
+            
+            from bot_Cliente.handlers.callbacks import show_payment_info
+            await show_payment_info(update, context)
+            return
+            
+        except ValueError:
+            await update.message.reply_text("❌ Por favor, ingresa un número válido de puntos.")
+            return
+
+    # -------------------------------------------------------------
     # 1. Intentar interpretar como PEDIDO
     # -------------------------------------------------------------
     resultado_pedido = await interpretar_pedido(texto_usuario)

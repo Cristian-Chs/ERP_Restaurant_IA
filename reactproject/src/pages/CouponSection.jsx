@@ -241,7 +241,7 @@ export default function CouponSection() {
           <thead>
             <tr>
               <th>Cupón</th>
-              <th>Usuario (Telegram ID)</th>
+              <th>Usuario</th>
               <th>Descuento Aplicado</th>
               <th>Fecha de Canje</th>
               <th>Orden</th>
@@ -260,7 +260,11 @@ export default function CouponSection() {
                     {r.coupon_code}
                   </code>
                 </td>
-                <td><code>{r.telegram_id}</code></td>
+                <td>
+                  <span style={{ color: '#58a6ff', fontWeight: 'bold' }}>
+                    {r.customer_name}
+                  </span>
+                </td>
                 <td>
                   <span style={{ color: '#2ecc71', fontWeight: 'bold' }}>
                     ${r.discount_applied}

@@ -158,6 +158,19 @@ async def handle_payment_approval(update: Update, context: ContextTypes.DEFAULT_
             )
             
             if client_id:
+                # Lógica de Deducción de Puntos (Si aplica)
+                try:
+                    puntos_canjeados = order_data.get("payment_data", {}).get("points_redeemed", 0)
+                    if puntos_canjeados > 0:
+                        from bot.models import LoyaltyPoints
+                        loyalty = LoyaltyPoints.objects.filter(telegram_id=client_id).first()
+                        if loyalty:
+                            loyalty.puntos -= int(puntos_canjeados)
+                            loyalty.save()
+                            logging.info(f"Puntos deduciodos: {puntos_canjeados} para el usuario {client_id}")
+                except Exception as e:
+                    logging.error(f"Error deduciendo puntos: {e}")
+
                 await context.bot.send_message(
                     chat_id=client_id,
                     text=f"🥳 *¡Pago Aprobado!* (Orden #{order_id})\n\nTu pedido ya está en preparación. Te avisaremos cuando esté listo. 👩‍🍳",

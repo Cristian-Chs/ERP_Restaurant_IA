@@ -255,15 +255,6 @@ export default function AdminPanel() {
     }
   };
 
-  const handleSyncCosts = async () => {
-    try {
-      // Sincronización silenciosa: sin confirmación ni alerta de éxito
-      await API.post('/analytics/recalculate-costs/');
-      fetchInitialData();
-    } catch (err) {
-      console.error("Error al sincronizar costos", err);
-    }
-  };
 
   const handleSaveRecipe = async (recipeData) => {
     try {
@@ -301,7 +292,7 @@ export default function AdminPanel() {
 
   const renderInsights = () => (
     <div className="admin-section">
-      <h1 className="section-title">Inteligencia de Negocio</h1>
+      <h1 className="section-title">Distribucion de cliente</h1>
       
       <div className="insights-grid">
         <div className="insight-card full-width">
@@ -369,8 +360,8 @@ export default function AdminPanel() {
               <PieChart>
                 <Pie
                   data={[
-                    { name: 'Local (Eat Here)', value: stats.service_breakdown?.HERE || 0 },
-                    { name: 'Para Llevar (To Go)', value: stats.service_breakdown?.TOGO || 0 },
+                    { name: 'Local', value: stats.service_breakdown?.HERE || 0 },
+                    { name: 'Para Llevar', value: stats.service_breakdown?.TOGO || 0 },
                   ]}
                   cx="50%"
                   cy="50%"
@@ -754,9 +745,7 @@ export default function AdminPanel() {
                     <span style={{ color: '#8b949e' }}>Costo Calculado: </span>
                     <span style={{ color: '#2ecc71', fontWeight: 'bold', fontSize: '1.2rem' }}>${cachedCost.toFixed(2)}</span>
                   </div>
-                  <button className="btn-secondary" onClick={handleSyncCosts}>
-                    <TrendingUp size={16} /> Recalcular Costos (Global)
-                  </button>
+
                 </div>
 
                 {/* FORMULARIO AGREGAR INGREDIENTE */}
@@ -842,11 +831,7 @@ export default function AdminPanel() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <h1 className="section-title">{type === 'ingredients' ? 'Ingredientes' : 'Sabores'}</h1>
         <div style={{ display: 'flex', gap: '10px' }}>
-          {type === 'ingredients' && (
-            <button className="btn-secondary" onClick={handleSyncCosts} title="Recalcular costos de platos">
-              <TrendingUp size={18} /> Sincronizar Costos
-            </button>
-          )}
+
           <button className="btn-primary" onClick={() => { setGenericItem({ nombre: '', cost: '', unit: 'und', id: null }); setShowGenericModal(true); }}>
             <Plus size={18} /> Nuevo {type === 'ingredients' ? 'Ingrediente' : 'Sabor'}
           </button>
@@ -1226,7 +1211,7 @@ export default function AdminPanel() {
             <Tag size={20} /> Sabores
           </div>
           <div className={`nav-item ${activeSection === 'insights' ? 'active' : ''}`} onClick={() => { setActiveSection('insights'); setMobileMenuOpen(false); }}>
-            <TrendingUp size={20} /> Inteligencia
+            <TrendingUp size={20} /> Distribucion de cliente 
           </div>
           <div className={`nav-item ${activeSection === 'hr' ? 'active' : ''}`} onClick={() => { setActiveSection('hr'); setMobileMenuOpen(false); }}>
             <Users size={20} /> Recursos Humanos

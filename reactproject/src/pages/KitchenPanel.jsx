@@ -285,7 +285,6 @@ function KitchenPanel() {
       )}
 
       <div className="kitchen-header">
-        <h1 className="kitchen-title">Panel de Control</h1>
         
         {/* TABS SELECTOR */}
         <div className="kitchen-tabs">

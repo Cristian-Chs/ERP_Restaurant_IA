@@ -134,10 +134,15 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         service_type = data.split(":")[1]
         context.user_data["service_type"] = service_type
         
-        # En un flujo real, aquí pediríamos ubicación si es Delivery.
-        # Por simplicidad ahora, asumimos "Dirección guardada" o saltamos a pago.
-        
-        await show_payment_info(update, context)
+        if service_type == "DELIVERY":
+            context.user_data["state"] = "waiting_for_address"
+            await query.edit_message_text(
+                "📍 *¡Perfecto! Necesito tu dirección para el envío.*\n\n"
+                "Por favor, escríbela aquí abajo lo más detallado posible (Calle, edificio, punto de referencia):",
+                parse_mode="Markdown"
+            )
+        else:
+            await show_payment_info(update, context)
         return
 
     if data.startswith("proceder_pago"):
@@ -157,6 +162,22 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         )
         return
         
+    if data == "canjear_puntos":
+        context.user_data["state"] = "waiting_for_points"
+        await query.edit_message_text(
+            "💎 *Canje de Puntos de Fidelidad*\n\n"
+            "Recuerda: *25 puntos = $1.00* de descuento.\n\n"
+            "¿Cuántos puntos deseas canjear? (Escribe el número aquí abajo) 👇",
+            parse_mode="Markdown"
+        )
+        return
+
+    if data == "cancelar_canje":
+        context.user_data["points_to_redeem"] = 0
+        context.user_data["discount_amount"] = 0
+        await show_payment_info(update, context)
+        return
+
     # ----------------------------------------------------
     #  7. Aprobar/Rechazar Pago (ADMIN)
     # ----------------------------------------------------
@@ -181,8 +202,14 @@ async def show_payment_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     telegram_id = update.effective_user.id
     
     item = context.user_data.get("pending_order_item", "Producto desconocido")
-    precio = context.user_data.get("pending_order_price", 10.0)
+    precio_base = context.user_data.get("pending_order_price", 10.0)
     service_type = context.user_data.get("service_type", "HERE")
+    location = context.user_data.get("location", "Dirección por defecto")
+    
+    # Lógica de Puntos
+    discount = context.user_data.get("discount_amount", 0)
+    points_to_redeem = context.user_data.get("points_to_redeem", 0)
+    precio_final_usd = max(0, precio_base - discount)
     
     # Mapeo simple para el backend
     final_service = 'TOGO' if service_type in ['DELIVERY', 'PICKUP'] else 'HERE'
@@ -191,18 +218,22 @@ async def show_payment_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Crear payload
     payload = {
         "telegram_id": telegram_id,
+        "customer_name": update.effective_user.first_name,
         "item": item,
-        "precio": precio,
+        "precio": precio_final_usd,
         "status": "esperando_pago",
         "service_type": final_service,
-        "location": "Dirección por defecto", # TODO: Implementar pedir dirección
-        "delivery_mode": delivery_mode
+        "location": location,
+        "delivery_mode": delivery_mode,
+        "payment_data": {
+            "points_redeemed": points_to_redeem,
+            "discount_applied": discount
+        }
     }
     
     # Enviar al backend
     try:
         url = ORDERS_URL if ORDERS_URL.endswith("/") else f"{ORDERS_URL}/"
-        # Usamos requests sync aquí por simplicidad, idealmente aiohttp
         resp = requests.post(url, json=payload, timeout=5)
         
         if resp.status_code in (200, 201):
@@ -218,20 +249,64 @@ async def show_payment_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("Hubo un error de conexión creando tu orden. 😓")
         return
 
+    # Obtener puntos del cliente
+    try:
+        from bot.models import LoyaltyPoints
+        with open("points_debug.log", "a") as f:
+            f.write(f"DEBUG [Points] {datetime.datetime.now()} - Buscando para: {telegram_id} (type: {type(telegram_id)})\n")
+        
+        loyalty = LoyaltyPoints.objects.filter(telegram_id=telegram_id).first()
+        if loyalty:
+            puntos_actuales = loyalty.puntos
+            with open("points_debug.log", "a") as f:
+                f.write(f"DEBUG [Points] Encontrados: {puntos_actuales} para {telegram_id}\n")
+        else:
+            puntos_actuales = 0
+            with open("points_debug.log", "a") as f:
+                f.write(f"DEBUG [Points] NO ENCONTRADO para {telegram_id}\n")
+    except Exception as e:
+        with open("points_debug.log", "a") as f:
+            f.write(f"DEBUG [Points] ERROR: {e}\n")
+        puntos_actuales = 0
+
     # Mostrar datos de pago
     tasa = EXCHANGE_RATE_FIXED
-    monto_bs = precio * tasa
+    monto_bs = precio_final_usd * tasa
     
     msg_pago = (
         f"✅ *Orden #{context.user_data.get('pending_order_id', '???')} Creada*\n"
         f"📦 Pedido: {item}\n"
         f"🛵 Servicio: {service_type}\n"
-        f"💵 Total: ${precio} (Bs. {monto_bs:,.2f})\n\n"
+        f"📍 Entrega: {location}\n"
+    )
+
+    if discount > 0:
+        msg_pago += f"💎 Descuento aplicado: -${discount:.2f}\n"
+
+    msg_pago += (
+        f"💵 Total a pagar: *${precio_final_usd:.2f}* (Bs. {monto_bs:,.2f})\n\n"
+        f"🌟 Tus puntos actuales: *{puntos_actuales}*\n"
         "💳 *Datos de Pago (Pago Móvil):*\n"
         "• Banco: BANESCO (0134)\n"
         "• Teléfono: 0424-0000000\n"
         "• Cédula: V-12345678\n\n"
-        "📸 *Por favor envía una FOTO del comprobante para verificar.*"
+        "📸 *Envía la FOTO del comprobante para verificar.*"
     )
-    
-    await query.edit_message_text(msg_pago, parse_mode="Markdown")
+
+    keyboard = []
+    if discount == 0 and puntos_actuales >= 25:
+        keyboard.append([InlineKeyboardButton("💎 Canjear Puntos por Descuento", callback_data="canjear_puntos")])
+    elif discount > 0:
+        keyboard.append([InlineKeyboardButton("❌ Quitar Descuento", callback_data="cancelar_canje")])
+
+    if keyboard:
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        if query:
+            await query.edit_message_text(msg_pago, parse_mode="Markdown", reply_markup=reply_markup)
+        else:
+            await context.bot.send_message(chat_id=update.effective_chat.id, text=msg_pago, parse_mode="Markdown", reply_markup=reply_markup)
+    else:
+        if query:
+            await query.edit_message_text(msg_pago, parse_mode="Markdown")
+        else:
+            await context.bot.send_message(chat_id=update.effective_chat.id, text=msg_pago, parse_mode="Markdown")

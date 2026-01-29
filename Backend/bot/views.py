@@ -25,8 +25,14 @@ class OrderViewSet(viewsets.ModelViewSet):
     permission_classes = [AllowAny]
 
     def perform_create(self, serializer):
-        # Guardar la orden
-        order = serializer.save()
+        # Capturar nombre de usuario si es compra web
+        user = self.request.user
+        customer_name = None
+        if user.is_authenticated:
+            customer_name = user.username
+        
+        # Guardar la orden con el nombre si aplica
+        order = serializer.save(customer_name=customer_name)
         
         #  Si el pedido trae una imagen de comprobante (subida desde Web)
         if order.payment_proof:
@@ -720,6 +726,7 @@ def coupon_redemptions(request):
         {
             'id': r.id,
             'telegram_id': r.telegram_id,
+            'customer_name': r.customer_name or (r.order.customer_name if r.order else None) or f"ID: {r.telegram_id}",
             'coupon_code': r.coupon.code,
             'discount_applied': float(r.discount_applied),
             'fecha_canje': r.fecha_canje.isoformat(),
