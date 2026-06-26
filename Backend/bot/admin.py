@@ -1,15 +1,18 @@
+import logging
 from django.contrib import admin
+from django.conf import settings
 from telegram import Bot
 from .models import Order, Rating, GustoCliente, Coupon, RedeemedCoupon
 
-#  Configuración
-BOT_TOKEN_CLIENTE = "537597604:AAFyajyokOXKShw5Zx9UNh5likds4FUmUHU"
-CHEF_CHAT_ID = 1234567890
-ADMIN_CHAT_ID = 5719602467
+logger = logging.getLogger(__name__)
+
+BOT_TOKEN = settings.TELEGRAM_BOT_TOKEN
+CHEF_CHAT_ID = settings.CHEF_CHAT_ID
+ADMIN_CHAT_ID = settings.ADMIN_CHAT_ID
 
 
 def notificar_cliente(order):
-    bot = Bot(token=BOT_TOKEN_CLIENTE)
+    bot = Bot(token=BOT_TOKEN)
     bot.send_message(
         chat_id=order.telegram_id,
         text=f" Tu pedido '{order.item}' está listo. ¡Buen provecho!"
@@ -17,7 +20,7 @@ def notificar_cliente(order):
 
 
 def notificar_chef(order):
-    bot = Bot(token=BOT_TOKEN_CLIENTE)
+    bot = Bot(token=BOT_TOKEN)
     mensaje = (
         f"‍ Pedido LISTO:\n\n"
         f"{order.item}\n\n"

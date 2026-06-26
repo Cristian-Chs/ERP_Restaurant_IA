@@ -1,55 +1,72 @@
-@font-face {
-  font-family: 'ZTNature';
-  src: url('./assets/fonts/ZTNature-Medium.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  font-family: 'ZTNature', system-ui, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  /* Color Palette from Source Project */
+  --font-size: 16px;
+  --background: #ffffff;
+  --foreground: #252525; /* oklch(0.145 0 0) approx */
+  --card: #ffffff;
+  --card-foreground: #252525;
+  --popover: #ffffff;
+  --popover-foreground: #252525;
+  --primary: #030213;
+  --primary-foreground: #ffffff;
+  --secondary: #f4f4f5; /* oklch(0.95 0.0058 264.53) approx */
+  --secondary-foreground: #030213;
+  --muted: #ececf0;
+  --muted-foreground: #717182;
+  --accent: #e9ebef;
+  --accent-foreground: #030213;
+  --destructive: #d4183d;
+  --destructive-foreground: #ffffff;
+  --border: rgba(0, 0, 0, 0.1);
+  --input: transparent;
+  --input-background: #f3f3f5;
+  --ring: #b4b4b4; /* oklch(0.708 0 0) approx */
+  --radius: 0.625rem;
+
+  /* Typography */
+  --font-family-base: 'Inter', system-ui, sans-serif;
 }
 
-/* 2. Base de la Página */
+/* Base de la Página */
 html, body {
   height: 100%;
   margin: 0;
   padding: 0;
-  font-family: 'ZTNature', sans-serif;
-  background-image: url('../assets/images/FondoMenu.png');
-  background-size: 100% 100%; /*  Fondo más contenido */
-  background-position: center;
-  background-repeat: no-repeat;
+  font-family: var(--font-family-base);
+  background-color: var(--background);
+  color: var(--foreground);
+  /* background-image removed */
 }
 
-/* 3. Tipografía y encabezados */
+/* Tipografía y encabezados */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--foreground);
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
 h1 {
   text-align: center;
   font-size: 2.5rem;
   margin-bottom: 2rem;
-  color: #fff;
-  text-shadow: 3px 2px 6px rgb(0, 0, 0);
+  /* text-shadow removed for cleaner look */
 }
 
-/* 4. Botón base */
+/* Botón base */
 button {
-  border-radius: 8px;
+  border-radius: var(--radius);
   border: none;
   padding: 0.6em 1.2em;
   font-size: 1em;
   font-weight: 500;
-  background-color: #daf1de;
-  color: white;
+  background-color: var(--primary);
+  color: var(--primary-foreground);
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: opacity 0.3s ease;
 }
 
 button:hover {
-  background-color: #8eb69b;
-  color: black;
+  opacity: 0.9;
 }

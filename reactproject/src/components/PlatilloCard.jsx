@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react'; //  Importamos useState
 import PlatilloOpciones from './PlatilloOpciones'; //  Importamos el nuevo componente
-import './PlatilloCard.css';
 
 export default function PlatilloCard(props) { 
     const { id, name, description, imagen, price, agregarAlCarrito } = props;

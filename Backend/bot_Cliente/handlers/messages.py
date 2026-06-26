@@ -5,6 +5,7 @@ Manejo de mensajes de texto con enfoque proactivo y conversacional.
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
+from asgiref.sync import sync_to_async
 
 from bot_Cliente.intents import INTENTS, RESPONSES
 from bot_Cliente.services.order_service import interpretar_pedido, save_order
@@ -28,7 +29,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     telegram_id = update.effective_user.id
     
     # -------------------------------------------------------------
-    # 0. Manejo de ESTADOS (Dirección, Puntos, etc.)
+    # 0. Manejo de ESTADOS (Dirección, etc.)
     # -------------------------------------------------------------
     state = context.user_data.get("state")
     
@@ -39,60 +40,69 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await show_payment_info(update, context)
         return
 
-    if state == "waiting_for_points":
-        try:
-            puntos = int(texto_usuario)
-            from bot.models import LoyaltyPoints
-            loyalty = LoyaltyPoints.objects.filter(telegram_id=telegram_id).first()
-            
-            if not loyalty or loyalty.puntos < puntos:
-                await update.message.reply_text(
-                    f"❌ No tienes suficientes puntos. Tu saldo actual es de *{loyalty.puntos if loyalty else 0}* puntos.",
-                    parse_mode="Markdown"
-                )
-                return
-            
-            if puntos < 25:
-                await update.message.reply_text("❌ El canje mínimo es de 25 puntos ($1).")
-                return
-
-            # Calcular descuento
-            discount = puntos / 25.0
-            context.user_data["points_to_redeem"] = puntos
-            context.user_data["discount_amount"] = discount
-            context.user_data["state"] = None
-            
-            from bot_Cliente.handlers.callbacks import show_payment_info
-            await show_payment_info(update, context)
-            return
-            
-        except ValueError:
-            await update.message.reply_text("❌ Por favor, ingresa un número válido de puntos.")
-            return
-
     # -------------------------------------------------------------
     # 1. Intentar interpretar como PEDIDO
     # -------------------------------------------------------------
-    resultado_pedido = await interpretar_pedido(texto_usuario)
     
+    # -------------------------------------------------------------
+    # 1. Intentar interpretar como PEDIDO
+    # -------------------------------------------------------------
+    
+    # Helper async para consultar DB (Movido fuera para reutilizar)
+    @sync_to_async
+    def check_table_availability():
+        from core.models import Table
+        total = Table.objects.count()
+        occupied = Table.objects.filter(is_occupied=True).count()
+        return total, occupied
+
+    resultado_pedido = await interpretar_pedido(texto_usuario)
+
     if resultado_pedido["es_pedido_valido"]:
+        # SOLO si es un pedido válido verificamos mesas para COMER AQUI
+        # Nota: Idealmente preguntar si es para llevar, pero por seguridad validamos de entrada
+        # o advertimos.
+        
+        total_tables, occupied_tables = await check_table_availability()
+        
+        # Si están llenas, advertimos pero permitimos pedir para llevar (futura mejora)
+        # Por ahora mantenemos la lógica restrictiva solo para pedidos nuevos
+        if total_tables > 0 and occupied_tables >= total_tables:
+             await update.message.reply_text(
+                "⚠️ *Estimado cliente*\n\n"
+                "En este momento todas nuestras mesas están ocupadas. 😓\n"
+                "Solo estamos tomando pedidos para **Delivery** o **Para Llevar**.\n\n"
+                "¿Deseas continuar con tu pedido?",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("Sí, para llevar/delivery", callback_data="confirmar_pedido_multiple")],
+                    [InlineKeyboardButton("Cancelar", callback_data="cancelar")]
+                ])
+            )
+             # Guardamos contexto igual por si dice que sí
+             context.user_data["ultimo_pedido_interpretado"] = resultado_pedido
+             return
+
+        items = resultado_pedido.get("items", [])
+        total = resultado_pedido.get("total", 0)
         pedido_final = resultado_pedido["pedido_final"]
-        producto_base = resultado_pedido["producto"]
         
         # Guardar en contexto temporal por si confirma
         context.user_data["ultimo_pedido_interpretado"] = resultado_pedido
         
-        msg = f"¡Qué rico! 😋 Entendí que quieres:\n\n"
-        msg += f"🍽️ **{pedido_final}**\n\n"
+        msg = f"Qué rico! Entendí que quieres:\n\n"
         
-        # Pregunta proactiva de confirmación
-        pregunta = get_random_message(ORDER_CONFIRMATION_QUESTIONS)
-        msg += f"*{pregunta}*"
+        # Listar cada item
+        for item in items:
+            msg += f"• {item['cantidad']} x {item['producto']}\n"
+        
+        msg += f"\nTotal: ${total:.2f}\n\n"
+        msg += "Le agregamos algo más a tu pedido?"
         
         keyboard = [
-            [InlineKeyboardButton("✅ Confirmar y Pedir", callback_data=f"pedido:{producto_base}")],
-            [InlineKeyboardButton("📝 Modificar Ingredientes", callback_data="ayuda_pedido")],
-            [InlineKeyboardButton("❌ Cancelar", callback_data="cancelar")]
+            [InlineKeyboardButton("Confirmar y Pedir", callback_data="confirmar_pedido_multiple")],
+            [InlineKeyboardButton("Modificar Ingredientes", callback_data="ayuda_pedido")],
+            [InlineKeyboardButton("Cancelar", callback_data="cancelar")]
         ]
         
         await update.message.reply_text(
@@ -114,6 +124,27 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             break
             
     if intent_encontrado:
+        # LOGICA ESPECIAL PARA RESERVA
+        if intent_encontrado == "RESERVA":
+            total_tables, occupied_tables = await check_table_availability()
+            available = total_tables - occupied_tables
+            
+            if available > 0:
+                 await update.message.reply_text(
+                    f"✅ ¡Sí! Tenemos **{available} mesas disponibles** en este momento.\n\n"
+                    "Trabajamos por orden de llegada, ¡así que vente antes de que se llenen! 🏃‍♂️💨\n\n"
+                    "¿Te gustaría ir viendo el menú?",
+                    parse_mode="Markdown",
+                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("📜 Ver Menú", callback_data="ver_menu_proactivo")]])
+                )
+            else:
+                await update.message.reply_text(
+                    "❌ Lo siento, en este momento **estamos full** (todas las mesas ocupadas).\n\n"
+                    "Pero puedes pedir para **Llevar** o **Delivery**. 🛵",
+                    parse_mode="Markdown"
+                )
+            return
+
         # Obtener respuesta base del diccionario
         respuesta_base = get_random_message(RESPONSES[intent_encontrado])
         

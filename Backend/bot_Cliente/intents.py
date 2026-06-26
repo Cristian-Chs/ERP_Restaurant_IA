@@ -30,6 +30,10 @@ INTENTS = {
         "pago movil", "datos de pago", "transferencia", "numero de cuenta", 
         "a donde pago", "tienes pago movil", "cuenta bancaria", "datos bancarios",
         "zelle", "binance", "metodos de pago"
+    ],
+    "RESERVA": [
+        "reserva", "reservar", "tienen mesa", "hay mesa", "apartar mesa", "mesa disponible",
+        "quiero una mesa", "se puede reservar", "guardame una mesa", "hacer una reserva"
     ]
 }
 

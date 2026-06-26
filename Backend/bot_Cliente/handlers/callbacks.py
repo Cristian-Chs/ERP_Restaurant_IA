@@ -76,17 +76,76 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         return
 
     # --------------------------------------------------------------------------
-    # 3. ESTADO PEDIDO
+    # 3. ESTADO PEDIDO (Consulta Real al Backend)
     # --------------------------------------------------------------------------
     if data == "estado_pedido":
-        # Simulación de respuesta proactiva
-        await query.edit_message_text(
-            f"Déjame revisar en la cocina... 👨‍🍳\n\n"
-            "📝 Si pediste hace poco, seguro lo están preparando con mucho cariño.\n"
-            "🚚 Si ya salió, ¡debe estar por llegar!\n\n"
-            "¿Te puedo ayudar con algo más mientras esperas? 😊",
-            parse_mode="Markdown"
-        )
+        try:
+            # Consultar pedidos del usuario
+            response = requests.get(f"{ORDERS_URL}?telegram_id={telegram_id}", timeout=5)
+            
+            if response.status_code == 200:
+                pedidos = response.json()
+                
+                # Filtrar pedidos activos (no completados ni cancelados)
+                pedidos_activos = [p for p in pedidos if p.get('status') not in ['completado', 'cancelado', 'rechazado']]
+                
+                if not pedidos_activos:
+                    await query.edit_message_text(
+                        "No tienes pedidos activos en este momento.\n\n"
+                        "Puedes hacer un nuevo pedido escribiendo lo que deseas.",
+                        parse_mode="Markdown"
+                    )
+                    return
+                
+                # Mostrar el pedido más reciente
+                pedido = pedidos_activos[0]
+                order_id = pedido.get('id')
+                item = pedido.get('item', 'Pedido')
+                status = pedido.get('status', 'pendiente')
+                precio = pedido.get('precio', 0)
+                fecha = pedido.get('fecha', '')
+                
+                # Mapeo de estados a mensajes
+                status_messages = {
+                    'pendiente': 'Tu pedido está pendiente de confirmación',
+                    'esperando_pago': 'Esperando confirmación de pago',
+                    'payment_submitted': 'Pago enviado, esperando aprobación',
+                    'payment_approved': 'Pago aprobado, enviado a cocina',
+                    'en_preparacion': 'Tu pedido se está preparando en cocina',
+                    'listo': 'Tu pedido está listo para recoger/entregar',
+                    'en_camino': 'Tu pedido está en camino'
+                }
+                
+                status_msg = status_messages.get(status, f'Estado: {status}')
+                
+                msg = (
+                    f"*Estado de tu Pedido #{order_id}*\n\n"
+                    f"Pedido: {item}\n"
+                    f"Total: ${precio:.2f}\n"
+                    f"Estado: {status_msg}\n\n"
+                )
+                
+                # Agregar tiempo estimado según el estado
+                if status in ['en_preparacion', 'payment_approved']:
+                    msg += "Tiempo estimado: 15-20 minutos\n"
+                elif status == 'listo':
+                    msg += "Tu pedido ya está listo!\n"
+                elif status == 'en_camino':
+                    msg += "Llegará en aproximadamente 10 minutos\n"
+                
+                await query.edit_message_text(msg, parse_mode="Markdown")
+            else:
+                await query.edit_message_text(
+                    "No pude consultar tus pedidos en este momento.\n"
+                    "Por favor intenta de nuevo más tarde."
+                )
+                
+        except Exception as e:
+            logging.error(f"Error consultando estado pedido: {e}")
+            await query.edit_message_text(
+                "Ocurrió un error al consultar tu pedido.\n"
+                "Por favor intenta de nuevo."
+            )
         return
 
     # --------------------------------------------------------------------------
@@ -100,7 +159,65 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
     # 5. CONFIRMACIÓN / PAGO (Lógica simplificada por ahora)
     # --------------------------------------------------------------------------
     # --------------------------------------------------------------------------
-    # 6. CONFIRMAR PEDIDO -> GUARDAR -> TRIGGER PAGO
+    # 6. CONFIRMAR PEDIDO MÚLTIPLE
+    # --------------------------------------------------------------------------
+    if data == "confirmar_pedido_multiple":
+        # NUEVO: Verificar DISPONIBILIDAD DE MESAS
+        from core.models import Table
+        from asgiref.sync import sync_to_async
+        
+        # Helper wrappers for async DB access
+        @sync_to_async
+        def check_availability():
+            return Table.objects.count(), Table.objects.filter(is_occupied=True).count()
+        
+        total_tables, occupied_tables = await check_availability()
+        
+        if total_tables > 0 and occupied_tables >= total_tables:
+            await query.edit_message_text(
+                "Lo siento pero en estos momento no hay lugares disponible por favor intentelo mas tarde."
+            )
+            return
+
+        resultado = context.user_data.get("ultimo_pedido_interpretado", {})
+        items = resultado.get("items", [])
+        total = resultado.get("total", 0)
+        pedido_final = resultado.get("pedido_final", "")
+        
+        if not items:
+            await query.edit_message_text("Error: No se encontraron items en el pedido.")
+            return
+        
+        # Guardar en contexto
+        context.user_data["pending_order_items"] = items
+        context.user_data["pending_order_item"] = pedido_final  # String para mostrar
+        context.user_data["pending_order_price"] = total
+        
+        # Preguntar tipo de servicio
+        msg_servicio = get_random_message(DELIVERY_OPTIONS)
+        
+        keyboard = [
+            [InlineKeyboardButton("Delivery", callback_data="sel_serv:DELIVERY")],
+            [InlineKeyboardButton("Retiro en Local", callback_data="sel_serv:RETIRO")],
+            [InlineKeyboardButton("Comer Aquí", callback_data="sel_serv:AQUI")]
+        ]
+        
+        await context.bot.send_message(
+            chat_id=telegram_id,
+            text=msg_servicio,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        
+        # Editar mensaje anterior
+        await query.edit_message_text(
+            f"Perfecto! Tu pedido:\n\n{pedido_final}\n\nTotal: ${total:.2f}",
+            parse_mode="Markdown"
+        )
+        return
+    
+    # --------------------------------------------------------------------------
+    # 7. CONFIRMAR PEDIDO (Legacy - Un Solo Item)
     # --------------------------------------------------------------------------
     if data.startswith("pedido:"):
         producto = data.split(":", 1)[1]
@@ -115,8 +232,8 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         
         keyboard = [
             [InlineKeyboardButton("🛵 Delivery", callback_data="sel_serv:DELIVERY")],
-            [InlineKeyboardButton("🛍️ Pick Up (Para llevar)", callback_data="sel_serv:PICKUP")],
-            [InlineKeyboardButton("🍽️ Comer Aquí", callback_data="sel_serv:HERE")]
+            [InlineKeyboardButton("🛍️ Retiro en Local", callback_data="sel_serv:RETIRO")],
+            [InlineKeyboardButton("🍽️ Comer Aquí", callback_data="sel_serv:AQUI")]
         ]
         
         await context.bot.send_message(
@@ -151,8 +268,8 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         
         keyboard = [
             [InlineKeyboardButton("🛵 Delivery", callback_data="sel_serv:DELIVERY")],
-            [InlineKeyboardButton("🛍️ Pick Up (Para llevar)", callback_data="sel_serv:PICKUP")],
-            [InlineKeyboardButton("🍽️ Comer Aquí", callback_data="sel_serv:HERE")]
+            [InlineKeyboardButton("🛍️ Retiro en Local", callback_data="sel_serv:RETIRO")],
+            [InlineKeyboardButton("🍽️ Comer Aquí", callback_data="sel_serv:AQUI")]
         ]
         
         await query.edit_message_text(
@@ -162,21 +279,7 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         )
         return
         
-    if data == "canjear_puntos":
-        context.user_data["state"] = "waiting_for_points"
-        await query.edit_message_text(
-            "💎 *Canje de Puntos de Fidelidad*\n\n"
-            "Recuerda: *25 puntos = $1.00* de descuento.\n\n"
-            "¿Cuántos puntos deseas canjear? (Escribe el número aquí abajo) 👇",
-            parse_mode="Markdown"
-        )
-        return
 
-    if data == "cancelar_canje":
-        context.user_data["points_to_redeem"] = 0
-        context.user_data["discount_amount"] = 0
-        await show_payment_info(update, context)
-        return
 
     # ----------------------------------------------------
     #  7. Aprobar/Rechazar Pago (ADMIN)
@@ -203,17 +306,31 @@ async def show_payment_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     item = context.user_data.get("pending_order_item", "Producto desconocido")
     precio_base = context.user_data.get("pending_order_price", 10.0)
-    service_type = context.user_data.get("service_type", "HERE")
+    service_type = context.user_data.get("service_type", "AQUI")
     location = context.user_data.get("location", "Dirección por defecto")
     
-    # Lógica de Puntos
-    discount = context.user_data.get("discount_amount", 0)
-    points_to_redeem = context.user_data.get("points_to_redeem", 0)
-    precio_final_usd = max(0, precio_base - discount)
+    precio_final_usd = precio_base
     
     # Mapeo simple para el backend
-    final_service = 'TOGO' if service_type in ['DELIVERY', 'PICKUP'] else 'HERE'
-    delivery_mode = service_type if service_type in ['DELIVERY', 'PICKUP'] else None
+    final_service = 'LLEVAR' if service_type in ['DELIVERY', 'RETIRO'] else 'AQUI'
+    delivery_mode = service_type if service_type in ['DELIVERY', 'RETIRO'] else None
+    
+    # Preparar items para el backend if available
+    items_list = []
+    raw_items = context.user_data.get("pending_order_items", [])
+    for i in raw_items:
+        # Calcular unitario (precio total / cantidad) o usar base si estuviera guardado
+        # Aquí asumimos que i['precio'] es el total de esa línea
+        cant = i.get("cantidad", 1)
+        total_line = i.get("precio", 0)
+        unitario = total_line / cant if cant > 0 else total_line
+        
+        if i.get("id"):
+            items_list.append({
+                "product_id": i.get("id"),
+                "cantidad": cant,
+                "precio_unitario": unitario
+            })
     
     # Crear payload
     payload = {
@@ -225,10 +342,7 @@ async def show_payment_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "service_type": final_service,
         "location": location,
         "delivery_mode": delivery_mode,
-        "payment_data": {
-            "points_redeemed": points_to_redeem,
-            "discount_applied": discount
-        }
+        "items": items_list
     }
     
     # Enviar al backend
@@ -241,33 +355,21 @@ async def show_payment_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
             order_id = data_resp.get("id")
             context.user_data["pending_order_id"] = order_id
         else:
-            await query.edit_message_text(f"Error creando orden: {resp.text}")
+            error_msg = f"Error creando orden: {resp.text}"
+            if query:
+                await query.edit_message_text(error_msg)
+            else:
+                await context.bot.send_message(chat_id=update.effective_chat.id, text=error_msg)
             return
             
     except Exception as e:
         print(f"Error backend: {e}")
-        await query.edit_message_text("Hubo un error de conexión creando tu orden. 😓")
-        return
-
-    # Obtener puntos del cliente
-    try:
-        from bot.models import LoyaltyPoints
-        with open("points_debug.log", "a") as f:
-            f.write(f"DEBUG [Points] {datetime.datetime.now()} - Buscando para: {telegram_id} (type: {type(telegram_id)})\n")
-        
-        loyalty = LoyaltyPoints.objects.filter(telegram_id=telegram_id).first()
-        if loyalty:
-            puntos_actuales = loyalty.puntos
-            with open("points_debug.log", "a") as f:
-                f.write(f"DEBUG [Points] Encontrados: {puntos_actuales} para {telegram_id}\n")
+        error_msg = "Hubo un error de conexión creando tu orden. 😓"
+        if query:
+            await query.edit_message_text(error_msg)
         else:
-            puntos_actuales = 0
-            with open("points_debug.log", "a") as f:
-                f.write(f"DEBUG [Points] NO ENCONTRADO para {telegram_id}\n")
-    except Exception as e:
-        with open("points_debug.log", "a") as f:
-            f.write(f"DEBUG [Points] ERROR: {e}\n")
-        puntos_actuales = 0
+            await context.bot.send_message(chat_id=update.effective_chat.id, text=error_msg)
+        return
 
     # Mostrar datos de pago
     tasa = EXCHANGE_RATE_FIXED
@@ -278,14 +380,7 @@ async def show_payment_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"📦 Pedido: {item}\n"
         f"🛵 Servicio: {service_type}\n"
         f"📍 Entrega: {location}\n"
-    )
-
-    if discount > 0:
-        msg_pago += f"💎 Descuento aplicado: -${discount:.2f}\n"
-
-    msg_pago += (
         f"💵 Total a pagar: *${precio_final_usd:.2f}* (Bs. {monto_bs:,.2f})\n\n"
-        f"🌟 Tus puntos actuales: *{puntos_actuales}*\n"
         "💳 *Datos de Pago (Pago Móvil):*\n"
         "• Banco: BANESCO (0134)\n"
         "• Teléfono: 0424-0000000\n"
@@ -293,20 +388,7 @@ async def show_payment_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "📸 *Envía la FOTO del comprobante para verificar.*"
     )
 
-    keyboard = []
-    if discount == 0 and puntos_actuales >= 25:
-        keyboard.append([InlineKeyboardButton("💎 Canjear Puntos por Descuento", callback_data="canjear_puntos")])
-    elif discount > 0:
-        keyboard.append([InlineKeyboardButton("❌ Quitar Descuento", callback_data="cancelar_canje")])
-
-    if keyboard:
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        if query:
-            await query.edit_message_text(msg_pago, parse_mode="Markdown", reply_markup=reply_markup)
-        else:
-            await context.bot.send_message(chat_id=update.effective_chat.id, text=msg_pago, parse_mode="Markdown", reply_markup=reply_markup)
+    if query:
+        await query.edit_message_text(msg_pago, parse_mode="Markdown")
     else:
-        if query:
-            await query.edit_message_text(msg_pago, parse_mode="Markdown")
-        else:
-            await context.bot.send_message(chat_id=update.effective_chat.id, text=msg_pago, parse_mode="Markdown")
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=msg_pago, parse_mode="Markdown")

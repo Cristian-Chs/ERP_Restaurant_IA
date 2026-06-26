@@ -30,7 +30,7 @@ class ProductSerializer(serializers.ModelSerializer):
         )
 
 #  Nuevo: Serializers para RRHH
-from .models import Employee, PayrollPayment, Recipe, InventoryMovement
+from .models import Employee, PayrollPayment, Recipe, InventoryMovement, Table
 
 class EmployeeSerializer(serializers.ModelSerializer):
     class Meta:
@@ -90,3 +90,9 @@ class InventoryMovementSerializer(serializers.ModelSerializer):
     def get_total_cost(self, obj):
         """Calcula el costo total del movimiento"""
         return float(obj.get_total_cost())
+
+class TableSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Table
+        fields = '__all__'
+

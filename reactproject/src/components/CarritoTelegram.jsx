@@ -1,23 +1,19 @@
-// src/components/CarritoTelegram.jsx
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion'; // eslint-disable-line no-unused-vars
 import BackButton from './BackButton';
 import API from '../api/axios';
-
-// Asegúrate de crear e importar Carrito.css para los estilos
+import StatusOverlay from './StatusOverlay';
+import config from '../config';
 import './Carrito.css'; 
 
-//  CONFIGURACIÓN: Reemplaza con tus datos reales
-const TELEGRAM_USERNAME = 'Sabores4_bot'; 
-const CURRENCY_SYMBOL = '$';
+const { TELEGRAM_USERNAME, CURRENCY_SYMBOL, GOOGLE_MAPS_API_KEY } = config;
 
 const PAYMENT_METHODS = [
     { id: 'pagomovil', name: 'Pago Móvil', icon: '', desc: 'Transferencia instantánea nacional', color: '#ff4b2b' },
-    { id: 'zelle', name: 'Zelle', icon: '', desc: 'Pagos en divisas USA', color: '#6a1b9a' },
-    { id: 'efectivo', name: 'Efectivo', icon: '', desc: 'Pago al recibir el pedido', color: '#2e7d32' },
-    { id: 'transferencia', name: 'Transferencia', icon: '', desc: 'Banesco, Provincial o Mercantil', color: '#1565c0' }
+    { id: 'zelle', name: 'Zelle', icon: '', desc: '4restaurant@gmail.com', color: '#6a1b9a' },
+    { id: 'efectivo', name: 'Efectivo', icon: '', desc: '', color: '#2e7d32' },
+    { id: 'transferencia', name: 'Transferencia', icon: '', desc: 'Banco Banesco', color: '#1565c0' }
 ];
 
 const SUPPORTED_LOCATIONS = [
@@ -36,9 +32,7 @@ const SUPPORTED_LOCATIONS = [
     "El Cayude"
 ];
 
-//  REEMPLAZA ESTO CON TU API KEY REAL DE GOOGLE MAPS 
-// Debe tener habilitadas las APIs: "Maps JavaScript API" y "Places API"
-const GOOGLE_MAPS_API_KEY = "TU_GOOGLE_MAPS_API_KEY_AQUI"; 
+
 
 function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) {
     const navigate = useNavigate();
@@ -49,7 +43,7 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
     const [selectedMethod, setSelectedMethod] = React.useState(null);
     const [paymentProof, setPaymentProof] = React.useState(null);
     const [orderStatus, setOrderStatus] = React.useState(null);
-    const [currency, setCurrency] = React.useState('USD');
+    const currency = 'USD';
     const [exchangeRate, setExchangeRate] = React.useState(1);
     
     // Coupon states
@@ -71,6 +65,7 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
         } else if (step === 'LOCATION' && window.google) {
             initAutocomplete(); // Call immediately if already loaded
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [step, deliveryMode]);
 
     const initAutocomplete = () => {
@@ -104,6 +99,22 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
         }
     };
 
+
+    // Check Table Availability on Mount
+    React.useEffect(() => {
+        const checkAvailability = async () => {
+            try {
+                const res = await API.get('/tables/availability/');
+                if (res.data && res.data.can_order === false) {
+                    alert(res.data.message); // Simple alert or custom overlay
+                    // Optional: Navigate away or disable checkout
+                    setOrderStatus('BLOCKED'); // Reuse status overlay with custom type?
+                    // Or just set a state to disable
+                }
+            } catch (e) { console.error("Error checking availability", e); }
+        };
+        checkAvailability();
+    }, []);
 
     React.useEffect(() => {
         const fetchRates = async () => {
@@ -202,12 +213,6 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
         }
     };
     
-    const removeCoupon = () => {
-        setAppliedCoupon(null);
-        setCouponCode('');
-        setCouponError('');
-    };
-
     const handleFinalize = async () => {
         try {
             // 1. Preparar datos para el Backend
@@ -228,12 +233,16 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
             // Los items los mandamos como string por ahora para el campo 'item' del modelo Order
             const itemsSummary = carrito.map(i => `${i.cantidad}x ${i.name}`).join(', ');
             
+            // Mapeo de valores para el Backend
+            const serviceTypeMap = { 'HERE': 'AQUI', 'TOGO': 'LLEVAR' };
+            const deliveryModeMap = { 'PICKUP': 'RETIRO', 'DELIVERY': 'DELIVERY' };
+
             formData.append('telegram_id', tgId);
             formData.append('item', itemsSummary);
             formData.append('precio', total.toFixed(2));
             formData.append('status', 'pendiente');
-            formData.append('service_type', serviceType);
-            formData.append('delivery_mode', deliveryMode || '');
+            formData.append('service_type', serviceTypeMap[serviceType] || 'AQUI');
+            formData.append('delivery_mode', deliveryMode ? deliveryModeMap[deliveryMode] : '');
             formData.append('location', location || '');
             formData.append('currency', currency);
             formData.append('exchange_rate', exchangeRate);
@@ -242,7 +251,21 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
                 formData.append('payment_proof', paymentProof);
             }
 
-            // 2. Guardar en Base de Datos
+            // 3. Datos de Pago (JSON)
+            let methodId = selectedMethod ? selectedMethod.id : '';
+            if (methodId === 'efectivo') methodId = 'cash';
+
+            const paymentData = {
+                payment_method: methodId,
+                ...((appliedCoupon) && {
+                    coupon_code: appliedCoupon.code,
+                    discount_applied: appliedCoupon.discount,
+                    discount_type: appliedCoupon.discount_type
+                })
+            };
+            formData.append('payment_data', JSON.stringify(paymentData));
+
+            // 4. Guardar en Base de Datos
             const response = await API.post('/bot/orders/', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
@@ -267,86 +290,7 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
         }
     };
 
-    const StatusOverlay = ({ type, onClose }) => {
-        const isHere = serviceType === 'HERE';
-        const telegramUrl = `https://t.me/${TELEGRAM_USERNAME}`;
 
-        return (
-            <motion.div 
-                className="order-status-overlay"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-            >
-                <motion.div 
-                    className={`status-card status-theme-${type.toLowerCase()}`}
-                    initial={{ scale: 0.5, y: 20 }}
-                    animate={{ scale: 1, y: 0 }}
-                    transition={{ type: "spring", damping: 15 }}
-                >
-                    <div className="status-icon-container">
-                        {type === 'SUCCESS' ? '' : ''}
-                    </div>
-                    <h2 className="status-heading">{type === 'SUCCESS' ? '¡Pedido Recibido!' : 'Error en el Pedido'}</h2>
-                    
-                    <div className="status-message">
-                        {type === 'SUCCESS' ? (
-                            isHere ? (
-                                <>
-                                    <p style={{fontSize: '1.1rem', marginBottom: '10px'}}>Su pedido se está procesando en cocina.</p>
-                                    <p style={{opacity: 0.8}}>Por favor, espere en su mesa.</p>
-                                    
-                                    <button 
-                                        onClick={() => {
-                                            vaciarCarrito();
-                                            navigate('/menu');
-                                        }} 
-                                        className="main-action-btn" 
-                                        style={{marginTop: '15px'}}
-                                    >
-                                        Volver al Menú
-                                    </button>
-                                    {lastOrderId && (
-                                        <a 
-                                            href={`http://localhost:8000/api/bot/invoices/${lastOrderId}/`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="main-action-btn"
-                                            style={{ marginTop: '10px', background: '#2ecc71', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}
-                                        >
-                                             Ver Factura Local
-                                        </a>
-                                    )}
-                                </>
-                            ) : (
-                                <>
-                                    <p style={{fontSize: '1.1rem', marginBottom: '10px'}}>¡Gracias por su compra!</p>
-                                    <p style={{opacity: 0.8}}>Estamos verificando su pago. Le avisaremos por Telegram cuando su pedido sea aprobado.</p>
-                                    
-                                    <button 
-                                        onClick={() => {
-                                            vaciarCarrito();
-                                            navigate('/menu');
-                                        }} 
-                                        className="main-action-btn" 
-                                        style={{marginTop: '20px'}}
-                                    >
-                                        Volver al Menú 
-                                    </button>
-                                </>
-                            )
-                        ) : (
-                            <p>Hubo un problema procesando tu solicitud. Reintenta.</p>
-                        )}
-                    </div>
-
-                    {type === 'ERROR' && (
-                        <button onClick={onClose} className="status-close-btn">Cerrar</button>
-                    )}
-                </motion.div>
-            </motion.div>
-        );
-    };
 
     const handleBack = () => {
         if (step === 'SERVICE') setStep('CART');
@@ -463,7 +407,14 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
         <div className="premium-checkout-wrapper">
             <AnimatePresence>
                 {orderStatus && (
-                    <StatusOverlay type={orderStatus} onClose={() => setOrderStatus(null)} />
+                    <StatusOverlay
+                        type={orderStatus}
+                        onClose={() => setOrderStatus(null)}
+                        serviceType={serviceType}
+                        lastOrderId={lastOrderId}
+                        vaciarCarrito={vaciarCarrito}
+                        navigate={navigate}
+                    />
                 )}
             </AnimatePresence>
 
@@ -498,7 +449,12 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
                                                 <h4>{item.name}</h4>
                                                 <div className="item-controls">
                                                     <span>Cant: {item.cantidad}</span>
-                                                    <button onClick={() => eliminarDelCarrito(item.id)} className="remove-item-btn"></button>
+                                                    <button onClick={() => eliminarDelCarrito(item.id)} className="remove-item-btn">
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                            <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                            <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                        </svg>
+                                                    </button>
                                                 </div>
                                             </div>
                                             <div className="item-price">
@@ -575,7 +531,7 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
                                                 const locStr = `${pos.coords.latitude}, ${pos.coords.longitude}`;
                                                 setLocation(locStr);
                                                 runAIPathfinding(locStr);
-                                            }, (err) => {
+                                            }, () => {
                                                 alert("No pudimos obtener tu ubicación. Por favor, ingrésala manualmente.");
                                             });
                                         }
@@ -693,39 +649,64 @@ function Carrito({ carrito, eliminarDelCarrito, vaciarCarrito, startTracking }) 
                             <div className="binance-details-card">
                                 <div className="p2p-badge">Pago Directo Seguro</div>
                                 <h3>{selectedMethod?.name}</h3>
-                                <div className="data-rows">
-                                    <div className="data-row"><span>Banco</span> <strong>Banesco</strong></div>
-                                    <div className="data-row"><span>Cédula</span> <strong>20.123.456</strong></div>
-                                    <div className="data-row"><span>Teléfono</span> <strong>0412-5556677</strong></div>
-                                </div>
-                                <div className="upload-section">
-                                    <p>Sube tu captura de pantalla para confirmar</p>
-                                    <label className="custom-file-upload">
-                                        <input 
-                                            type="file" 
-                                            accept="image/*"
-                                            onChange={(e) => {
-                                                const file = e.target.files[0];
-                                                if (file) {
-                                                    setPaymentProof(file);
-                                                    console.log("Archivo seleccionado para envío:", file.name, file.size, file.type);
-                                                }
-                                            }} 
-                                        />
-                                        {paymentProof ? ' Captura Lista' : ' Seleccionar Imagen'}
-                                    </label>
-                                    
-                                    {paymentProof && (
-                                        <motion.div 
-                                            className="proof-preview"
-                                            initial={{ opacity: 0, scale: 0.8 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                        >
-                                            <img src={URL.createObjectURL(paymentProof)} alt="Preview" />
-                                            <button onClick={() => setPaymentProof(null)} className="remove-proof"></button>
-                                        </motion.div>
-                                    )}
-                                </div>
+                                {selectedMethod?.id === 'pagomovil' && (
+                                    <div className="data-rows">
+                                        <div className="data-row"><span>Banco</span> <strong>Banesco</strong></div>
+                                        <div className="data-row"><span>Cédula</span> <strong>20.123.456</strong></div>
+                                        <div className="data-row"><span>Teléfono</span> <strong>0412-5556677</strong></div>
+                                    </div>
+                                )}
+
+                                {selectedMethod?.id === 'zelle' && (
+                                    <div className="data-rows">
+                                        <div className="data-row"><span>Correo</span> <strong>4restaurant@gmail.com</strong></div>
+                                        <div className="data-row"><span>Titular</span> <strong>4 Sabores Restaurant</strong></div>
+                                    </div>
+                                )}
+
+                                {selectedMethod?.id === 'transferencia' && (
+                                     <div className="data-rows">
+                                        <div className="data-row"><span>Banco</span> <strong>Banesco</strong></div>
+                                        <div className="data-row"><span>Cuenta</span> <strong>0134-0000-00-0000000000</strong></div>
+                                        <div className="data-row"><span>Titular</span> <strong>4 Sabores Restaurant</strong></div>
+                                    </div>
+                                )}
+                                
+                                {selectedMethod?.id === 'efectivo' && (
+                                    <div className="data-rows">
+                                        <p style={{color:'#c9d1d9', textAlign:'center', width:'100%'}}>El pago se realizará al momento de la entrega.</p>
+                                    </div>
+                                )}
+                                {selectedMethod?.id !== 'efectivo' && (
+                                    <div className="upload-section">
+                                        <p>Sube tu captura de pantalla para confirmar</p>
+                                        <label className="custom-file-upload">
+                                            <input 
+                                                type="file" 
+                                                accept="image/*"
+                                                onChange={(e) => {
+                                                    const file = e.target.files[0];
+                                                    if (file) {
+                                                        setPaymentProof(file);
+                                                        console.log("Archivo seleccionado para envío:", file.name, file.size, file.type);
+                                                    }
+                                                }} 
+                                            />
+                                            {paymentProof ? ' Captura Lista' : ' Seleccionar Imagen'}
+                                        </label>
+                                        
+                                        {paymentProof && (
+                                            <motion.div 
+                                                className="proof-preview"
+                                                initial={{ opacity: 0, scale: 0.8 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                            >
+                                                <img src={URL.createObjectURL(paymentProof)} alt="Preview" />
+                                                <button onClick={() => setPaymentProof(null)} className="remove-proof"></button>
+                                            </motion.div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}

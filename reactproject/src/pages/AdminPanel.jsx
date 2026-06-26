@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion'; // eslint-disable-line no-unused-vars
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend 
 } from 'recharts';
@@ -9,100 +9,8 @@ import {
 } from 'lucide-react';
 import API from '../api/axios';
 import CouponSection from './CouponSection';
+import ProductForm from '../components/ProductForm';
 import './AdminPanel.css';
-
-// Sub-componente para el formulario de producto
-const ProductForm = ({ newItem, setNewItem, ingredients, flavors, onSave, onCancel, isEditing }) => (
-  <div className="form-container inline">
-    <h2 className="form-title">{isEditing ? ' Editar Platillo' : ' Nuevo Platillo'}</h2>
-    
-    <div className="form-group-inline">
-      <label>Nombre:</label>
-      <input className="form-input" placeholder="Ej: Hamburguesa Especial" value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} />
-    </div>
-
-    <div className="form-group-inline">
-      <label>Precio ($):</label>
-      <input className="form-input" type="number" placeholder="0.00" value={newItem.price} onChange={e => setNewItem({...newItem, price: e.target.value})} />
-    </div>
-
-    <div className="form-group-inline">
-      <label>Costo ($):</label>
-      <input className="form-input" type="number" placeholder="0.00" value={newItem.cost_price || ''} onChange={e => setNewItem({...newItem, cost_price: e.target.value})} />
-    </div>
-
-    <div className="form-group-inline">
-      <label>Imagen:</label>
-      <div style={{ flex: 1 }}>
-        <input className="form-input" placeholder="Nombre de la imagen (ej: pizza.png)" value={newItem.imagen || ''} onChange={e => setNewItem({...newItem, imagen: e.target.value})} />
-        <small className="help-text">Ej: burguer.png</small>
-      </div>
-    </div>
-
-    <div className="form-group-inline">
-      <label>Categoría:</label>
-      <select className="form-input" value={newItem.category} onChange={e => setNewItem({...newItem, category: e.target.value})}>
-        <option value="entradas">Entradas</option>
-        <option value="principales">Principales</option>
-        <option value="postres">Postres</option>
-        <option value="bebidas">Bebidas</option>
-        <option value="promociones">Promociones</option>
-      </select>
-    </div>
-
-    <div className="form-group-inline">
-      <label>Descripción:</label>
-      <textarea className="form-input" placeholder="Descripción breve..." value={newItem.description} onChange={e => setNewItem({...newItem, description: e.target.value})} />
-    </div>
-
-    <div className="form-group">
-      <label>Ingredientes:</label>
-      <div className="tag-list clickable">
-        {ingredients.map(ing => (
-          <button 
-            key={ing.id} 
-            className={`tag-mini ${newItem.ingredientes?.includes(ing.id) ? 'active' : ''}`}
-            onClick={(e) => {
-              e.preventDefault();
-              const updated = newItem.ingredientes?.includes(ing.id) 
-                ? newItem.ingredientes.filter(i => i !== ing.id) 
-                : [...(newItem.ingredientes || []), ing.id];
-              setNewItem({...newItem, ingredientes: updated});
-            }}
-          >
-            {ing.nombre}
-          </button>
-        ))}
-      </div>
-    </div>
-
-    <div className="form-group">
-      <label>Sabores:</label>
-      <div className="tag-list clickable">
-        {flavors.map(flav => (
-          <button 
-            key={flav.id} 
-            className={`tag-mini ${newItem.sabores?.includes(flav.id) ? 'active' : ''}`}
-            onClick={(e) => {
-              e.preventDefault();
-              const updated = newItem.sabores?.includes(flav.id) 
-                ? newItem.sabores.filter(i => i !== flav.id) 
-                : [...(newItem.sabores || []), flav.id];
-              setNewItem({...newItem, sabores: updated});
-            }}
-          >
-            {flav.nombre}
-          </button>
-        ))}
-      </div>
-    </div>
-
-    <div className="form-actions">
-      <button className="btn-secondary" onClick={onCancel}>Cancelar</button>
-      <button className="btn-primary" onClick={onSave}>Guardar</button>
-    </div>
-  </div>
-);
 
 export default function AdminPanel() {
   const [activeSection, setActiveSection] = useState('dashboard');
@@ -112,7 +20,6 @@ export default function AdminPanel() {
   const [ingredients, setIngredients] = useState([]);
   const [recipes, setRecipes] = useState([]);
   const [flavors, setFlavors] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -131,10 +38,10 @@ export default function AdminPanel() {
 
   useEffect(() => {
     fetchInitialData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchInitialData = async () => {
-    setLoading(true);
     try {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -166,8 +73,6 @@ export default function AdminPanel() {
         localStorage.removeItem('token');
         navigate('/Login');
       }
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -268,7 +173,7 @@ export default function AdminPanel() {
       if (err.response?.status === 401) {
         alert("Tu sesión ha expirado. Por favor inicia sesión nuevamente.");
         localStorage.removeItem('token');
-        window.location.href = '/Login'; // Usar window.location para forzar recargalimpia
+        navigate('/Login');
       } else {
         alert("Error al guardar receta: " + (err.response?.data?.detail || "Error desconocido"));
       }
@@ -325,22 +230,23 @@ export default function AdminPanel() {
           </div>
         </div>
 
-        <div className="insight-card full-width">
+        {/* ROW 2 & 3: Top 5 Clientes VIP & Métricas - SIDE BY SIDE */}
+        <div className="insight-card" style={{ height: '100%' }}>
           <h3><Users size={20} color="#58a6ff" /> Top 5 Clientes VIP (Más Compras)</h3>
           <div className="insights-table-wrapper">
             <table className="insights-table">
               <thead>
                 <tr>
-                  <th>Telegram ID</th>
-                  <th>Total Pedidos</th>
-                  <th>Inversión Total</th>
+                  <th>Cliente</th>
+                  <th>Pedidos</th>
+                  <th>Inversión</th>
                   <th>Status</th>
                 </tr>
               </thead>
               <tbody>
                 {stats.top_customers?.map((c, i) => (
                   <tr key={i}>
-                    <td><code>{c.telegram_id}</code></td>
+                    <td><strong>{c.customer_name}</strong><br/><small style={{opacity: 0.6}}>{c.telegram_id}</small></td>
                     <td>{c.total_pedidos}</td>
                     <td>${parseFloat(c.total_gastado).toFixed(2)}</td>
                     <td>
@@ -353,35 +259,80 @@ export default function AdminPanel() {
           </div>
         </div>
 
-        <div className="insight-card full-width">
-          <h3><TrendingUp size={20} color="#2ecc71" /> Distribución de Canales (Local vs Para Llevar)</h3>
-          <div className="pie-chart-container" style={{ marginTop: '1rem' }}>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={[
-                    { name: 'Local', value: stats.service_breakdown?.HERE || 0 },
-                    { name: 'Para Llevar', value: stats.service_breakdown?.TOGO || 0 },
-                  ]}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  <Cell fill="#00f0ff" />
-                  <Cell fill="#00ff88" />
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#161b22', border: '1px solid #30363d', borderRadius: '8px' }}
-                  itemStyle={{ color: '#fff' }}
-                />
-                <Legend iconType="circle" wrapperStyle={{ color: '#fff' }} />
-              </PieChart>
-            </ResponsiveContainer>
+        <div className="insight-card" style={{ height: '100%' }}>
+          <h3><TrendingUp size={20} color="#2ecc71" /> Métricas de Distribución</h3>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginTop: '1.5rem' }}>
+            
+            {/* CHART 1: CANALES */}
+            <div>
+              <h4 style={{ color: '#8b949e', fontSize: '1.1rem', marginBottom: '1rem', textAlign: 'center', fontWeight: '600' }}>Distribución de Canales</h4>
+              <div style={{ width: '100%', height: '200px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <div style={{ width: '100%', height: '200px' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: 'Local', value: stats.service_breakdown?.HERE || 0 },
+                          { name: 'Para Llevar', value: stats.service_breakdown?.TOGO || 0 },
+                        ]}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        <Cell fill="#00f0ff" />
+                        <Cell fill="#00ff88" />
+                      </Pie>
+                      <Tooltip contentStyle={{ backgroundColor: '#161b22', border: '1px solid #30363d', borderRadius: '8px' }} itemStyle={{ color: '#fff' }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', fontSize: '0.9rem', color: '#c9d1d9', marginTop: '1rem' }}>
+                <span><span style={{color:'#00f0ff', fontSize: '1.2rem'}}>●</span> Local: <strong>{stats.service_breakdown?.HERE || 0}</strong></span>
+                <span><span style={{color:'#00ff88', fontSize: '1.2rem'}}>●</span> Para Llevar: <strong>{stats.service_breakdown?.TOGO || 0}</strong></span>
+              </div>
+            </div>
+
+            {/* CHART 2: PAGOS */}
+            <div>
+              <h4 style={{ color: '#8b949e', fontSize: '1.1rem', marginBottom: '1rem', textAlign: 'center', fontWeight: '600' }}>Métodos de Pago</h4>
+              <div style={{ width: '100%', height: '200px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                {stats.financial_summary.payment_methods_breakdown ? (
+                  (() => {
+                    const data = Object.entries(stats.financial_summary.payment_methods_breakdown).map(([name, value]) => ({ name, value }));
+                    const COLORS = ['#a371f7', '#2ecc71', '#ff4b2b', '#1f6feb']; 
+                    return (
+                      <div style={{ width: '100%', height: '200px' }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie data={data} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                              {data.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                            </Pie>
+                            <Tooltip contentStyle={{ backgroundColor: '#161b22', border: '1px solid #30363d', borderRadius: '8px' }} itemStyle={{ color: '#fff' }} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    );
+                  })()
+                ) : <div style={{ color: '#8b949e', textAlign: 'center' }}>Cargando...</div>}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap', fontSize: '0.9rem', color: '#c9d1d9', marginTop: '1rem' }}>
+                {stats.financial_summary.payment_methods_breakdown && Object.entries(stats.financial_summary.payment_methods_breakdown).map(([k, v], i) => {
+                  const COLORS = ['#a371f7', '#2ecc71', '#ff4b2b', '#1f6feb'];
+                  return (
+                    <span key={k}><span style={{color: COLORS[i%COLORS.length], fontSize: '1.2rem'}}>●</span> {k}: <strong>{v}</strong></span>
+                  )
+                })}
+              </div>
+            </div>
+
           </div>
         </div>
+
       </div>
     </div>
   );
@@ -450,14 +401,7 @@ export default function AdminPanel() {
               <small style={{ color: '#58a6ff', fontSize: '0.8rem' }}>Disponible Real (Ingreso-Costos-Imp)</small>
             </div>
 
-            {/* Método de Pago Top */}
-            <div className="fin-card">
-              <span className="fin-label" style={{ color: '#8b949e', fontSize: '0.9rem' }}>Método Frecuente</span>
-              <div className="fin-value" style={{ fontSize: '1.4rem', fontWeight: 'bold', color: '#a371f7' }}>
-                {stats.financial_summary.top_payment_method}
-              </div>
-              <small style={{ color: '#a371f7', fontSize: '0.8rem' }}>Más Usado</small>
-            </div>
+
           </div>
 
           <div className="exchange-rate-control" style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid #30363d', display: 'flex', alignItems: 'center', gap: '15px' }}>
@@ -853,7 +797,13 @@ export default function AdminPanel() {
                 <tr>
                   <td>{item.nombre}</td>
                   {type === 'ingredients' && <td>${item.cost}</td>}
-                  {type === 'ingredients' && <td><span className="tag-mini-simple">{item.unit === 'kg' ? 'Kg' : (item.unit === 'l' ? 'Litro' : 'Und')}</span></td>}
+                  {type === 'ingredients' && (
+                    <td>
+                      {item.unit === 'kg' && <span className="tag-mini-simple" style={{background: 'rgba(46, 204, 113, 0.2)', color: '#2ecc71', border: '1px solid #2ecc71'}}>KG</span>}
+                      {item.unit === 'l' && <span className="tag-mini-simple" style={{background: 'rgba(52, 152, 219, 0.2)', color: '#3498db', border: '1px solid #3498db'}}>LITRO</span>}
+                      {item.unit === 'und' && <span className="tag-mini-simple" style={{background: 'rgba(149, 165, 166, 0.2)', color: '#95a5a6', border: '1px solid #7f8c8d'}}>UND</span>}
+                    </td>
+                  )}
                   <td>
                     <div style={{ display: 'flex', gap: '10px' }}>
                       <button className="btn-icon" onClick={() => { 
@@ -913,9 +863,9 @@ export default function AdminPanel() {
                                             value={genericItem.unit || 'und'} 
                                             onChange={e => setGenericItem({...genericItem, unit: e.target.value})}
                                         >
-                                            <option value="und">Unidad</option>
-                                            <option value="kg">Kilogramo</option>
-                                            <option value="l">Litro</option>
+                                            <option value="und">Unidad (pzs)</option>
+                                            <option value="kg">Peso (Kg)</option>
+                                            <option value="l">Volumen (Litro)</option>
                                         </select>
                                     </div>
                                 </>
@@ -968,9 +918,9 @@ export default function AdminPanel() {
                             value={genericItem.unit || 'und'} 
                             onChange={e => setGenericItem({...genericItem, unit: e.target.value})}
                         >
-                            <option value="und">Unidad</option>
-                            <option value="kg">Kilogramo</option>
-                            <option value="l">Litro</option>
+                            <option value="und">Unidad (pzs)</option>
+                            <option value="kg">Peso (Kg)</option>
+                            <option value="l">Volumen (Litro)</option>
                         </select>
                     </div>
                 </>
@@ -1024,7 +974,7 @@ export default function AdminPanel() {
       setEditingItem(null);
       setNewEmployee({ name: '', role: 'WAITER', salary_base: '', phone: '' });
       fetchHRData();
-    } catch (err) {
+    } catch {
       alert("Error saving employee");
     }
   };
@@ -1036,7 +986,7 @@ export default function AdminPanel() {
       setShowPayrollModal(false);
       setNewPayment({ employee: '', amount: '', notes: '' });
       fetchHRData();
-    } catch (err) {
+    } catch {
       alert("Error registering payment");
     }
   };
@@ -1103,7 +1053,7 @@ export default function AdminPanel() {
                         document.body.appendChild(link);
                         link.click();
                         link.remove();
-                    } catch(err) { alert("Error exportando PDF"); }
+                    } catch { alert("Error exportando PDF"); }
                 }}>
                     <Download size={18} /> Exportar PDF
                 </button>

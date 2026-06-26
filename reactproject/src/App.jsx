@@ -1,8 +1,9 @@
 // src/App.jsx
 
-import React, { useState } from 'react'; 
+import React, { useState, useEffect } from 'react'; 
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
+import API from './api/axios';
 
 // Componentes
 import Presentacion from './components/Presentacion';
@@ -20,10 +21,25 @@ import KitchenPanel from './pages/KitchenPanel';
 import Profile from './pages/Profile';
 import ProtectedRoute from './components/ProtectedRoute';
 import RealTimeDashboard from './pages/RealTimeDashboard'; // 
+import Navbar from './components/Navbar';
 
 //  LÓGICA DE CARRITO
 function useCartLogic() {
-  const [carrito, setCarrito] = useState([]);
+  // Inicializar carrito desde LocalStorage si existe
+  const [carrito, setCarrito] = useState(() => {
+    try {
+      const savedCart = localStorage.getItem('carrito');
+      return savedCart ? JSON.parse(savedCart) : [];
+    } catch (error) {
+      console.error("Error cargando carrito:", error);
+      return [];
+    }
+  });
+
+  // Guardar en LocalStorage cada vez que cambie el carrito
+  React.useEffect(() => {
+    localStorage.setItem('carrito', JSON.stringify(carrito));
+  }, [carrito]);
   
   const agregarAlCarrito = (producto) => {
     setCarrito(prevCarrito => {
@@ -51,7 +67,6 @@ function useCartLogic() {
   const totalItems = carrito.reduce((acc, item) => acc + item.cantidad, 0);
 
   return { carrito, agregarAlCarrito, eliminarDelCarrito, vaciarCarrito, totalItems };
-  return { carrito, agregarAlCarrito, eliminarDelCarrito, vaciarCarrito, totalItems };
 }
 
 //  LÓGICA DE SEGUIMIENTO DE PEDIDO
@@ -70,27 +85,14 @@ function useOrderTracking() {
     setIsOrderReady(false);
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!activeOrderId) return;
 
-    // Polling cada 10 segundos
     const interval = setInterval(async () => {
        try {
-         // Necesitamos importar API o usar fetch. API está en components/CarritoTelegram, 
-         // mejor usar fetch directo o importar API si es posible. 
-         // Asumiremos que API se puede importar o usar fetch relativo.
-         // Backend URL: http://localhost:8000/api/bot/orders/{id}/
-         // Ajustar puerto si es necesario.
-         
-         const response = await fetch(`http://localhost:8000/api/bot/orders/${activeOrderId}/`);
-         if (response.ok) {
-            const data = await response.json();
-            console.log("Polling orden:", data.status);
-            if (data.status === 'listo') {
-                setIsOrderReady(true);
-                // No limpiamos activeOrderId aún para mostrar el modal.
-                // El modal limpiará al cerrar.
-            }
+         const res = await API.get(`/bot/orders/${activeOrderId}/`);
+         if (res.status === 200 && res.data.status === 'listo') {
+           setIsOrderReady(true);
          }
        } catch (e) {
          console.error("Error polling order:", e);
@@ -196,8 +198,15 @@ function AnimatedRoutes({ carrito, agregarAlCarrito, eliminarDelCarrito, vaciarC
 function CartButtonWrapper({ totalItems }) {
   const location = useLocation();
 
-  const hiddenPaths = ['/', '/carrito', '/login', '/Login', '/admin', '/register', '/forgot-password', '/reset-password', '/kitchen-panel', '/dashboard'];
-  const shouldHide = hiddenPaths.includes(location.pathname);
+  const hiddenPaths = ['/', '/carrito', '/login', '/Login', '/admin', '/register', '/forgot-password', '/kitchen-panel', '/dashboard'];
+  
+  // Check exact matches
+  let shouldHide = hiddenPaths.includes(location.pathname);
+
+  // Check dynamic routes
+  if (location.pathname.startsWith('/reset-password')) {
+    shouldHide = true;
+  }
 
   if (shouldHide) {
     return null;
@@ -227,18 +236,17 @@ function App() {
   );
 }
 
-import Navbar from './components/Navbar';
-
 //  Componente hijo que sí puede usar useLocation
 function AppContent({ carrito, agregarAlCarrito, eliminarDelCarrito, vaciarCarrito, totalItems, startTracking, isOrderReady, stopTracking }) {
   const location = useLocation();
 
-  // Rutas donde quieres mostrar el fondo aurora
-  const showAurora = ['/', '/login', '/Login', '/register', '/forgot-password', '/reset-password', '/profile'].some(path => location.pathname.startsWith(path));
+  // Hide Telegram button on these paths
+  const hideTelegram = location.pathname === '/kitchen-panel' || location.pathname.startsWith('/reset-password') || location.pathname.startsWith('/admin') || location.pathname.startsWith('/dashboard');
 
   return (
     <>
-      {showAurora && (
+      {/* AuroraBackground removed to match clean white theme */}
+      {/* {showAurora && (
         <AuroraBackground 
           colorStops={["#BA6E8F", "#da381b", "#f6ff00"]}
           blend={0.5}
@@ -246,7 +254,7 @@ function AppContent({ carrito, agregarAlCarrito, eliminarDelCarrito, vaciarCarri
           speed={1.0}
           canvasBackground="#051F20"
         />
-      )}
+      )} */}
 
       <Navbar />
 
@@ -259,7 +267,7 @@ function AppContent({ carrito, agregarAlCarrito, eliminarDelCarrito, vaciarCarri
       />
 
       <CartButtonWrapper totalItems={totalItems} />
-      {location.pathname !== '/kitchen-panel' && <TelegramButton />}
+      {!hideTelegram && <TelegramButton />}
       
       {isOrderReady && <OrderReadyModal onClose={stopTracking} />}
     </>

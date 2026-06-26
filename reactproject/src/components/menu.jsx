@@ -85,29 +85,64 @@ useEffect(() => {
 
   const menuData = useMemo(() => allProducts, [allProducts]);
 
+  // --- TABBED INTERFACE LOGIC ---
+  // Extract categories from data
+  const categories = useMemo(() => {
+    const keys = Object.keys(menuData);
+    // Move 'promociones' to front if exists, else keep order
+    return keys.sort((a, b) => {
+      if (a === 'promociones') return -1;
+      if (b === 'promociones') return 1;
+      return 0;
+    });
+  }, [menuData]);
+
+  // If active category not in data (e.g. init), set to first available
+  useEffect(() => {
+    if (categories.length > 0 && !categories.includes(categoriaActiva)) {
+      setCategoriaActiva(categories[0]);
+    }
+  }, [categories, categoriaActiva]);
+
   if (loading) return <div className="menu-container"><p>Cargando menú...</p></div>;
   if (error) return <div className="menu-container"><p>{error}</p></div>;
 
   const renderSeccionActiva = () => {
-    const activeKey = categoriaActiva.toLowerCase();
-    const items = menuData[activeKey] || [];
+    // Determine active items
+    const items = menuData[categoriaActiva] || [];
 
     return (
-      <div className="menu-grid-wrapper">
-        <div className="menu-grid">
+      <div className="menu-content-wrapper">
+         {/* Title Section matching Source: "Nuestro Menú" */}
+         <div className="menu-header-text">
+            <h1 className="menu-main-title">Nuestro Menú</h1>
+            <p className="menu-subtitle">Descubre los auténticos sabores de Venezuela</p>
+         </div>
+
+         {/* TABS Navigation */}
+         <div className="menu-tabs-container">
+            {categories.map(cat => (
+              <button
+                key={cat}
+                className={`menu-tab ${categoriaActiva === cat ? 'active' : ''}`}
+                onClick={() => setCategoriaActiva(cat)}
+              >
+                {cat.charAt(0).toUpperCase() + cat.slice(1)}
+              </button>
+            ))}
+         </div>
+
+         {/* Products Grid */}
+         <div className="menu-grid-animated">
           <AnimatePresence mode="wait">
             <motion.div
-              key={activeKey}
-              className="menu-section-content"
+              key={categoriaActiva}
+              className="menu-items-grid"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
             >
-              <h1 className="menu-section-title">
-                {activeKey.charAt(0).toUpperCase() + activeKey.slice(1)}
-              </h1>
-              <div className="menu-items-container">
                 {items && items.length > 0 ? (
                   items.map((p, i) => (
                     <PlatilloCard 
@@ -118,12 +153,13 @@ useEffect(() => {
                     />
                   ))
                 ) : (
-                  <p className="no-items">No hay items disponibles en esta categoría.</p>
+                  <div className="no-items-wrapper">
+                    <p className="no-items">No hay items disponibles en esta categoría.</p>
+                  </div>
                 )}
-              </div>
             </motion.div>
           </AnimatePresence>
-        </div>
+         </div>
       </div>
     );
   };
@@ -134,10 +170,9 @@ useEffect(() => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
-      <div className="menu-header-actions" style={{ marginBottom: '20px' }}>
-        {/* El Navbar global ya maneja la navegación. Dejamos el espacio o ajustes si es necesario */}
-      </div>
-      <MenuCategorias active={categoriaActiva} onSelect={setCategoriaActiva} />
+      {/* Navbar handles top navigation */}
+      
+      {/* Main Content */}
       {renderSeccionActiva()}
     </motion.div>
   );

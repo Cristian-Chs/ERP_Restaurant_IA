@@ -79,14 +79,14 @@ def parsear_resumen_web(texto: str) -> dict | None:
     precio_total = float(match_total.group(1)) if match_total else 0.0
 
     # 3. Extraer Servicio y Modalidad (Nuevo Formato)
-    service_type = 'HERE'
+    service_type = 'AQUI'
     delivery_mode = None
     if "*Servicio:*" in texto:
-        if "Comer Aquí" in texto: service_type = 'HERE'
-        if "Para Llevar" in texto: service_type = 'TOGO'
+        if "Comer Aquí" in texto: service_type = 'AQUI'
+        if "Para Llevar" in texto: service_type = 'LLEVAR'
     
     if "*Modalidad:*" in texto:
-        if "Retiro en Local" in texto: delivery_mode = 'PICKUP'
+        if "Retiro en Local" in texto: delivery_mode = 'RETIRO'
         if "Delivery" in texto: delivery_mode = 'DELIVERY'
 
     return {

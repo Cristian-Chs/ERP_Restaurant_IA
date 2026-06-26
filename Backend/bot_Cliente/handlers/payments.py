@@ -11,6 +11,8 @@ from telegram.ext import ContextTypes
 
 from bot_Cliente.config import ORDERS_URL, ADMIN_CHAT_ID, EXCHANGE_RATE_FIXED, OCR_API_URL
 from bot_Cliente.services.payment_service import extraer_datos_comprobante
+from bot.factura import InvoiceGenerator
+from bot.models import Order as OrderModel
 
 logging.basicConfig(level=logging.INFO)
 
@@ -97,12 +99,29 @@ async def notify_admin_new_order(context, order_id, telegram_id, nombre, pedido_
     """
     Envía el comprobante al grupo/chat de administración.
     """
+    # Formatear datos OCR al estilo del recibo móvil
     datos_ocr = ""
     if payment_data and "error" not in payment_data:
-        datos_ocr = "\n*Datos Extraídos (OCR):*\n"
-        for k, v in payment_data.items():
-            key_clean = k.replace("_", " ").title()
-            datos_ocr += f"• {key_clean}: {v}\n"
+        datos_ocr = "\n━━━━━━━━━━━━━━━━━━━━\n*DATOS DEL COMPROBANTE*\n\n"
+        
+        # Mapeo de campos con formato específico
+        field_map = {
+            "numero_referencia": "NÚMERO DE REFERENCIA",
+            "fecha": "FECHA",
+            "telefono_origen": "NÚMERO CELULAR DE ORIGEN",
+            "telefono_destino": "NÚMERO CELULAR DE DESTINO",
+            "banco_emisor": "BANCO EMISOR",
+            "banco_receptor": "BANCO RECEPTOR",
+            "monto": "MONTO DE LA OPERACIÓN",
+            "tipo_operacion": "TIPO DE OPERACIÓN"
+        }
+        
+        for key, label in field_map.items():
+            if key in payment_data and payment_data[key]:
+                value = payment_data[key]
+                datos_ocr += f"*{label}*\n{value}\n\n"
+        
+        datos_ocr += "━━━━━━━━━━━━━━━━━━━━\n"
 
     tasa = EXCHANGE_RATE_FIXED
     monto_bs = float(precio) * tasa
@@ -112,7 +131,7 @@ async def notify_admin_new_order(context, order_id, telegram_id, nombre, pedido_
         f"👤 *Cliente:* {nombre} (ID: {telegram_id})\n"
         f"📦 *Pedido:* {pedido_item}\n"
         f"🆔 *Order ID:* {order_id}\n"
-        f"💵 *Monto:* ${precio:.2f} (Bs. {monto_bs:,.2f})\n\n"
+        f"💵 *Monto Esperado:* ${precio:.2f} (Bs. {monto_bs:,.2f})\n"
         f"{datos_ocr}\n"
         f"🕒 {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}"
     )
@@ -158,24 +177,44 @@ async def handle_payment_approval(update: Update, context: ContextTypes.DEFAULT_
             )
             
             if client_id:
-                # Lógica de Deducción de Puntos (Si aplica)
+                # Generar factura automáticamente
+                invoice_path = None
                 try:
-                    puntos_canjeados = order_data.get("payment_data", {}).get("points_redeemed", 0)
-                    if puntos_canjeados > 0:
-                        from bot.models import LoyaltyPoints
-                        loyalty = LoyaltyPoints.objects.filter(telegram_id=client_id).first()
-                        if loyalty:
-                            loyalty.puntos -= int(puntos_canjeados)
-                            loyalty.save()
-                            logging.info(f"Puntos deduciodos: {puntos_canjeados} para el usuario {client_id}")
+                    
+                    # Obtener el objeto Order completo del backend
+                    order_obj = OrderModel.objects.get(id=order_id)
+                    
+                    # Generar factura
+                    generator = InvoiceGenerator()
+                    invoice_path = generator.generate(order_obj)
+                    
+                    # Guardar ruta en el pedido
+                    order_obj.invoice_path = invoice_path
+                    order_obj.save()
+                    
+                    logging.info(f"Factura generada: {invoice_path}")
                 except Exception as e:
-                    logging.error(f"Error deduciendo puntos: {e}")
-
+                    logging.error(f"Error generando factura: {e}")
+                
+                # Enviar mensaje de aprobación
                 await context.bot.send_message(
                     chat_id=client_id,
                     text=f"🥳 *¡Pago Aprobado!* (Orden #{order_id})\n\nTu pedido ya está en preparación. Te avisaremos cuando esté listo. 👩‍🍳",
                     parse_mode="Markdown"
                 )
+                
+                # Enviar factura si se generó correctamente
+                if invoice_path and os.path.exists(invoice_path):
+                    try:
+                        await context.bot.send_photo(
+                            chat_id=client_id,
+                            photo=open(invoice_path, 'rb'),
+                            caption="*Tu Factura Fiscal*\n\nGracias por tu compra. Disfruta de tu comida. Esperamos verte pronto.",
+                            parse_mode="Markdown"
+                        )
+                        logging.info(f"Factura enviada al cliente {client_id}")
+                    except Exception as e:
+                        logging.error(f"Error enviando factura: {e}")
         else:
             await query.answer(f"Error al actualizar orden: {resp.status_code}", show_alert=True)
     except Exception as e:

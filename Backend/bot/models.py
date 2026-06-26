@@ -21,8 +21,8 @@ class Order(models.Model):
     fecha = models.DateTimeField(auto_now_add=True)
     
     #  Nuevos campos de logística
-    service_type = models.CharField(max_length=20, choices=[('HERE', 'Eat Here'), ('TOGO', 'To Go')], default='HERE')
-    delivery_mode = models.CharField(max_length=20, choices=[('PICKUP', 'Pick Up'), ('DELIVERY', 'Delivery')], blank=True, null=True)
+    service_type = models.CharField(max_length=20, choices=[('AQUI', 'Comer Aquí'), ('LLEVAR', 'Para Llevar')], default='AQUI')
+    delivery_mode = models.CharField(max_length=20, choices=[('RETIRO', 'Retiro en Local'), ('DELIVERY', 'Delivery')], blank=True, null=True)
     location = models.TextField(blank=True, null=True) # Dirección manual o coordenadas
     
     #  Campos de verificación de pago
@@ -78,16 +78,24 @@ class GustoCliente(models.Model):
 @receiver(post_save, sender=Order)
 def enviar_notificacion(sender, instance, **kwargs):
     if instance.status == "listo":
-        #  Notificar al cliente
-        notificar_pedido_listo(instance.telegram_id, instance.item)
+        #  Generar factura si no existe
+        if not instance.invoice_path:
+            try:
+                from bot.factura import InvoiceGenerator
+                generator = InvoiceGenerator()
+                invoice_path = generator.generate(instance)
+                instance.invoice_path = invoice_path
+                instance.save(update_fields=['invoice_path'])
+                print(f"✅ Factura generada: {invoice_path}")
+            except Exception as e:
+                print(f"❌ Error generando factura: {e}")
+        
+        #  Notificar al cliente con factura
+        notificar_pedido_listo(instance.telegram_id, instance.item, instance.invoice_path)
         
         #  Agregar Puntos de Fidelización (Fase 9)
         loyalty, created = LoyaltyPoints.objects.get_or_create(telegram_id=instance.telegram_id)
         puntos_ganados = loyalty.agregar_puntos(instance.precio)
-        
-        # Notificar puntos ganados via Telegram (opcional pero recomendado)
-        from .utils import notificar_puntos_ganados
-        notificar_puntos_ganados(instance.telegram_id, puntos_ganados, loyalty.puntos)
 
 class PedidoPersonalizado(models.Model):
     telegram_id = models.BigIntegerField()

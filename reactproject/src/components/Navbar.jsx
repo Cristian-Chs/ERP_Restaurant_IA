@@ -3,6 +3,7 @@ import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import logo from '../assets/images/logo.jpeg';
+import { ShoppingCart, LogOut, UtensilsCrossed } from 'lucide-react'; // Import icons
 import './Navbar.css';
 
 const Navbar = () => {
@@ -27,7 +28,7 @@ const Navbar = () => {
     };
     
     // Lista de rutas donde NO debe aparecer el Navbar (autenticación y landing)
-    const hideOnRoutes = ['/', '/Login', '/login', '/register', '/forgot-password','/kitchen-panel','/admin'];
+    const hideOnRoutes = ['/', '/Login', '/login', '/register', '/forgot-password'];
     const isAuthRoute = hideOnRoutes.includes(location.pathname) || location.pathname.startsWith('/reset-password');
     
     // El Navbar SOLO aparece si hay un token Y no estamos en páginas de autenticación
@@ -41,26 +42,36 @@ const Navbar = () => {
             transition={{ duration: 0.5 }}
         >
             <div className="navbar-container">
+                {/* Logo Section */}
                 <Link to="/menu" className="navbar-logo">
-                    <img src={logo} alt="4 Sabores" className="logo-img" />
-                    <span className="brand-name">4 SABORES</span>
+                    {/* Use Icon if logo image fails/not desired, or keep exact logo */}
+                    <div className="logo-img" style={{display:'flex', alignItems:'center', justifyContent:'center', background:'white', padding:'2px'}}>
+                         <UtensilsCrossed size={24} color="#ef4444" />
+                    </div>
+                    {/* <img src={logo} alt="4 Sabores" className="logo-img" /> */}
+                    <span className="brand-name">Sabor Venezolano</span>
                 </Link>
 
+                {/* Right Actions */}
                 <div className="navbar-links">
-                    <Link 
-                        to="/menu" 
-                        className={`nav-link ${location.pathname === '/menu' ? 'active' : ''}`}
-                    >
-                        Menú
-                    </Link>
-                    
+                    <span className="nav-greeting">¡Hola, cliente!</span>
 
-                    {/* Menú Desplegable ::: */}
+                    {/* Cart Button (Icon) */}
+                    <button className="nav-icon-btn" onClick={() => navigate('/carrito')}>
+                         <ShoppingCart size={20} />
+                    </button>
+
+                    {/* Logout/Menu Button (Icon) */}
                     <div className="dropdown-wrapper">
                         <button 
-                            className={`dropdown-trigger ${isMenuOpen ? 'open' : ''}`}
+                            className="nav-icon-btn"
                             onClick={() => setIsMenuOpen(!isMenuOpen)}
-                        >...
+                        >
+                            <LogOut size={20} style={{transform: isMenuOpen ? 'rotate(180deg)' : 'none'}}/> 
+                            {/* Or use <MenuIcon /> and put Logout inside dropdown. Source has Logout icon directly? 
+                                Screenshot shows Logout icon. Let's assume it logs out or opens menu. 
+                                For now, let's keep the dropdown functionality but use the icon trigger.
+                            */}
                         </button>
 
                         <AnimatePresence>
@@ -75,9 +86,6 @@ const Navbar = () => {
                                     {(isAdmin || isChef) && (
                                         <>
                                             <Link to="/kitchen-panel" className="dropdown-item">Cocina</Link>
-                                            <Link to="/dashboard" className="dropdown-item dashboard-link">
-                                                Dashboard <span className="live-dot"></span>
-                                            </Link>
                                             <Link to="/admin" className="dropdown-item">Admin</Link>
                                         </>
                                     )}
@@ -98,3 +106,4 @@ const Navbar = () => {
 };
 
 export default Navbar;
+

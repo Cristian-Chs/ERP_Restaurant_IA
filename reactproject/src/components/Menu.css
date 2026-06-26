@@ -1,131 +1,104 @@
-.card__price {
-  color: black;
-  font-size: 1.8rem;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-.menu-grid {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 2rem 3rem 4rem 3rem; /*  Más espacio abajo para evitar desborde */
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(25px);
-  -webkit-backdrop-filter: blur(25px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 40px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.2);
-  position: relative;
-  z-index: 2;
-  min-height: 400px;
-  width: 90vw;
-}
+/* src/components/Menu.css */
 
-.menu-section-title {
-  font-size: 3.5rem;
-  color: #c0392b;
-  
-  margin-top: 0;
-  margin-bottom: 3.5rem;
-  text-align: center;
-  font-weight: 800;
-  text-transform: none; /*  Fuente estática (sin mayúsculas forzadas) */
-  letter-spacing: normal; /*  Espaciado normal */
-  text-shadow: none; /*  Sin sombras pesadas */
-}
-
-.menu-items-container {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 2.5rem; /*  Mayor separación entre tarjetas */
-}
-
-@media (max-width: 1100px) {
-  .menu-items-container {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-@media (max-width: 900px) {
-  .menu-items-container {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 768px) {
-  .menu-items-container {
-    grid-template-columns: 1fr;
-  }
-  .menu-grid {
-    padding: 1.5rem;
-    width: 95vw;
-    border-radius: 20px;
-  }
-  .menu-section-title {
-    font-size: 1.8rem;
-    margin-bottom: 1.5rem;
-  }
-}
 .menu-container {
-  min-height: 100vh;
-  background-color: transparent;
-  padding: 100px 1rem 2rem 1rem; /*  Top padding (100px) para el Navbar, resto original */
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center; /*  Centra el contenido horizontalmente */
+    padding-top: 100px; /* Space for Navbar */
+    min-height: 100vh;
+    background-color: #f9fafb; /* Light gray background like source */
+    padding-left: 1rem;
+    padding-right: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
-.menu-header-actions {
-  position: absolute; /*  Se queda arriba de la página, no baja al hacer scroll */
-  top: 1.5rem;
-  left: 2rem;
-  right: 2rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  z-index: 1001;
-  pointer-events: none;
+.menu-content-wrapper {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
-.menu-header-actions > * {
-  pointer-events: auto; /* Permitir clicks en botones */
+/* Header Text */
+.menu-header-text {
+    text-align: left;
+    margin-bottom: 2rem;
 }
 
-.profile-btn-link {
-  color: #fff;
-  text-decoration: none;
-  background: rgba(255, 255, 255, 0.2);
-  padding: 0.7rem 1.4rem;
-  border-radius: 30px;
-  font-weight: 700;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.menu-main-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #111827; /* Gray-900 */
+    margin: 0;
 }
 
-.profile-btn-link:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: translateY(-3px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-  background-color: #8eb69b;
+.menu-subtitle {
+    font-size: 1.1rem;
+    color: #6b7280; /* Gray-500 */
+    margin-top: 0.5rem;
 }
 
-/* Estilo para el botón Volver que está en las acciones del header */
-.menu-header-actions a {
-  color: #fff;
-  text-decoration: none;
-  font-weight: 700;
+/* TABS STYLING */
+.menu-tabs-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0; /* Tabs touch or slight gap? Source looks like rounded pill strip or separate pills. Screenshot shows separate pills */
+    background-color: #f3f4f6; /* Gray-100 container? Or just gap */
+    padding: 4px; /* If pill strip */
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    width: fit-content;
 }
 
-html,
-body {
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  background-color: transparent; /* Permite ver la aurora */
+.menu-tab {
+    padding: 10px 24px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #4b5563; /* Gray-600 */
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.menu-tab:hover {
+    color: #111827;
+    background-color: #e5e7eb;
+}
+
+.menu-tab.active {
+    background-color: #ffffff;
+    color: #111827;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* GRID STYLING */
+.menu-items-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 2rem;
+    padding-bottom: 4rem;
+}
+
+.no-items-wrapper {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 4rem;
+    color: #6b7280;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+    .menu-main-title {
+        font-size: 2rem;
+    }
+    
+    .menu-tabs-container {
+        width: 100%;
+        overflow-x: auto; /* Scrollable if too many tabs */
+        flex-wrap: nowrap;
+    }
+    
+    .menu-tab {
+        white-space: nowrap;
+    }
 }

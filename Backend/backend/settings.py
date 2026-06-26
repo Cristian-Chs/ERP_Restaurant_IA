@@ -7,10 +7,9 @@ from datetime import timedelta
 import os
 from dotenv import load_dotenv
 
-# Cargar variables de entorno desde .env
-load_dotenv()
-
 BASE_DIR = Path(__file__).resolve().parent.parent
+# Cargar variables de entorno desde .env en la raíz del proyecto
+load_dotenv(BASE_DIR.parent / '.env')
 
 # --- Seguridad ---
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
@@ -99,7 +98,12 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# --- Archivos estáticos ---
+# --- Secrets desde entorno ---
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '')
+GROQ_API_KEY = os.getenv('GROQ_API_KEY', '')
+ADMIN_CHAT_ID = int(os.getenv('ADMIN_CHAT_ID', '0'))
+CHEF_CHAT_ID = int(os.getenv('CHEF_CHAT_ID', '0'))
+
 # --- Archivos estáticos ---
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
@@ -136,8 +140,8 @@ REST_FRAMEWORK = {
 
 # --- Simple JWT ---
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "TOKEN_OBTAIN_SERIALIZER": "core.serializers.MyTokenObtainPairSerializer",
 }
 

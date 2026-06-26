@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import API from '../api/axios';
 import { useNavigate } from 'react-router-dom';
 import './Login.css';
-import logo from '../assets/images/logo.jpeg';
-import TelegramLogin from '../components/TelegramLogin';
+import { UtensilsCrossed } from 'lucide-react'; // Ensure lucide-react is installed or use fallback
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -19,120 +18,104 @@ export default function Login() {
     }
   }, [error]);
 
-  const handleTelegramLogin = async (user) => {
-    setLoading(true);
+  const handleLogin = async (e) => {
+    if (e) e.preventDefault(); // Handle form submit
     setError('');
+    setLoading(true);
+
     try {
-      const res = await API.post('/auth/telegram/', user);
-      const accessToken = res.data.access;
-      localStorage.setItem('token', accessToken);
-      
-      const payload = JSON.parse(atob(accessToken.split('.')[1]));
-      localStorage.setItem('rol', payload.rol);
-      
-      if (payload.rol === 'admin') navigate('/admin');
-      else if (payload.rol === 'cocina') navigate('/kitchen-panel');
-      else navigate('/menu');
+        const res = await API.post('/auth/jwt/create/', { 
+            username: email, 
+            password: password 
+        });
+        
+        const accessToken = res.data.access; 
+        localStorage.setItem('token', accessToken);
+        
+        const payload = JSON.parse(atob(accessToken.split('.')[1])); 
+        localStorage.setItem('rol', payload.rol);
+        
+        if (payload.rol === 'admin') navigate('/admin');
+        else if (payload.rol === 'cocina') navigate('/kitchen-panel');
+        else navigate('/menu');
+        
     } catch (err) {
-      setError('Fallo al iniciar sesión con Telegram.');
-      console.error(err);
+        if (err.response?.status === 401) {
+            setError('Usuario o contraseña incorrectos');
+        } else {
+            setError('Error de conexión o fallo interno del servidor.');
+            console.error('Error de Login:', err);
+        }
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
   };
 
-const handleLogin = async () => {
-  setError('');
-  setLoading(true);
+  return (
+    <div className="login-page-wrapper">
+      <div className="login-card">
+        <div className="login-card-header">
+          <div className="login-icon-wrapper">
+             <div className="login-icon-bg">
+               {/* Fallback svg if UtensilsCrossed fails or just use it directly */}
+               <UtensilsCrossed size={32} color="white" />
+             </div>
+          </div>
+          <h2 className="login-title">Sabor Venezolano</h2>
+          <p className="login-description">Ingresa tus credenciales para acceder</p>
+        </div>
 
-    try {
-        // CORRECCIÓN CLAVE: Envía el valor del input 'email' como 'username' 
-        // que es lo que Django espera por defecto.
-        const res = await API.post('/auth/jwt/create/', { 
-            username: email, 
-            password: password 
-        });
-        
-        // 1. Asignar y Almacenar el token
-        const accessToken = res.data.access; 
-        localStorage.setItem('token', accessToken);
-        
-         // 2. Decodificar el token para obtener el payload (rol)
-        const payload = JSON.parse(atob(accessToken.split('.')[1])); 
-        localStorage.setItem('rol', payload.rol); //  Guardar rol para el Navbar
-        
-         // 3. Redireccionar (Requiere configuración de CustomJWTSerializer en Django)
-        if (payload.rol === 'admin') {
-            navigate('/admin');
-        } else if (payload.rol === 'cocina') {
-            navigate('/kitchen-panel');
-        } else {
-            navigate('/menu');
-        }
-        
-    } catch (err) {
-        // Manejo de la respuesta 401 de Django (Credenciales incorrectas)
-        if (err.response?.status === 401) {
-            setError('Usuario o contraseña incorrectos');
-        } else {
-            setError('Error de conexión o fallo interno del servidor.');
-            console.error('Error de Login:', err);
-        }
-    } finally {
-        setLoading(false);
-    }
-};
+        <div className="login-card-content">
+          <form onSubmit={handleLogin} className="login-form">
+            <div className="form-group-login">
+              <label htmlFor="username">Usuario</label>
+              <input
+                id="username"
+                type="text"
+                placeholder="usuario"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
+                required
+              />
+            </div>
+            <div className="form-group-login">
+              <label htmlFor="password">Contraseña</label>
+              <input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+                required
+              />
+            </div>
 
-  return (
-  <div className="page-container">
-    <div className="login-content">
-      <img className="logo" src={logo} alt="Logo" />
-      <h2>Iniciar sesión</h2>
+            {error && <p className="error-msg">{error}</p>}
 
-      <div className="form-group">
-        <input
-          placeholder="Usuario"
-          value={email} // El estado se llama 'email' pero contiene el 'username'
-          onChange={(e) => setEmail(e.target.value)}
-          disabled={loading}
-        />
-        <input
-          placeholder="Contraseña"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          disabled={loading}
-        />
+            <button type="submit" className="btn-login-submit" disabled={loading}>
+              {loading ? 'Cargando...' : 'Iniciar Sesión'}
+            </button>
 
-         <button onClick={handleLogin} disabled={loading}>
-          {loading ? 'Cargando...' : 'Entrar'}
-        </button>
+            <p className="login-footer-text">
+              ¿No tienes cuenta?{' '}
+              <button type="button" onClick={() => navigate('/register')} className="login-link">
+                Regístrate aquí
+              </button>
+            </p>
+          </form>
 
-        {/* Telegram Login deshabilitado temporalmente */}
-        {/* 
-        <div className="login-divider">O también puedes</div>
-
-        <div className="telegram-btn-wrapper">
-          <TelegramLogin onAuth={handleTelegramLogin} />
-        </div> 
-        */}
-
-        <div className="login-links">
-          <button onClick={() => navigate('/register')}>
-            ¿No tienes cuenta? Regístrate
-          </button>
-          <button onClick={() => navigate('/forgot-password')}>
-            ¿Olvidaste tu contraseña?
-          </button>
-        </div>
-      </div> 
-
-      {error && <p className="error-msg">{error}</p>}
-
-      <button onClick={() => navigate('/')} className="decorative-button-prueba">
-        <span>Back</span>
-      </button>
-    </div>
-  </div>
-  );
+          <div className="login-credentials-info">
+             <p className="credentials-title">Usuarios de prueba:</p>
+             <div className="credentials-list">
+               <p>Cliente: <span className="font-mono">cliente / 123</span></p>
+               <p>Admin: <span className="font-mono">admin / admin</span></p>
+               <p>Cocina: <span className="font-mono">cocina / cocina</span></p>
+             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }

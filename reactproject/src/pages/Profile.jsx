@@ -13,16 +13,18 @@ export default function Profile() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Obtener datos actuales del usuario
-    API.get('/auth/users/me/')
-      .then(res => {
+    const fetchProfile = async () => {
+      try {
+        const res = await API.get('/auth/users/me/');
         setUserData({ username: res.data.username, email: res.data.email });
-      })
-      .catch(err => {
+      } catch (err) {
         setError('No se pudieron cargar los datos del perfil.');
         console.error(err);
-      })
-      .finally(() => setLoading(false));
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
   }, []);
 
   const handleUpdateData = async () => {
@@ -34,43 +36,32 @@ export default function Profile() {
         email: userData.email 
       });
       setMensaje('Datos actualizados correctamente.');
-    } catch (err) {
+    } catch {
       setError('Error al actualizar los datos.');
     }
   };
 
+  const [currentPassword, setCurrentPassword] = useState('');
+
   const handleChangePassword = async () => {
     setMensaje('');
     setError('');
-    
-    if (!newPassword) {
-      setError('Ingresa una nueva contraseña.');
+
+    if (!newPassword || !currentPassword) {
+      setError('Completa ambos campos de contraseña.');
       return;
     }
 
     try {
-      // Djoser: /auth/users/set_password/ requiere current_password por defecto.
-      // Si el usuario quiere un CRUD directo sin pedir la anterior, podemos 
-      // intentar usar reset_password flow o ajustar el backend, 
-      // pero usaremos el flujo estándar o uno simplificado si Djoser lo permite.
-      // Como el usuario pidió "editar solo su contraseña", asumiremos cambio directo.
-      
-      // Nota: set_password pide { new_password, current_password }.
-      // Si no tenemos la actual, tendríamos que pedirla. 
-      // Por simplicidad en este "CRUD básico", pediremos solo la nueva 
-      // (si el backend lo permite o si ajustamos el serializer).
-      
-      // Por ahora, usaremos reset_password flow si no queremos pedir la actual,
-      // pero para un usuario LOGUEADO, lo normal es pedir la actual.
-      // El usuario dijo "editar solo su contraseña", lo haré directo si es posible.
-      
       await API.post('/auth/users/set_password/', {
         new_password: newPassword,
-        current_password: '' // Esto fallará si Djoser lo requiere.
+        current_password: currentPassword
       });
-      setMensaje('Contraseña cambiada.');
+      setMensaje('Contraseña cambiada correctamente.');
+      setNewPassword('');
+      setCurrentPassword('');
     } catch (err) {
-      setError('Para cambiar la clave desde aquí se requiere la actual o usar recuperación.');
+      setError('La contraseña actual no es correcta o hubo un error.');
       console.error(err);
     }
   };
@@ -98,6 +89,14 @@ export default function Profile() {
         <hr style={{width: '100%', opacity: 0.2, margin: '1rem 0'}} />
 
         <h3>Cambiar Contraseña</h3>
+        <div className="password-container">
+          <input
+            type="password"
+            placeholder="Contraseña actual"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+          />
+        </div>
         <div className="password-container">
           <input
             type={showPassword ? "text" : "password"}

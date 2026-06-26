@@ -1,62 +1,70 @@
 import json
 import asyncio
+import logging
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.db.models import Sum, Count, Avg
 from django.utils import timezone
 from .models import Order, Rating
 from asgiref.sync import sync_to_async
 
+logger = logging.getLogger(__name__)
+
+
 class MetricsConsumer(AsyncWebsocketConsumer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._keep_running = False
+        self._metrics_task = None
+
     async def connect(self):
         await self.accept()
-        self.keep_running = True
-        # Iniciar el bucle de envío de métricas
-        asyncio.create_task(self.send_metrics_periodically())
+        self._keep_running = True
+        self._metrics_task = asyncio.create_task(self._send_metrics_periodically())
 
     async def disconnect(self, close_code):
-        self.keep_running = False
+        self._keep_running = False
+        if self._metrics_task:
+            self._metrics_task.cancel()
+            self._metrics_task = None
 
-    async def send_metrics_periodically(self):
-        while self.keep_running:
-            metrics = await self.get_metrics()
-            await self.send(text_data=json.dumps(metrics))
-            await asyncio.sleep(5) # Actualizar cada 5 segundos
+    async def _send_metrics_periodically(self):
+        while self._keep_running:
+            try:
+                metrics = await self._get_metrics()
+                await self.send(text_data=json.dumps(metrics))
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error(f"Error sending metrics: {e}")
+            await asyncio.sleep(5)
 
     @sync_to_async
-    def get_metrics(self):
+    def _get_metrics(self):
         today = timezone.now().date()
-        
-        # Ingresos de hoy
-        # Nota: Usamos float() porque Decimal no es serializable directamente a JSON
+
         ingresos_hoy = Order.objects.filter(
-            fecha__date=today, 
+            fecha__date=today,
             payment_status='payment_approved'
         ).aggregate(total=Sum('precio'))['total'] or 0
-        
-        # Pedidos activos (pendientes en cocina o caja)
+
         pedidos_activos = Order.objects.filter(
             status__in=['pendiente', 'esperando_pago']
         ).count()
-        
-        # Productos más vendidos hoy
-        # (Heurística simple basada en el campo 'item' que es un string)
-        # En un sistema real sería un modelo OrderItem
+
         top_items = Order.objects.filter(fecha__date=today).values('item').annotate(
             qty=Count('id')
         ).order_by('-qty')[:3]
 
-        #  4. Últimos Ratings con Sentimiento
         latest_ratings = list(
             Rating.objects.all().order_by('-fecha')[:10].values(
                 'plato', 'estrellas', 'comentario', 'sentimiento'
             )
         )
 
-        # Tiempo promedio de preparación (simulado o basado en histórico)
         return {
             "ingresos_hoy": float(ingresos_hoy),
             "pedidos_activos": pedidos_activos,
             "top_items": list(top_items),
-            "recent_ratings": latest_ratings, # Add recent_ratings here
+            "recent_ratings": latest_ratings,
             "timestamp": timezone.now().strftime("%H:%M:%S")
         }

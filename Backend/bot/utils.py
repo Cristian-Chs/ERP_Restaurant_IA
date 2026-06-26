@@ -1,26 +1,31 @@
 import requests
 import json
+import logging
+from django.conf import settings
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
-TELEGRAM_API_URL = "https://api.telegram.org/bot8537597604:AAFyajyokOXKShw5Zx9UNh5likds4FUmUHU/sendMessage"
-TELEGRAM_PHOTO_URL = "https://api.telegram.org/bot8537597604:AAFyajyokOXKShw5Zx9UNh5likds4FUmUHU/sendPhoto"
-ADMIN_CHAT_ID = 5719602467
+logger = logging.getLogger(__name__)
 
-def notificar_pedido_listo(telegram_id, plato):
+BOT_TOKEN = settings.TELEGRAM_BOT_TOKEN
+TELEGRAM_API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+TELEGRAM_PHOTO_URL = f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto"
+ADMIN_CHAT_ID = settings.ADMIN_CHAT_ID
+
+def notificar_pedido_listo(telegram_id, plato, invoice_path=None):
     #  Primer mensaje: Pedido listo + calificación
     mensaje = (
-        f" Tu pedido está listo. \n *{plato}* \n\n"
+        f"🎉 Tu pedido está listo. \n *{plato}* \n\n"
         "¿Qué te pareció?\n"
         "Califícalo con una estrella:"
     )
 
     keyboard = [
         [
-            InlineKeyboardButton(" 1", callback_data=f"rating:{plato}:1"),
-            InlineKeyboardButton(" 2", callback_data=f"rating:{plato}:2"),
-            InlineKeyboardButton(" 3", callback_data=f"rating:{plato}:3"),
-            InlineKeyboardButton(" 4", callback_data=f"rating:{plato}:4"),
-            InlineKeyboardButton(" 5", callback_data=f"rating:{plato}:5"),
+            InlineKeyboardButton("⭐ 1", callback_data=f"rating:{plato}:1"),
+            InlineKeyboardButton("⭐ 2", callback_data=f"rating:{plato}:2"),
+            InlineKeyboardButton("⭐ 3", callback_data=f"rating:{plato}:3"),
+            InlineKeyboardButton("⭐ 4", callback_data=f"rating:{plato}:4"),
+            InlineKeyboardButton("⭐ 5", callback_data=f"rating:{plato}:5"),
         ]
     ]
 
@@ -38,8 +43,8 @@ def notificar_pedido_listo(telegram_id, plato):
     #  Segundo mensaje: Pregunta sobre comentario
     keyboard_comentario = [
         [
-            InlineKeyboardButton(" Sí, dejar comentario", callback_data="dejar_comentario"),
-            InlineKeyboardButton(" No, gracias", callback_data="no_comentario")
+            InlineKeyboardButton("✍️ Sí, dejar comentario", callback_data="dejar_comentario"),
+            InlineKeyboardButton("❌ No, gracias", callback_data="no_comentario")
         ]
     ]
     
@@ -52,25 +57,60 @@ def notificar_pedido_listo(telegram_id, plato):
     }
     
     requests.post(TELEGRAM_API_URL, json=payload_comentario)
+    
+    #  Tercer mensaje: Enviar factura si existe
+    if invoice_path:
+        try:
+            import os
+            if os.path.exists(invoice_path):
+                with open(invoice_path, 'rb') as photo_file:
+                    files = {'photo': photo_file}
+                    payload_factura = {
+                        "chat_id": telegram_id,
+                        "caption": "📄 *Tu Factura Fiscal*\n\nGracias por tu compra. 🙏",
+                        "parse_mode": "Markdown"
+                    }
+                    requests.post(TELEGRAM_PHOTO_URL, data=payload_factura, files=files)
+                    logger.info(f"Factura enviada al cliente {telegram_id}")
+            else:
+                logger.warning(f"Factura no encontrada: {invoice_path}")
+        except Exception as e:
+            logger.error(f"Error enviando factura: {e}")
 
 def notificar_nuevo_pedido_externo(order):
     """
     Notifica al Admin/Chef sobre un nuevo pedido que no es 'Comer Aquí'
     Incluye la foto del comprobante si existe.
     """
+    payment_method = 'Desconocido'
+    if order.payment_data and 'payment_method' in order.payment_data:
+        method_map = {
+            'cash': 'EFECTIVO 💵',
+            'zelle': 'ZELLE 🟣',
+            'pago_movil': 'PAGO MÓVIL 📱',
+            'transfer': 'TRANSFERENCIA 🏦'
+        }
+        raw_method = order.payment_data.get('payment_method')
+        payment_method = method_map.get(raw_method, raw_method.upper())
+
     mensaje = (
-        f" *NUEVO PEDIDO EXTERNO*\n\n"
-        f" #ORDEN: {order.id}\n"
-        f" Cliente: {order.telegram_id}\n"
-        f" Detalle: {order.item}\n"
-        f" Total: ${order.precio}\n"
-        f" Modalidad: {order.get_delivery_mode_display() if order.delivery_mode else 'N/A'}\n"
-        f" Ubicación: {order.location or 'N/A'}\n"
+        f"🔔 *NUEVO PEDIDO EXTERNO*\n\n"
+        f"📋 #ORDEN: {order.id}\n"
+        f"👤 Cliente: {order.customer_name or order.telegram_id}\n"
+        f"🍽️ Detalle: {order.item}\n"
+        f"💵 Total: ${order.precio}\n"
+        f"💳 Método: {payment_method}\n"
+        f"📍 Modalidad: {order.get_delivery_mode_display() if order.delivery_mode else 'N/A'}\n"
+        f"🗺️ Ubicación: {order.location or 'N/A'}\n"
     )
 
     if order.status == 'fraude_sospecha':
         mensaje = f" *POSIBLE FRAUDE DETECTADO*\n\n" + mensaje
         mensaje += f"\n\n *ALERTA*: El comprobante parece duplicado."
+        
+    # Mensaje especial para efectivo
+    if order.payment_data and order.payment_data.get('payment_method') == 'cash':
+        mensaje += "\n💰 *PAGO EN EFECTIVO* - Cobrar al entregar"
 
     if order.payment_proof:
         # Enviar como foto
@@ -82,7 +122,7 @@ def notificar_nuevo_pedido_externo(order):
         }
         requests.post(TELEGRAM_PHOTO_URL, data=payload, files=files)
     else:
-        # Enviar como mensaje
+        # Enviar como mensaje (para efectivo o sin comprobante)
         payload = {
             "chat_id": ADMIN_CHAT_ID,
             "text": mensaje,
@@ -113,7 +153,7 @@ def notificar_pago_aprobado(telegram_id, order_id, invoice_path=None):
                     requests.post(TELEGRAM_PHOTO_URL, data=payload, files=files)
                     return
         except Exception as e:
-            print(f"Error enviando factura por Telegram: {e}")
+            logger.error(f"Error enviando factura por Telegram: {e}")
             # Si falla, enviar solo el mensaje de texto
     
     # Fallback: enviar solo mensaje de texto

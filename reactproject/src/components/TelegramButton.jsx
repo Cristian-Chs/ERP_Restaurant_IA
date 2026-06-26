@@ -14,7 +14,7 @@ function TelegramButton() {
 
   // Mensaje prellenado con saludo y opciones
   const prefilledMessage = encodeURIComponent(
-    `¡Hola ${nombreUsuario}! \nSelecciona una opción:\n\n1⃣ Hacer un pedido\n2⃣ Consultar estado de mi pedido\n3⃣ Hablar con soporte`
+    `¡Hola ${nombreUsuario}! Me gustaría hacer un pedido.`
   );
 
   // Enlace directo al bot con mensaje prellenado

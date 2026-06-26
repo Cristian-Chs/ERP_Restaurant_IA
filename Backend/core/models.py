@@ -167,3 +167,13 @@ class GlobalSetting(models.Model):
             return cls.objects.get(key=key).value
         except cls.DoesNotExist:
             return default
+
+# MESA MANAGEMENT
+class Table(models.Model):
+    number = models.IntegerField(unique=True)
+    is_occupied = models.BooleanField(default=False)
+
+    def __str__(self):
+        status = "Ocupada" if self.is_occupied else "Disponible"
+        return f"Mesa {self.number} - {status}"
+

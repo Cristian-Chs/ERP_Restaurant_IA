@@ -4,6 +4,7 @@ Lógica de negocio para creación y gestión de pedidos.
 """
 import logging
 import requests
+import re
 from ..config import ORDERS_URL, PRODUCTOS_URL
 from asgiref.sync import sync_to_async
 from core.models import Ingredient
@@ -124,52 +125,104 @@ def extraer_producto_base(texto_usuario: str) -> str | None:
 
 async def interpretar_pedido(texto_usuario: str) -> dict:
     """
-    Analiza el texto del usuario y devuelve una estructura de pedido.
-    """
-    # 1. Limpieza inicial
-    texto_limpio = clean_order_text(texto_usuario)
+    Analiza el texto del usuario y devuelve múltiples productos usando fuzzy matching.
     
-    # 2. Extraer cantidad y texto restante
-    cantidad, texto_sin_cantidad = extraer_cantidad_y_producto(texto_limpio)
-    
-    # Si no se especificó cantidad, asumimos 1
-    cantidad_final = cantidad if cantidad is not None else 1
-    
-    # 3. Detectar producto base
-    producto_base = extraer_producto_base(texto_sin_cantidad)
-    
-    if not producto_base:
-        return {
-            "producto": None,
-            "cantidad": cantidad_final,
-            "es_pedido_valido": False
+    Returns:
+        {
+            "es_pedido_valido": bool,
+            "items": [
+                {"producto": str, "cantidad": int, "precio": float},
+                ...
+            ],
+            "total": float,
+            "pedido_final": str
         }
-
-    # 4. Obtener ingredientes
-    ingredientes_menu = await obtener_ingredientes_producto(producto_base)
-
-    removidos = extraer_ingredientes_removidos(texto_sin_cantidad, ingredientes_menu)
-    agregados = extraer_ingredientes_agregados(texto_sin_cantidad, ingredientes_menu)
-
-    # 5. Construir string final
-    pedido_str = producto_base.title()
-    
-    modificaciones = []
-    if removidos:
-        modificaciones.append(f"sin {', '.join(removidos)}")
-    if agregados:
-        modificaciones.append(f"con {', '.join(agregados)}")
+    """
+    # 1. Obtener todos los productos del menú
+    try:
+        r = requests.get(PRODUCTOS_URL, timeout=5)
+        if r.status_code != 200:
+            return {"es_pedido_valido": False, "items": [], "total": 0, "pedido_final": ""}
         
-    if modificaciones:
-        pedido_str += f" ({', '.join(modificaciones)})"
+        productos_data = r.json().get("productos_detalle", [])
+        if not productos_data:
+            return {"es_pedido_valido": False, "items": [], "total": 0, "pedido_final": ""}
+            
+        # Crear diccionario {nombre_lower: info} para búsqueda rápida
+        productos_map = {p["nombre"].lower(): p for p in productos_data}
+        nombres_productos = list(productos_map.keys())
+            
+    except Exception as e:
+        print(f"Error fetching products: {e}")
+        return {"es_pedido_valido": False, "items": [], "total": 0, "pedido_final": ""}
     
-    pedido_final = f"{cantidad_final} x {pedido_str}"
+    # 2. Dividir el texto en segmentos (por comas y conjunciones)
+    # Reemplazar ' y ', ' e ' por comas para facilitar split
+    texto_seg = re.sub(r' (y|e) ', ',', texto_usuario, flags=re.IGNORECASE)
+    segmentos = [s.strip() for s in texto_seg.split(',')]
+    
+    items_detectados = []
+    
+    for segmento in segmentos:
+        if not segmento:
+            continue
+            
+        # Limpiar segmento y extraer cantidad
+        segmento_limpio = clean_order_text(segmento)
+        cantidad, producto_texto = extraer_cantidad_y_producto(segmento_limpio)
+        
+        # Default quantity to 1 if not detected (e.g. "una" removed or implicit)
+        if cantidad is None:
+            cantidad = 1
+        
+        if not producto_texto:
+            continue
 
+            
+        # Fuzzy Match contra nombres de productos
+        match = process.extractOne(
+            producto_texto.lower(), 
+            nombres_productos, 
+            scorer=fuzz.token_set_ratio
+        )
+        
+        if match:
+            nombre_match, score, _ = match
+            
+            # Umbral de confianza
+            if score >= 80:
+                producto_info = productos_map[nombre_match]
+                precio = float(producto_info.get("precio", 0))
+                
+                # Verificar si ya detectamos este producto (sumar cantidad)
+                existente = next((i for i in items_detectados if i["producto"] == producto_info["nombre"]), None)
+                
+                if existente:
+                    existente["cantidad"] += cantidad
+                    existente["precio"] = existente["cantidad"] * precio
+                else:
+                    items_detectados.append({
+                        "id": producto_info.get("id"),
+                        "producto": producto_info.get("nombre"), 
+                        "cantidad": cantidad,
+                        "precio": precio * cantidad
+                    })
+    
+    # 4. Si no se detectó nada, retornar inválido
+    if not items_detectados:
+        return {"es_pedido_valido": False, "items": [], "total": 0, "pedido_final": ""}
+    
+    # 5. Calcular total
+    total = sum(item["precio"] for item in items_detectados)
+    
+    # 6. Crear string concatenado
+    pedido_parts = [f"{item['cantidad']} x {item['producto']}" for item in items_detectados]
+    pedido_final = ", ".join(pedido_parts)
+    
     return {
-        "producto": producto_base,
-        "cantidad": cantidad_final,
-        "removidos": removidos,
-        "agregados": agregados,
-        "pedido_final": pedido_final,
-        "es_pedido_valido": True
+        "es_pedido_valido": True,
+        "items": items_detectados,
+        "total": total,
+        "pedido_final": pedido_final
     }
+

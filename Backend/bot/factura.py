@@ -72,8 +72,13 @@ class InvoiceGenerator:
         y += 10
 
         # --- CLIENT INFO ---
-        # Fetch client info (simulated or from order if available)
-        client_name = f"Cliente Telegram ({order.telegram_id})"
+        # Fetch client info from order
+        if hasattr(order, 'customer_name') and order.customer_name:
+            client_name = f"{order.customer_name} (ID: {order.telegram_id})"
+        else:
+            # Fallback: try to get first name from Telegram user
+            client_name = f"Cliente Telegram (ID: {order.telegram_id})"
+        
         client_doc = "V-00000000"
         
         d.text((self.MARGIN, y), f"Cliente: {client_name}", font=font_body, fill=self.TEXT_COLOR); y += self.LINE_HEIGHT

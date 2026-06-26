@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import './KitchenPanel.css';
 import '../components/AuroraBackground.css'; // Reutilizar fondo si se desea, o mantener limpio
 
@@ -7,51 +6,60 @@ import '../components/AuroraBackground.css'; // Reutilizar fondo si se desea, o 
    Since I can't edit CSS easily without finding it, I will add inline styles or assume CSS file exists. I'll edit the CSS file.
 */
 
-const API_BASE_URL = 'http://localhost:8000/api/bot'; // Ajustado para incluir /api
+import API from '../api/axios';
 
 function KitchenPanel() {
   const [orders, setOrders] = useState([]);
   const [allPayments, setAllPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('COCINA'); // COCINA, CAJA, PAGOS
-  const navigate = useNavigate();
-
-  /* Modal State */
   const [selectedImage, setSelectedImage] = useState(null);
 
   const openImageModal = (imageUrl) => {
-    setSelectedImage(imageUrl);
+    if (imageUrl && !imageUrl.startsWith('http')) {
+        setSelectedImage(`http://localhost:8000${imageUrl}`);
+    } else {
+        setSelectedImage(imageUrl);
+    }
   };
 
-  const closeImageModal = () => {
-    setSelectedImage(null);
-  };
+  const closeImageModal = () => setSelectedImage(null);
 
-  // Función para obtener pedidos
+  const [tables, setTables] = useState([]);
+
   const fetchOrders = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/cocina/orders/`);
-      if (response.ok) {
-        const data = await response.json();
-        setOrders(data);
-      }
+      const res = await API.get('/bot/api/cocina/orders/');
+      setOrders(res.data);
     } catch (error) {
       console.error('Error fetching orders:', error);
-    } 
+    }
   };
 
-  // Función para obtener TODOS los pagos (Historial)
   const fetchAllPayments = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/cocina/payments/`);
-      if (response.ok) {
-        const data = await response.json();
-        setAllPayments(data);
-      }
+      const res = await API.get('/bot/api/cocina/payments/');
+      setAllPayments(res.data);
     } catch (error) {
       console.error('Error fetching payments:', error);
-    } finally {
-      if (activeTab === 'PAGOS') setLoading(false);
+    }
+  };
+
+  const fetchTables = async () => {
+    try {
+      const res = await API.get('/tables/');
+      setTables(res.data);
+    } catch (error) {
+      console.error('Error fetching tables:', error);
+    }
+  };
+
+  const toggleTable = async (id, currentStatus) => {
+    try {
+      await API.patch(`/tables/${id}/`, { is_occupied: !currentStatus });
+      fetchTables();
+    } catch (error) {
+      console.error('Error toggling table:', error);
     }
   };
 
@@ -59,42 +67,33 @@ function KitchenPanel() {
   useEffect(() => {
     const fetchData = async () => {
         setLoading(true);
-        await Promise.all([fetchOrders(), fetchAllPayments()]);
+        await Promise.all([fetchOrders(), fetchAllPayments(), fetchTables()]);
         setLoading(false);
     };
     fetchData();
     
     const interval = setInterval(async () => {
-        await Promise.all([fetchOrders(), fetchAllPayments()]);
+        await Promise.all([fetchOrders(), fetchAllPayments(), fetchTables()]);
     }, 8000);
     return () => clearInterval(interval);
   }, []);
 
   const markAsReady = async (orderId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/cocina/orders/${orderId}/ready/`, {
-        method: 'POST',
-      });
-      if (response.ok) {
-        setOrders(orders.filter(o => o.id !== orderId));
-        alert('¡Pedido marcado como listo! ');
-      } else {
-        alert('Error al actualizar pedido');
-      }
+      await API.post(`/bot/api/cocina/orders/${orderId}/ready/`);
+      setOrders(prev => prev.filter(o => o.id !== orderId));
+      alert('¡Pedido marcado como listo!');
     } catch (error) {
       console.error('Error marking order:', error);
+      alert('Error al actualizar pedido');
     }
   };
 
   const approvePayment = async (orderId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/cocina/orders/${orderId}/approve-payment/`, {
-        method: 'POST',
-      });
-      if (response.ok) {
-        alert('¡Pago APROBADO! El pedido se movió a Cocina. ');
-        fetchOrders(); // Recargar para ver el cambio
-      }
+      await API.post(`/bot/api/cocina/orders/${orderId}/approve-payment/`);
+      alert('¡Pago APROBADO! El pedido se movió a Cocina.');
+      fetchOrders();
     } catch (error) {
       console.error('Error approving payment:', error);
     }
@@ -103,13 +102,9 @@ function KitchenPanel() {
   const rejectPayment = async (orderId) => {
     if (!window.confirm("¿Rechazar comprobante de pago? El cliente será notificado.")) return;
     try {
-      const response = await fetch(`${API_BASE_URL}/api/cocina/orders/${orderId}/reject-payment/`, {
-        method: 'POST',
-      });
-      if (response.ok) {
-        alert('Pago rechazado. ');
-        fetchOrders();
-      }
+      await API.post(`/bot/api/cocina/orders/${orderId}/reject-payment/`);
+      alert('Pago rechazado.');
+      fetchOrders();
     } catch (error) {
       console.error('Error rejecting payment:', error);
     }
@@ -124,6 +119,42 @@ function KitchenPanel() {
   // COCINA: Pedidos aprobados O pedidos locales (Comer Aquí)
   const cocinaOrders = orders.filter(o => 
     o.payment_status === 'payment_approved' || o.service_type === 'HERE'
+  );
+
+  const TablesGrid = () => (
+      <div className="orders-section">
+          <h2 className="section-title">Disponibilidad de Mesas</h2>
+          <div className="tables-grid-container" style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', padding: '20px' }}>
+              {tables.map(table => (
+                  <div 
+                    key={table.id} 
+                    onClick={() => toggleTable(table.id, table.is_occupied)}
+                    style={{
+                        width: '120px',
+                        height: '120px',
+                        borderRadius: '15px',
+                        backgroundColor: table.is_occupied ? '#ff4b4b' : '#2ecc71',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
+                        transition: 'transform 0.2s',
+                        border: '2px solid rgba(255,255,255,0.1)'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                  >
+                      <span style={{ fontSize: '2rem', fontWeight: 'bold' }}>{table.number}</span>
+                      <span style={{ marginTop: '5px', fontSize: '0.9rem' }}>
+                          {table.is_occupied ? 'OCUPADA' : 'LIBRE'}
+                      </span>
+                  </div>
+              ))}
+          </div>
+          <p style={{ marginTop: '10px', opacity: 0.7, paddingLeft: '20px' }}>* Click en la mesa para cambiar estado</p>
+      </div>
   );
 
   const OrderGrid = ({ title, orderList, icon, isCaja = false }) => (
@@ -306,6 +337,12 @@ function KitchenPanel() {
           >
             HISTORIAL DE PAGOS <span className="tab-count">{allPayments.length}</span>
           </button>
+          <button 
+            className={`tab-btn ${activeTab === 'MESAS' ? 'active' : ''}`}
+            onClick={() => setActiveTab('MESAS')}
+          >
+            MESAS 
+          </button>
         </div>
       </div>
 
@@ -319,6 +356,7 @@ function KitchenPanel() {
           {activeTab === 'COCINA' && <OrderGrid title="Pedidos para Preparar" orderList={cocinaOrders} icon="" />}
           {activeTab === 'CAJA' && <OrderGrid title="Pagos por Verificar" orderList={cajaOrders} icon="" isCaja={true} />}
           {activeTab === 'PAGOS' && <PaymentHistoryGrid />}
+          {activeTab === 'MESAS' && <TablesGrid />}
         </div>
       )}
     </div>
